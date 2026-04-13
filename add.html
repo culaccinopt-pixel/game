@@ -46,7 +46,7 @@
             <div class="form-grid">
                 <div class="field-group full-width">
                     <label>Nome do Novo Tópico</label>
-                    <input type="text" id="nome" required placeholder="Ex: Movimentação">
+                    <input type="text" id="nome" required placeholder="Ex: Ações de Patrulha">
                 </div>
 
                 <div class="field-group full-width">
@@ -59,28 +59,29 @@
                     </select>
                 </div>
 
+                <!-- Dropdowns Dependentes -->
                 <div class="field-group hidden" id="group-pai">
                     <label>Vincular ao Pai</label>
-                    <select id="catPai"><option value="">Carregando...</option></select>
+                    <select id="catPai"><option value="">Selecione o Pai...</option></select>
                 </div>
 
                 <div class="field-group hidden" id="group-filho">
                     <label>Vincular ao Filho</label>
-                    <select id="catFilho"><option value="">Carregando...</option></select>
+                    <select id="catFilho"><option value="">Selecione o Filho...</option></select>
                 </div>
 
                 <div class="field-group hidden" id="group-neto">
                     <label>Vincular ao Neto</label>
-                    <select id="catNeto"><option value="">Carregando...</option></select>
+                    <select id="catNeto"><option value="">Selecione o Neto...</option></select>
                 </div>
 
                 <div class="field-group">
                     <label>Ordem</label>
-                    <input type="number" id="ordem" placeholder="Auto-preenchido">
+                    <input type="number" id="ordem" placeholder="0">
                     <span id="ordem-info" class="auto-info">Sugerido automaticamente</span>
                 </div>
                 
-                <div class="field-group"><label>Tags</label><input type="text" id="tags" placeholder="combate, naval"></div>
+                <div class="field-group"><label>Tags</label><input type="text" id="tags" placeholder="segurança, patrulha"></div>
 
                 <div class="field-group full-width">
                     <label>Conteúdo Inicial</label>
@@ -120,59 +121,87 @@
             neto: document.getElementById('catNeto')
         };
 
-        async function loadExistingData() {
+        // 1. Carregar dados iniciais e popular o primeiro nível (Pai)
+        async function init() {
             const querySnapshot = await getDocs(collection(db, "docs"));
             localData = querySnapshot.docs.map(doc => doc.data());
             
-            const populate = (id, categoriaFiltro) => {
-                const dropdown = selects[id];
-                const nomesUnicos = [...new Set(localData.filter(d => d.categoria === categoriaFiltro).map(d => d.nome))];
-                dropdown.innerHTML = '<option value="">Selecione...</option>';
-                nomesUnicos.sort().forEach(nome => {
-                    const opt = document.createElement('option');
-                    opt.value = nome; opt.innerText = nome; dropdown.appendChild(opt);
-                });
-            };
-
-            populate('pai', 'pai');
-            populate('filho', 'filho');
-            populate('neto', 'neto');
-            
-            calculateOrdem(); // Calcula inicial
+            populateParents();
+            calculateOrdem();
         }
 
+        function populateParents() {
+            const dropdown = selects.pai;
+            const nomesUnicos = [...new Set(localData.filter(d => d.categoria === 'pai').map(d => d.nome))];
+            dropdown.innerHTML = '<option value="">Selecione o Pai...</option>';
+            nomesUnicos.sort().forEach(nome => {
+                const opt = document.createElement('option');
+                opt.value = nome; opt.innerText = nome; dropdown.appendChild(opt);
+            });
+        }
+
+        // 2. Lógica de Dropdowns Dependentes (Filtro por Hierarquia)
+        selects.pai.addEventListener('change', () => {
+            const paiSelecionado = selects.pai.value;
+            const dropdown = selects.filho;
+            
+            // Filtra: apenas filhos cujo campo 'categoriaPai' seja o pai selecionado
+            const nomesFilhos = [...new Set(localData
+                .filter(d => d.categoria === 'filho' && d.categoriaPai === paiSelecionado)
+                .map(d => d.nome))];
+
+            dropdown.innerHTML = '<option value="">Selecione o Filho...</option>';
+            nomesFilhos.sort().forEach(nome => {
+                const opt = document.createElement('option');
+                opt.value = nome; opt.innerText = nome; dropdown.appendChild(opt);
+            });
+
+            // Reseta o neto se o pai mudar
+            selects.neto.innerHTML = '<option value="">Selecione o Neto...</option>';
+            calculateOrdem();
+        });
+
+        selects.filho.addEventListener('change', () => {
+            const filhoSelecionado = selects.filho.value;
+            const dropdown = selects.neto;
+            
+            // Filtra: apenas netos cujo campo 'categoriaFilho' seja o filho selecionado
+            const nomesNetos = [...new Set(localData
+                .filter(d => d.categoria === 'neto' && d.categoriaFilho === filhoSelecionado)
+                .map(d => d.nome))];
+
+            dropdown.innerHTML = '<option value="">Selecione o Neto...</option>';
+            nomesNetos.sort().forEach(nome => {
+                const opt = document.createElement('option');
+                opt.value = nome; opt.innerText = nome; dropdown.appendChild(opt);
+            });
+
+            calculateOrdem();
+        });
+
+        selects.neto.addEventListener('change', calculateOrdem);
+
+        // 3. Lógica de Ordem Automática
         function calculateOrdem() {
             const level = categoriaSelect.value;
             let count = 0;
 
             if (level === 'pai') {
-                // Conta quantos pais únicos existem
-                const uniqueNames = [...new Set(localData.filter(d => d.categoria === 'pai').map(d => d.nome))];
-                count = uniqueNames.length;
+                count = [...new Set(localData.filter(d => d.categoria === 'pai').map(d => d.nome))].length;
             } else if (level === 'filho') {
-                const parentValue = selects.pai.value;
-                if(parentValue) {
-                    const uniqueNames = [...new Set(localData.filter(d => d.categoria === 'filho' && d.categoriaPai === parentValue).map(d => d.nome))];
-                    count = uniqueNames.length;
-                }
+                const p = selects.pai.value;
+                count = [...new Set(localData.filter(d => d.categoria === 'filho' && d.categoriaPai === p).map(d => d.nome))].length;
             } else if (level === 'neto') {
-                const childValue = selects.filho.value;
-                if(childValue) {
-                    const uniqueNames = [...new Set(localData.filter(d => d.categoria === 'neto' && d.categoriaFilho === childValue).map(d => d.nome))];
-                    count = uniqueNames.length;
-                }
+                const f = selects.filho.value;
+                count = [...new Set(localData.filter(d => d.categoria === 'neto' && d.categoriaFilho === f).map(d => d.nome))].length;
             } else if (level === 'bisneto') {
-                const netoValue = selects.neto.value;
-                if(netoValue) {
-                    const uniqueNames = [...new Set(localData.filter(d => d.categoria === 'bisneto' && d.categoriaNeto === netoValue).map(d => d.nome))];
-                    count = uniqueNames.length;
-                }
+                const n = selects.neto.value;
+                count = [...new Set(localData.filter(d => d.categoria === 'bisneto' && d.categoriaNeto === n).map(d => d.nome))].length;
             }
-
             ordemInput.value = count + 1;
         }
 
-        // Event Listeners para recalculado automático
+        // Visibilidade dos campos
         categoriaSelect.addEventListener('change', (e) => {
             const v = e.target.value;
             document.getElementById('group-pai').classList.toggle('hidden', v === 'pai');
@@ -181,12 +210,9 @@
             calculateOrdem();
         });
 
-        selects.pai.addEventListener('change', calculateOrdem);
-        selects.filho.addEventListener('change', calculateOrdem);
-        selects.neto.addEventListener('change', calculateOrdem);
-
         window.formatDoc = (cmd, val = null) => document.execCommand(cmd, false, val);
 
+        // 4. Submissão
         document.getElementById('meuFormulario').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btnGravar');
@@ -211,7 +237,7 @@
             } catch (err) { alert("Erro ao salvar!"); btn.disabled = false; }
         });
 
-        loadExistingData();
+        init();
     </script>
 </body>
 </html>
