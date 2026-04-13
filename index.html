@@ -217,23 +217,32 @@
             renderCards(doc);
         };
 
-        function renderContent(doc) {
-            const area = document.getElementById('page-data');
-            
-            // Formatar Tags
-            const tagsHtml = doc.tags 
-                ? `<div class="tags-container">${doc.tags.split(',').map(t => `<span class="tag">${t.trim()}</span>`).join('')}</div>`
-                : '';
+     function renderContent(nomeDoTopico) {
+    const area = document.getElementById('page-data');
+    const posts = allDocs.filter(d => d.nome === nomeDoTopico);
+    
+    if (posts.length === 0) return;
 
-            area.innerHTML = `
-                <h1 class="page-title">${doc.nome}</h1>
-                ${tagsHtml}
-                <div class="html-content">${doc.textoHtml || '<i>Sem conteúdo cadastrado.</i>'}</div>
-            `;
-            
-            // Scroll para o topo
-            document.querySelector('.main-content').scrollTop = 0;
-        }
+    // Cabeçalho com o nome e tags do primeiro post
+    const info = posts[0];
+    const tagsHtml = info.tags 
+        ? `<div class="tags-container">${info.tags.split(',').map(t => `<span class="tag">${t.trim()}</span>`).join('')}</div>`
+        : '';
+
+    let postsHtml = '';
+    // Loop para mostrar todos os posts daquele tópico (Antigo primeiro)
+    posts.forEach(post => {
+        postsHtml += `<div class="manual-post" style="margin-bottom: 30px; border-bottom: 1px solid #eee; padding-bottom: 20px;">
+                        ${post.textoHtml}
+                      </div>`;
+    });
+
+    area.innerHTML = `
+        <h1 class="page-title">${info.nome}</h1>
+        ${tagsHtml}
+        <div class="html-content">${postsHtml}</div>
+    `;
+}
 
         function renderCards(doc) {
             const cardsContainer = document.getElementById('cards-container');
