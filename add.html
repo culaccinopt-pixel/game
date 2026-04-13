@@ -32,7 +32,7 @@
         #editor { min-height: 120px; border: 1px solid var(--border); border-radius: 0 0 6px 6px; padding: 10px; background: var(--input-bg); overflow-y: auto; }
         .btn-submit { background: var(--primary); color: white; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 15px; transition: 0.3s; }
         .btn-submit:hover { background: #6366f1; }
-        .loading-text { font-size: 0.7rem; color: var(--primary); margin-top: 2px; }
+        .auto-info { font-size: 0.7rem; color: #22c55e; margin-top: 4px; }
     </style>
 </head>
 <body>
@@ -44,24 +44,21 @@
         <h2>Novo Tópico</h2>
         <form id="meuFormulario">
             <div class="form-grid">
-                <!-- Nome -->
                 <div class="field-group full-width">
                     <label>Nome do Novo Tópico</label>
-                    <input type="text" id="nome" required placeholder="">
+                    <input type="text" id="nome" required placeholder="Ex: Movimentação">
                 </div>
 
-                <!-- Categoria Principal -->
                 <div class="field-group full-width">
                     <label>Nível da Categoria</label>
                     <select id="categoria" required>
                         <option value="pai">Pai (Raiz)</option>
-                        <option value="filho">Filho (Sub-categoria)</option>
+                        <option value="filho">Filho</option>
                         <option value="neto">Neto</option>
                         <option value="bisneto">Bisneto</option>
                     </select>
                 </div>
 
-                <!-- Dropdowns Condicionais -->
                 <div class="field-group hidden" id="group-pai">
                     <label>Vincular ao Pai</label>
                     <select id="catPai"><option value="">Carregando...</option></select>
@@ -77,17 +74,20 @@
                     <select id="catNeto"><option value="">Carregando...</option></select>
                 </div>
 
-                <!-- Ordem e Tags -->
-                <div class="field-group"><label>Ordem</label><input type="text" id="ordem" placeholder="001"></div>
-                <div class="field-group"><label>Tags</label><input type="text" id="tags" placeholder="tag1, tag2"></div>
+                <div class="field-group">
+                    <label>Ordem</label>
+                    <input type="number" id="ordem" placeholder="Auto-preenchido">
+                    <span id="ordem-info" class="auto-info">Sugerido automaticamente</span>
+                </div>
+                
+                <div class="field-group"><label>Tags</label><input type="text" id="tags" placeholder="combate, naval"></div>
 
-                <!-- Editor -->
                 <div class="field-group full-width">
                     <label>Conteúdo Inicial</label>
                     <div class="toolbar">
                         <button type="button" onclick="formatDoc('bold')">B</button>
                         <button type="button" onclick="formatDoc('italic')">I</button>
-                        <button type="button" onclick="formatDoc('formatBlock', 'h2')">H2</button>
+                        <button type="button" onclick="formatDoc('formatBlock', 'h2')">Título</button>
                     </div>
                     <div id="editor" contenteditable="true"></div>
                 </div>
@@ -111,55 +111,83 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // Referências
-        const form = document.getElementById('meuFormulario');
+        let localData = [];
         const categoriaSelect = document.getElementById('categoria');
+        const ordemInput = document.getElementById('ordem');
         const selects = {
             pai: document.getElementById('catPai'),
             filho: document.getElementById('catFilho'),
             neto: document.getElementById('catNeto')
         };
 
-        // Ao carregar a página, busca dados para os dropdowns
-        async function loadExistingCategories() {
-            try {
-                const querySnapshot = await getDocs(collection(db, "docs"));
-                const data = querySnapshot.docs.map(doc => doc.data());
+        async function loadExistingData() {
+            const querySnapshot = await getDocs(collection(db, "docs"));
+            localData = querySnapshot.docs.map(doc => doc.data());
+            
+            const populate = (id, categoriaFiltro) => {
+                const dropdown = selects[id];
+                const nomesUnicos = [...new Set(localData.filter(d => d.categoria === categoriaFiltro).map(d => d.nome))];
+                dropdown.innerHTML = '<option value="">Selecione...</option>';
+                nomesUnicos.sort().forEach(nome => {
+                    const opt = document.createElement('option');
+                    opt.value = nome; opt.innerText = nome; dropdown.appendChild(opt);
+                });
+            };
 
-                // Função auxiliar para popular select com nomes únicos
-                const populate = (id, categoriaFiltro) => {
-                    const dropdown = selects[id];
-                    const nomesUnicos = [...new Set(data.filter(d => d.categoria === categoriaFiltro).map(d => d.nome))];
-                    
-                    dropdown.innerHTML = '<option value="">Selecione...</option>';
-                    nomesUnicos.sort().forEach(nome => {
-                        const opt = document.createElement('option');
-                        opt.value = nome;
-                        opt.innerText = nome;
-                        dropdown.appendChild(opt);
-                    });
-                };
-
-                populate('pai', 'pai');
-                populate('filho', 'filho');
-                populate('neto', 'neto');
-
-            } catch (e) {
-                console.error("Erro ao carregar categorias: ", e);
-            }
+            populate('pai', 'pai');
+            populate('filho', 'filho');
+            populate('neto', 'neto');
+            
+            calculateOrdem(); // Calcula inicial
         }
 
-        // Lógica de mostrar/esconder campos
+        function calculateOrdem() {
+            const level = categoriaSelect.value;
+            let count = 0;
+
+            if (level === 'pai') {
+                // Conta quantos pais únicos existem
+                const uniqueNames = [...new Set(localData.filter(d => d.categoria === 'pai').map(d => d.nome))];
+                count = uniqueNames.length;
+            } else if (level === 'filho') {
+                const parentValue = selects.pai.value;
+                if(parentValue) {
+                    const uniqueNames = [...new Set(localData.filter(d => d.categoria === 'filho' && d.categoriaPai === parentValue).map(d => d.nome))];
+                    count = uniqueNames.length;
+                }
+            } else if (level === 'neto') {
+                const childValue = selects.filho.value;
+                if(childValue) {
+                    const uniqueNames = [...new Set(localData.filter(d => d.categoria === 'neto' && d.categoriaFilho === childValue).map(d => d.nome))];
+                    count = uniqueNames.length;
+                }
+            } else if (level === 'bisneto') {
+                const netoValue = selects.neto.value;
+                if(netoValue) {
+                    const uniqueNames = [...new Set(localData.filter(d => d.categoria === 'bisneto' && d.categoriaNeto === netoValue).map(d => d.nome))];
+                    count = uniqueNames.length;
+                }
+            }
+
+            ordemInput.value = count + 1;
+        }
+
+        // Event Listeners para recalculado automático
         categoriaSelect.addEventListener('change', (e) => {
             const v = e.target.value;
             document.getElementById('group-pai').classList.toggle('hidden', v === 'pai');
             document.getElementById('group-filho').classList.toggle('hidden', v === 'pai' || v === 'filho');
             document.getElementById('group-neto').classList.toggle('hidden', v !== 'bisneto');
+            calculateOrdem();
         });
+
+        selects.pai.addEventListener('change', calculateOrdem);
+        selects.filho.addEventListener('change', calculateOrdem);
+        selects.neto.addEventListener('change', calculateOrdem);
 
         window.formatDoc = (cmd, val = null) => document.execCommand(cmd, false, val);
 
-        form.addEventListener('submit', async (e) => {
+        document.getElementById('meuFormulario').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btnGravar');
             btn.disabled = true;
@@ -170,7 +198,7 @@
                 categoriaPai: selects.pai.value || null,
                 categoriaFilho: selects.filho.value || null,
                 categoriaNeto: selects.neto.value || null,
-                ordem: document.getElementById('ordem').value,
+                ordem: parseInt(ordemInput.value),
                 tags: document.getElementById('tags').value,
                 textoHtml: document.getElementById('editor').innerHTML,
                 createdAt: serverTimestamp()
@@ -178,15 +206,12 @@
 
             try {
                 await addDoc(collection(db, "docs"), dados);
-                alert("Novo tópico criado com sucesso!");
+                alert("Gravado com sucesso!");
                 location.reload();
-            } catch (err) { 
-                alert("Erro ao salvar!"); 
-                btn.disabled = false; 
-            }
+            } catch (err) { alert("Erro ao salvar!"); btn.disabled = false; }
         });
 
-        loadExistingCategories();
+        loadExistingData();
     </script>
 </body>
 </html>
