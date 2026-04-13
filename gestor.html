@@ -12,41 +12,68 @@
             --white: #f8fafc; 
             --border: #334155; 
             --card-bg: #1e293b;
+            --danger: #ef4444;
         }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; height: 100vh; background: var(--bg); color: var(--white); }
+        
+        /* Sidebar */
         .sidebar { width: 320px; background: #1e293b; border-left: 2px solid var(--border); order: 2; overflow-y: auto; padding: 20px; }
-        .main-content { flex: 1; order: 1; overflow-y: auto; padding: 30px; }
         .sidebar-header { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border); }
-        .btn-view { text-decoration: none; background: #475569; color: white; padding: 8px; border-radius: 6px; text-align: center; font-size: 0.9rem; }
-        .btn-add { text-decoration: none; background: #16a34a; color: white; padding: 8px; border-radius: 6px; text-align: center; font-size: 0.9rem; }
+        
+        /* Conteúdo Principal */
+        .main-content { flex: 1; order: 1; overflow-y: auto; padding: 30px; scroll-behavior: smooth; }
+        
+        /* Árvore */
         .tree-node { margin-left: 15px; border-left: 1px dashed #475569; padding-left: 10px; }
         .tree-label { padding: 5px; cursor: pointer; font-size: 0.9rem; display: block; border-radius: 4px; color: #cbd5e1; }
         .tree-label:hover { background: #334155; color: var(--accent); }
-        .post-card { background: var(--card-bg); border: 1px solid var(--border); padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+
+        /* Cards de Post */
+        .post-card { background: var(--card-bg); border: 1px solid var(--border); padding: 15px; border-radius: 8px; margin-bottom: 15px; position: relative; }
         .post-date { font-size: 0.7rem; color: #94a3b8; margin-bottom: 10px; }
+        .post-content { line-height: 1.5; }
+        .post-actions { display: flex; gap: 10px; margin-top: 10px; border-top: 1px solid #334155; padding-top: 10px; }
+
+        /* Botões */
+        .btn { border: none; border-radius: 6px; padding: 8px 12px; cursor: pointer; font-weight: bold; font-size: 0.8rem; transition: 0.3s; color: white; text-decoration: none; text-align: center; }
+        .btn-edit { background: #f59e0b; }
+        .btn-delete { background: var(--danger); }
+        .btn-save { background: var(--accent); width: 100%; padding: 12px; font-size: 1rem; }
+        .btn-cancel { background: #64748b; margin-top: 5px; width: 100%; }
+        .btn-view { background: #475569; }
+        .btn-add { background: #16a34a; }
+
+        /* Editor */
         .editor-box { background: #1e293b; padding: 20px; border: 2px solid var(--accent); border-radius: 8px; margin-bottom: 30px; }
         #editor { min-height: 120px; border: 1px solid var(--border); padding: 10px; margin: 10px 0; border-radius: 4px; background: #0f172a; color: white; outline: none; }
+        
         .hidden { display: none; }
-        h2 { color: var(--accent); }
+        .editing-mode { border-color: #f59e0b !important; }
     </style>
 </head>
 <body>
-    <div class="main-content">
-        <div id="content-header"><h2>Gestor de Conteúdo</h2><p>Selecione um tópico na árvore à direita para editar.</p></div>
-        <div id="add-post-area" class="hidden">
-            <div class="editor-box">
-                <h3>Nova Atualização para este Tópico</h3>
+    <div class="main-content" id="main-scroll">
+        <div id="content-header">
+            <h2>Gestor de Conteúdo</h2>
+            <p style="color: #94a3b8;">Selecione um tópico na árvore para editar ou atualizar.</p>
+        </div>
+
+        <div id="editor-area" class="hidden">
+            <div class="editor-box" id="editor-container">
+                <h3 id="editor-title">Nova Atualização</h3>
                 <div id="editor" contenteditable="true"></div>
-                <button onclick="salvarPost()" id="btnSalvar" style="width:100%; padding:12px; background:var(--accent); color:white; border:none; border-radius:6px; cursor:pointer; font-weight:bold;">Publicar Atualização</button>
+                <button onclick="salvarPost()" id="btnSalvar" class="btn btn-save">Publicar Atualização</button>
+                <button onclick="cancelarEdicao()" id="btnCancelar" class="btn btn-cancel hidden">Cancelar Edição</button>
             </div>
         </div>
+
         <div id="posts-list"></div>
     </div>
 
     <aside class="sidebar">
         <div class="sidebar-header">
-            <a href="index.html" class="btn-view">👁 Ver Manual Público</a>
-            <a href="add.html" class="btn-add">+ Criar Novo Tópico</a>
+            <a href="index.html" class="btn btn-view">👁 Ver Manual Público</a>
+            <a href="add.html" class="btn btn-add">+ Criar Novo Tópico</a>
         </div>
         <h3>Árvore de Categorias</h3>
         <div id="tree-container">Carregando categorias...</div>
@@ -54,7 +81,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, query, orderBy, serverTimestamp, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         
         const firebaseConfig = {
             apiKey: "AIzaSyDPLJ4Ln3Ton-DxsJ0tEKeioWHnV01Plo0",
@@ -68,7 +95,8 @@
         const db = getFirestore(app);
 
         let allDocs = [];
-        let selectedTopicData = null;
+        let selectedTopicBaseData = null; // Dados base (categoria, nome, etc)
+        let editId = null; // Se for nulo, cria novo. Se tiver ID, edita.
 
         async function loadData() {
             const snap = await getDocs(query(collection(db, "docs"), orderBy("createdAt", "asc")));
@@ -79,9 +107,9 @@
         function renderTree() {
             const container = document.getElementById('tree-container');
             container.innerHTML = '';
-            const pais = [...new Set(allDocs.filter(d => d.categoria === 'pai').map(p => p.nome))];
+            const paisNames = [...new Set(allDocs.filter(d => d.categoria === 'pai').map(p => p.nome))];
 
-            pais.forEach(pName => {
+            paisNames.forEach(pName => {
                 const div = document.createElement('div');
                 div.className = 'tree-node';
                 div.innerHTML = `<span class="tree-label" onclick="selectTopic('${pName}')">📁 ${pName}</span>`;
@@ -99,28 +127,98 @@
 
         window.selectTopic = (nome) => {
             const posts = allDocs.filter(d => d.nome === nome);
-            selectedTopicData = posts[0];
-            document.getElementById('content-header').innerHTML = `<h2>Editando: ${nome}</h2>`;
-            document.getElementById('add-post-area').classList.remove('hidden');
+            selectedTopicBaseData = posts[0];
+            cancelarEdicao(); // Limpa qualquer edição pendente
+
+            document.getElementById('content-header').innerHTML = `<h2>Tópico: ${nome}</h2>`;
+            document.getElementById('editor-area').classList.remove('hidden');
+            
             const list = document.getElementById('posts-list');
-            list.innerHTML = '<h3>Posts Atuais (Ordem Cronológica)</h3>';
+            list.innerHTML = '<h3>Histórico de Posts</h3>';
+            
             posts.forEach(p => {
                 const card = document.createElement('div');
                 card.className = 'post-card';
-                card.innerHTML = `<div class="post-date">${p.createdAt?.toDate().toLocaleString() || 'Agora'}</div>${p.textoHtml}`;
+                card.innerHTML = `
+                    <div class="post-date">ID: ${p.id} | Postado em: ${p.createdAt?.toDate().toLocaleString() || 'Recente'}</div>
+                    <div class="post-content">${p.textoHtml}</div>
+                    <div class="post-actions">
+                        <button class="btn btn-edit" onclick="carregarParaEditar('${p.id}')">✏️ Editar este post</button>
+                        <button class="btn btn-delete" onclick="excluirPost('${p.id}')">🗑️ Excluir</button>
+                    </div>
+                `;
                 list.appendChild(card);
             });
         };
 
+        window.carregarParaEditar = (id) => {
+            const post = allDocs.find(d => d.id === id);
+            if(!post) return;
+
+            editId = id;
+            document.getElementById('editor').innerHTML = post.textoHtml;
+            document.getElementById('editor-title').innerText = "Editando Post Antigo";
+            document.getElementById('btnSalvar').innerText = "Salvar Alterações";
+            document.getElementById('btnCancelar').classList.remove('hidden');
+            document.getElementById('editor-container').classList.add('editing-mode');
+            
+            // Scroll para o topo do editor
+            document.getElementById('main-scroll').scrollTop = 0;
+        };
+
+        window.cancelarEdicao = () => {
+            editId = null;
+            document.getElementById('editor').innerHTML = '';
+            document.getElementById('editor-title').innerText = "Nova Atualização";
+            document.getElementById('btnSalvar').innerText = "Publicar Atualização";
+            document.getElementById('btnCancelar').classList.add('hidden');
+            document.getElementById('editor-container').classList.remove('editing-mode');
+        };
+
         window.salvarPost = async () => {
-            const editor = document.getElementById('editor');
-            if(!editor.innerText.trim()) return;
-            const doc = { ...selectedTopicData, textoHtml: editor.innerHTML, createdAt: serverTimestamp() };
-            delete doc.id;
-            await addDoc(collection(db, "docs"), doc);
-            editor.innerHTML = '';
+            const htmlContent = document.getElementById('editor').innerHTML;
+            if(!htmlContent.trim()) return alert("O campo está vazio!");
+
+            const btn = document.getElementById('btnSalvar');
+            btn.disabled = true;
+
+            try {
+                if (editId) {
+                    // MODO EDIÇÃO
+                    const docRef = doc(db, "docs", editId);
+                    await updateDoc(docRef, {
+                        textoHtml: htmlContent,
+                        updatedAt: serverTimestamp() // Opcional: registrar que foi editado
+                    });
+                    alert("Post atualizado com sucesso!");
+                } else {
+                    // MODO NOVO POST
+                    const novoDoc = { 
+                        ...selectedTopicBaseData, 
+                        textoHtml: htmlContent, 
+                        createdAt: serverTimestamp() 
+                    };
+                    delete novoDoc.id; // Remove ID do objeto base
+                    await addDoc(collection(db, "docs"), novoDoc);
+                    alert("Nova atualização publicada!");
+                }
+                
+                cancelarEdicao();
+                await loadData();
+                selectTopic(selectedTopicBaseData.nome);
+            } catch (e) {
+                console.error(e);
+                alert("Erro ao salvar.");
+            } finally {
+                btn.disabled = false;
+            }
+        };
+
+        window.excluirPost = async (id) => {
+            if(!confirm("Tem certeza que deseja excluir permanentemente este post?")) return;
+            await deleteDoc(doc(db, "docs", id));
             await loadData();
-            selectTopic(selectedTopicData.nome);
+            selectTopic(selectedTopicBaseData.nome);
         };
 
         loadData();
