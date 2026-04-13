@@ -3,23 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manual do Jogo</title>
+    <title>Manual - Dark Mode</title>
     <style>
-        :root { --primary: #4f46e5; --bg: #f8fafc; --white: #ffffff; --border: #e2e8f0; }
-        body { font-family: 'Inter', sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; background: var(--bg); }
+        :root { 
+            --primary: #6366f1; 
+            --bg: #0f172a; 
+            --sidebar-bg: #1e293b;
+            --white: #f8fafc; 
+            --border: #334155; 
+            --text-muted: #94a3b8;
+        }
+        body { font-family: 'Inter', sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; background: var(--bg); color: var(--white); }
         .main-content { flex: 1; padding: 40px; overflow-y: auto; order: 1; }
-        .sidebar { width: 280px; background: var(--white); border-left: 1px solid var(--border); padding: 20px; order: 2; overflow-y: auto; }
-        .tree-parent { padding: 10px; cursor: pointer; font-weight: bold; border-radius: 6px; }
-        .tree-parent:hover { background: #f1f5f9; }
-        .tree-children { margin-left: 20px; display: none; }
+        .sidebar { width: 280px; background: var(--sidebar-bg); border-left: 1px solid var(--border); padding: 20px; order: 2; overflow-y: auto; }
+        .tree-parent { padding: 10px; cursor: pointer; font-weight: bold; border-radius: 6px; transition: 0.2s; color: #e2e8f0; }
+        .tree-parent:hover { background: #334155; color: var(--primary); }
+        .tree-children { margin-left: 20px; display: none; border-left: 1px solid #475569; }
         .tree-children.show { display: block; }
-        .tree-child { padding: 5px 10px; cursor: pointer; color: #64748b; }
-        .tree-child:hover { color: var(--primary); }
-        .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 30px; }
-        .nav-card { background: white; border: 1px solid var(--border); padding: 15px; border-radius: 8px; cursor: pointer; text-align: center; font-weight: bold; }
-        .nav-card:hover { border-color: var(--primary); color: var(--primary); }
-        .post-block { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid var(--border); }
-        .tag { background: #e0e7ff; color: #4338ca; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; margin-right: 5px; }
+        .tree-child { padding: 5px 15px; cursor: pointer; color: var(--text-muted); font-size: 0.9rem; }
+        .tree-child:hover { color: var(--white); }
+        .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-bottom: 40px; }
+        .nav-card { background: #1e293b; border: 1px solid var(--border); padding: 20px; border-radius: 10px; cursor: pointer; text-align: center; font-weight: bold; transition: 0.3s; }
+        .nav-card:hover { border-color: var(--primary); transform: translateY(-3px); background: #334155; }
+        .post-block { background: #1e293b; padding: 25px; border-radius: 12px; margin-bottom: 25px; border: 1px solid var(--border); line-height: 1.6; }
+        .tag { background: #312e81; color: #c7d2fe; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; margin-right: 8px; font-weight: 600; }
+        h1 { color: var(--primary); font-size: 2.5rem; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
     </style>
 </head>
 <body>
@@ -27,14 +38,16 @@
         <div id="cards-container" class="cards-grid"></div>
         <div id="content-area">
             <h1>Manual do Jogo</h1>
-            <p>Selecione um tópico na lateral.</p>
+            <p style="color: var(--text-muted);">Explore as regras e guias navegando pelo menu ao lado ou pelos cards acima.</p>
         </div>
     </main>
 
     <aside class="sidebar">
-        <a href="gestor.html" style="font-size: 0.7rem; color: #ccc; text-decoration: none;">⚙ Admin</a>
-        <h3>Menu</h3>
-        <div id="tree-menu">Carregando...</div>
+        <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-weight: bold; color: var(--primary);">MENU</span>
+            <a href="gestor.html" style="font-size: 0.7rem; color: #475569; text-decoration: none;">PAINEL ADMIN</a>
+        </div>
+        <div id="tree-menu">Carregando categorias...</div>
     </aside>
 
     <script type="module">
@@ -63,55 +76,54 @@
         function renderSidebar() {
             const menu = document.getElementById('tree-menu');
             menu.innerHTML = '';
-            const pais = allDocs.filter(d => d.categoria === 'pai');
-            const uniquePais = [...new Set(pais.map(p => p.nome))];
+            const paisNames = [...new Set(allDocs.filter(d => d.categoria === 'pai').map(p => p.nome))];
 
-            uniquePais.forEach(pName => {
-                const firstDoc = allDocs.find(d => d.nome === pName);
+            paisNames.forEach(pName => {
+                const firstId = allDocs.find(d => d.nome === pName).id;
                 const div = document.createElement('div');
                 div.innerHTML = `
-                    <div class="tree-parent" onclick="toggleAndSelect('${firstDoc.id}', '${pName}')">${pName}</div>
-                    <div class="tree-children" id="child-of-${firstDoc.id}">
+                    <div class="tree-parent" onclick="toggleFolder('${firstId}', '${pName}')">📁 ${pName}</div>
+                    <div class="tree-children" id="child-of-${firstId}">
                         ${allDocs.filter(d => d.categoria === 'filho' && d.categoriaPai === pName)
-                            .map(f => `<div class="tree-child" onclick="selectItem('${f.nome}')">${f.nome}</div>`).join('')}
+                            .map(f => `<div class="tree-child" onclick="selectTopic('${f.nome}')">└ ${f.nome}</div>`).join('')}
                     </div>
                 `;
                 menu.appendChild(div);
             });
         }
 
-        window.toggleAndSelect = (id, nome) => {
+        window.toggleFolder = (id, nome) => {
+            const target = document.getElementById(`child-of-${id}`);
+            const isVisible = target.classList.contains('show');
             document.querySelectorAll('.tree-children').forEach(e => e.classList.remove('show'));
-            document.getElementById(`child-of-${id}`).classList.add('show');
-            selectItem(nome);
+            if(!isVisible) target.classList.add('show');
+            selectTopic(nome);
         };
 
-        window.selectItem = (nome) => {
+        window.selectTopic = (nome) => {
             const posts = allDocs.filter(d => d.nome === nome);
             const content = document.getElementById('content-area');
             const cards = document.getElementById('cards-container');
             cards.innerHTML = '';
 
-            // Lógica de Cards (Netos/Bisnetos)
             const ref = posts[0];
             let subItems = [];
             if(ref.categoria === 'filho') subItems = allDocs.filter(d => d.categoria === 'neto' && d.categoriaFilho === nome);
             if(ref.categoria === 'neto') subItems = allDocs.filter(d => d.categoria === 'bisneto' && d.categoriaNeto === nome);
             
-            const uniqueSub = [...new Set(subItems.map(s => s.nome))];
-            uniqueSub.forEach(sName => {
+            [...new Set(subItems.map(s => s.nome))].forEach(sName => {
                 const c = document.createElement('div');
                 c.className = 'nav-card';
                 c.innerText = sName;
-                c.onclick = () => selectItem(sName);
+                c.onclick = () => selectTopic(sName);
                 cards.appendChild(c);
             });
 
-            // Conteúdo (Postagens)
             let html = `<h1>${nome}</h1>`;
-            if(ref.tags) html += `<div>${ref.tags.split(',').map(t => `<span class="tag">${t}</span>`).join('')}</div><br>`;
+            if(ref.tags) html += `<div style="margin-bottom:20px;">${ref.tags.split(',').map(t => `<span class="tag">#${t.trim()}</span>`).join('')}</div>`;
             posts.forEach(p => html += `<div class="post-block">${p.textoHtml}</div>`);
             content.innerHTML = html;
+            document.querySelector('.main-content').scrollTop = 0;
         };
 
         init();
