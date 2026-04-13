@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual do Jogo</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --bg: #f8fafc;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --white: #ffffff;
+            --border: #e2e8f0;
+            --sidebar-width: 280px;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Layout Principal */
+        .main-content {
+            flex: 1;
+            padding: 40px;
+            overflow-y: auto;
+            order: 1; /* Garante que o conteúdo fique na esquerda */
+        }
+
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--white);
+            border-left: 1px solid var(--border);
+            padding: 20px;
+            overflow-y: auto;
+            order: 2; /* Garante que a coluna fique na direita */
+        }
+
+        /* Conteúdo do Manual */
+        #content-area {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .page-title { font-size: 2.5rem; margin-bottom: 10px; color: var(--primary); }
+        
+        .tags-container { margin-bottom: 20px; display: flex; gap: 8px; flex-wrap: wrap; }
+        .tag { 
+            background: #e0e7ff; color: #4338ca; padding: 4px 12px; 
+            border-radius: 20px; font-size: 0.8rem; font-weight: 500;
+        }
+
+        .html-content { line-height: 1.6; font-size: 1.1rem; }
+        .html-content h2 { border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-top: 30px; }
+
+        /* Cards de Navegação (Para Netos e Bisnetos) */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 40px;
+        }
+
+        .nav-card {
+            background: var(--white);
+            border: 1px solid var(--border);
+            padding: 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+            font-weight: 600;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .nav-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            color: var(--primary);
+        }
+
+        /* Menu em Árvore (Sidebar) */
+        .tree-item { margin-bottom: 5px; }
+        .tree-parent {
+            padding: 10px;
+            cursor: pointer;
+            border-radius: 6px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .tree-parent:hover { background: #f1f5f9; }
+        .tree-parent.active { background: #e0e7ff; color: var(--primary); }
+
+        .tree-children {
+            margin-left: 20px;
+            margin-top: 5px;
+            display: none; /* Escondido por padrão */
+            border-left: 2px solid #f1f5f9;
+        }
+
+        .tree-children.show { display: block; }
+
+        .tree-child {
+            padding: 8px 15px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            border-radius: 4px;
+        }
+        .tree-child:hover { color: var(--primary); background: #f8fafc; }
+
+        /* Loading */
+        .loader { text-align: center; margin-top: 50px; color: var(--text-muted); }
+    </style>
+</head>
+<body>
+
+    <main class="main-content">
+        <div id="content-area">
+            <div id="cards-container" class="cards-grid"></div>
+            <div id="page-data">
+                <h1 class="page-title">Bem-vindo ao Manual</h1>
+                <p>Selecione um tópico no menu lateral para começar a leitura.</p>
+            </div>
+        </div>
+    </main>
+
+    <aside class="sidebar">
+        <h3>Menu</h3>
+        <div id="tree-menu">
+            <div class="loader">Carregando categorias...</div>
+        </div>
+    </aside>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, getDocs, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDPLJ4Ln3Ton-DxsJ0tEKeioWHnV01Plo0",
+            authDomain: "politicalgame-30215.firebaseapp.com",
+            projectId: "politicalgame-30215",
+            storageBucket: "politicalgame-30215.firebasestorage.app",
+            messagingSenderId: "736655823319",
+            appId: "1:736655823319:web:60ebdc530e101784b9bb92"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Cache local para evitar múltiplas chamadas
+        let allDocs = [];
+
+        // Inicialização
+        async function init() {
+            const querySnapshot = await getDocs(collection(db, "docs"));
+            allDocs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderSidebar();
+        }
+
+        // Renderiza apenas os PAIS na árvore lateral
+        function renderSidebar() {
+            const menu = document.getElementById('tree-menu');
+            menu.innerHTML = '';
+
+            const pais = allDocs.filter(d => d.categoria === 'pai');
+            
+            pais.forEach(pai => {
+                const item = document.createElement('div');
+                item.className = 'tree-item';
+                
+                const filhos = allDocs.filter(d => d.categoria === 'filho' && d.categoriaPai === pai.nome);
+
+                item.innerHTML = `
+                    <div class="tree-parent" onclick="window.selectItem('${pai.id}', 'pai')">
+                        ${pai.nome}
+                        ${filhos.length > 0 ? '<span>▾</span>' : ''}
+                    </div>
+                    <div class="tree-children" id="child-of-${pai.id}">
+                        ${filhos.map(f => `
+                            <div class="tree-child" onclick="event.stopPropagation(); window.selectItem('${f.id}', 'filho')">
+                                ${f.nome}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                menu.appendChild(item);
+            });
+        }
+
+        // Função Global para Seleção (Chamada via cliques)
+        window.selectItem = (docId, level) => {
+            const doc = allDocs.find(d => d.id === docId);
+            if (!doc) return;
+
+            // 1. Mostrar Conteúdo Principal
+            renderContent(doc);
+
+            // 2. Lógica da Árvore Lateral
+            if (level === 'pai') {
+                // Fecha todas as outras e abre a atual
+                document.querySelectorAll('.tree-children').forEach(el => el.classList.remove('show'));
+                const childContainer = document.getElementById(`child-of-${docId}`);
+                if (childContainer) childContainer.classList.add('show');
+            }
+
+            // 3. Lógica de Cards (Topo da Página)
+            renderCards(doc);
+        };
+
+        function renderContent(doc) {
+            const area = document.getElementById('page-data');
+            
+            // Formatar Tags
+            const tagsHtml = doc.tags 
+                ? `<div class="tags-container">${doc.tags.split(',').map(t => `<span class="tag">${t.trim()}</span>`).join('')}</div>`
+                : '';
+
+            area.innerHTML = `
+                <h1 class="page-title">${doc.nome}</h1>
+                ${tagsHtml}
+                <div class="html-content">${doc.textoHtml || '<i>Sem conteúdo cadastrado.</i>'}</div>
+            `;
+            
+            // Scroll para o topo
+            document.querySelector('.main-content').scrollTop = 0;
+        }
+
+        function renderCards(doc) {
+            const cardsContainer = document.getElementById('cards-container');
+            cardsContainer.innerHTML = '';
+
+            let subItems = [];
+
+            if (doc.categoria === 'filho') {
+                // Se clicou em FILHO, mostra cards dos NETOS que pertencem a este filho
+                subItems = allDocs.filter(d => d.categoria === 'neto' && d.categoriaFilho === doc.nome);
+            } else if (doc.categoria === 'neto') {
+                // Se clicou em NETO, mostra cards dos BISNETOS que pertencem a este neto
+                subItems = allDocs.filter(d => d.categoria === 'bisneto' && d.categoriaNeto === doc.nome);
+            }
+
+            if (subItems.length > 0) {
+                subItems.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'nav-card';
+                    card.innerText = item.nome;
+                    card.onclick = () => window.selectItem(item.id, item.categoria);
+                    cardsContainer.appendChild(card);
+                });
+            }
+        }
+
+        init();
+
+    </script>
+</body>
+</html>
