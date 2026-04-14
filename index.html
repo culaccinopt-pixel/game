@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manual - Dark Mode</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap">
     <style>
         :root { 
             --primary: #6366f1; 
@@ -12,22 +13,50 @@
             --white: #f8fafc; 
             --border: #334155; 
             --text-muted: #94a3b8;
+            --accent: #4f46e5;
         }
         body { font-family: 'Inter', sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; background: var(--bg); color: var(--white); }
-        .main-content { flex: 1; padding: 40px; overflow-y: auto; order: 1; }
-        .sidebar { width: 280px; background: var(--sidebar-bg); border-left: 1px solid var(--border); padding: 20px; order: 2; overflow-y: auto; }
-        .tree-parent { padding: 10px; cursor: pointer; font-weight: bold; border-radius: 6px; transition: 0.2s; color: #e2e8f0; }
+        
+        /* Sidebar */
+        .sidebar { width: 300px; background: var(--sidebar-bg); border-left: 1px solid var(--border); padding: 20px; order: 2; overflow-y: auto; display: flex; flex-direction: column; }
+        
+        /* Botões de Filtro Superiores */
+        .sidebar-nav-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 25px; }
+        .nav-filter-btn { 
+            background: #0f172a; border: 1px solid var(--border); color: var(--text-muted); 
+            padding: 10px 5px; border-radius: 8px; cursor: pointer; font-size: 0.75rem; 
+            font-weight: 600; text-align: center; transition: 0.3s;
+        }
+        .nav-filter-btn:hover { border-color: var(--primary); color: var(--white); }
+        .nav-filter-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+        /* Conteúdo */
+        .main-content { flex: 1; padding: 40px; overflow-y: auto; order: 1; scroll-behavior: smooth; }
+        .content-wrapper { max-width: 900px; margin: 0 auto; }
+        
+        /* Estilos da Árvore */
+        .tree-parent { padding: 10px; cursor: pointer; font-weight: bold; border-radius: 6px; transition: 0.2s; color: #e2e8f0; display: flex; align-items: center; gap: 8px; }
         .tree-parent:hover { background: #334155; color: var(--primary); }
         .tree-children { margin-left: 20px; display: none; border-left: 1px solid #475569; }
         .tree-children.show { display: block; }
-        .tree-child { padding: 5px 15px; cursor: pointer; color: var(--text-muted); font-size: 0.9rem; }
+        .tree-child { padding: 5px 15px; cursor: pointer; color: var(--text-muted); font-size: 0.85rem; }
         .tree-child:hover { color: var(--white); }
-        .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-bottom: 40px; }
-        .nav-card { background: #1e293b; border: 1px solid var(--border); padding: 20px; border-radius: 10px; cursor: pointer; text-align: center; font-weight: bold; transition: 0.3s; }
+
+        /* Cards e Blocos */
+        .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-bottom: 30px; }
+        .nav-card { background: #1e293b; border: 1px solid var(--border); padding: 15px; border-radius: 10px; cursor: pointer; text-align: center; font-weight: 600; font-size: 0.9rem; transition: 0.3s; }
         .nav-card:hover { border-color: var(--primary); transform: translateY(-3px); background: #334155; }
-        .post-block { background: #1e293b; padding: 25px; border-radius: 12px; margin-bottom: 25px; border: 1px solid var(--border); line-height: 1.6; }
+        
+        .post-block { background: #1e293b; padding: 25px; border-radius: 12px; margin-bottom: 25px; border: 1px solid var(--border); line-height: 1.6; position: relative; }
+        .post-meta { font-size: 0.7rem; color: var(--text-muted); margin-bottom: 10px; display: flex; justify-content: space-between; }
+        
+        .item-list-card { background: #1e293b; padding: 20px; border-radius: 10px; border-left: 4px solid var(--primary); margin-bottom: 15px; border-top: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+        .item-list-card h3 { margin: 0 0 10px 0; color: var(--white); font-size: 1.1rem; }
+        .item-list-card p { margin: 0; color: var(--text-muted); font-size: 0.9rem; }
+
         .tag { background: #312e81; color: #c7d2fe; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; margin-right: 8px; font-weight: 600; }
-        h1 { color: var(--primary); font-size: 2.5rem; }
+        h1 { color: var(--primary); font-size: 2.5rem; margin-top: 0; }
+        
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: var(--bg); }
         ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
@@ -35,24 +64,35 @@
 </head>
 <body>
     <main class="main-content">
-        <div id="cards-container" class="cards-grid"></div>
-        <div id="content-area">
-            <h1>Manual do Jogo</h1>
-            <p style="color: var(--text-muted);">Explore as regras e guias navegando pelo menu ao lado ou pelos cards acima.</p>
+        <div class="content-wrapper">
+            <div id="cards-container" class="cards-grid"></div>
+            <div id="content-area">
+                <h1>Manual do Jogo</h1>
+                <p style="color: var(--text-muted); font-size: 1.2rem;">Bem-vindo ao centro de documentação. Utilize o menu lateral para explorar as regras, legislações e ações disponíveis.</p>
+            </div>
         </div>
     </main>
 
     <aside class="sidebar">
-        <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
-            <span style="font-weight: bold; color: var(--primary);">MENU</span>
-            <a href="gestor.html" style="font-size: 0.7rem; color: #475569; text-decoration: none;">PAINEL ADMIN</a>
+        <!-- Navegação Superior -->
+        <div class="sidebar-nav-grid">
+            <button class="nav-filter-btn" onclick="viewLatest()">Últimas</button>
+            <button class="nav-filter-btn" onclick="viewCollection('legislacoes', 'Legislações')">Legislações</button>
+            <button class="nav-filter-btn" onclick="viewCollection('construcoes', 'Construções')">Construções</button>
+            <button class="nav-filter-btn" onclick="viewCollection('acoes', 'Ações')">Ações</button>
         </div>
+
+        <div style="margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-weight: bold; color: var(--primary); font-size: 0.8rem; letter-spacing: 1px;">MENU PRINCIPAL</span>
+            <a href="gestor.html" title="Painel Admin" style="text-decoration: none;">⚙️</a>
+        </div>
+        
         <div id="tree-menu">Carregando categorias...</div>
     </aside>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         
         const firebaseConfig = {
             apiKey: "AIzaSyDPLJ4Ln3Ton-DxsJ0tEKeioWHnV01Plo0",
@@ -79,7 +119,8 @@
             const paisNames = [...new Set(allDocs.filter(d => d.categoria === 'pai').map(p => p.nome))];
 
             paisNames.forEach(pName => {
-                const firstId = allDocs.find(d => d.nome === pName).id;
+                const docRef = allDocs.find(d => d.nome === pName);
+                const firstId = docRef ? docRef.id : Math.random();
                 const div = document.createElement('div');
                 div.innerHTML = `
                     <div class="tree-parent" onclick="toggleFolder('${firstId}', '${pName}')">📁 ${pName}</div>
@@ -94,17 +135,22 @@
 
         window.toggleFolder = (id, nome) => {
             const target = document.getElementById(`child-of-${id}`);
-            const isVisible = target.classList.contains('show');
-            document.querySelectorAll('.tree-children').forEach(e => e.classList.remove('show'));
-            if(!isVisible) target.classList.add('show');
+            if(target) {
+                const isVisible = target.classList.contains('show');
+                document.querySelectorAll('.tree-children').forEach(e => e.classList.remove('show'));
+                if(!isVisible) target.classList.add('show');
+            }
             selectTopic(nome);
         };
 
         window.selectTopic = (nome) => {
+            setActiveBtn(null);
             const posts = allDocs.filter(d => d.nome === nome);
             const content = document.getElementById('content-area');
             const cards = document.getElementById('cards-container');
             cards.innerHTML = '';
+
+            if(posts.length === 0) return;
 
             const ref = posts[0];
             let subItems = [];
@@ -121,9 +167,93 @@
 
             let html = `<h1>${nome}</h1>`;
             if(ref.tags) html += `<div style="margin-bottom:20px;">${ref.tags.split(',').map(t => `<span class="tag">#${t.trim()}</span>`).join('')}</div>`;
-            posts.forEach(p => html += `<div class="post-block">${p.textoHtml}</div>`);
+            
+            posts.forEach(p => {
+                html += `
+                    <div class="post-block">
+                        <div class="post-meta"><span>ID: ${p.id}</span> <span>${p.createdAt?.toDate().toLocaleDateString() || ''}</span></div>
+                        ${p.textoHtml}
+                    </div>`;
+            });
             content.innerHTML = html;
             document.querySelector('.main-content').scrollTop = 0;
+        };
+
+        // --- NOVAS FUNÇÕES DE VISUALIZAÇÃO ---
+
+        function setActiveBtn(label) {
+            document.querySelectorAll('.nav-filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if(btn.innerText === label) btn.classList.add('active');
+            });
+        }
+
+        window.viewCollection = async (colName, title) => {
+            setActiveBtn(title);
+            const content = document.getElementById('content-area');
+            const cards = document.getElementById('cards-container');
+            cards.innerHTML = '';
+            content.innerHTML = `<h1>${title}</h1><p>Carregando itens...</p>`;
+
+            const snap = await getDocs(query(collection(db, colName), orderBy("nome", "asc")));
+            let html = `<h1>${title}</h1>`;
+            
+            if(snap.empty) {
+                html += `<p style="color:var(--text-muted)">Nenhum item cadastrado nesta secção.</p>`;
+            } else {
+                snap.forEach(docSnap => {
+                    const data = docSnap.data();
+                    html += `
+                        <div class="item-list-card">
+                            <h3>${data.nome}</h3>
+                            <p>${data.descricao || 'Sem descrição disponível.'}</p>
+                            ${data.vinculos ? `<div style="margin-top:10px; font-size:0.75rem; color:var(--primary)">Vínculos: ${data.vinculos.length} tópico(s)</div>` : ''}
+                        </div>
+                    `;
+                });
+            }
+            content.innerHTML = html;
+        };
+
+        window.viewLatest = async () => {
+            setActiveBtn('Últimas');
+            const content = document.getElementById('content-area');
+            const cards = document.getElementById('cards-container');
+            cards.innerHTML = '';
+            content.innerHTML = `<h1>Últimas Atualizações</h1><p>Buscando novidades...</p>`;
+
+            // Busca os últimos 5 de cada coleção
+            const fetchLatest = async (col) => {
+                const s = await getDocs(query(collection(db, col), orderBy("createdAt", "desc"), limit(5)));
+                return s.docs.map(d => ({...d.data(), type: col, id: d.id}));
+            };
+
+            const results = await Promise.all([
+                fetchLatest('docs'),
+                fetchLatest('legislacoes'),
+                fetchLatest('construcoes'),
+                fetchLatest('acoes')
+            ]);
+
+            // Une e ordena por data
+            const combined = results.flat().sort((a, b) => b.createdAt?.toMillis() - a.createdAt?.toMillis());
+
+            let html = `<h1>Últimas Atualizações</h1>`;
+            combined.forEach(item => {
+                const date = item.createdAt?.toDate().toLocaleString() || 'Recentemente';
+                const typeLabel = item.type === 'docs' ? 'Manual' : item.type.toUpperCase();
+                
+                html += `
+                    <div class="post-block">
+                        <div class="post-meta">
+                            <span class="tag" style="background:var(--primary)">${typeLabel}</span>
+                            <span>${date}</span>
+                        </div>
+                        ${item.type === 'docs' ? item.textoHtml : `<h3>${item.nome}</h3><p>${item.descricao || ''}</p>`}
+                    </div>
+                `;
+            });
+            content.innerHTML = html;
         };
 
         init();
