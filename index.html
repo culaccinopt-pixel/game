@@ -116,6 +116,21 @@
     border-color: var(--primary);
 }
 
+/* Estilo para o ícone de Check */
+.card-check { position: absolute; top: 15px; right: 15px; cursor: pointer; color: #475569; font-size: 1.2rem; transition: 0.3s; z-index: 10; }
+.card-check:hover { color: var(--primary); transform: scale(1.2); }
+.card-check.checked { color: #16a34a; }
+
+/* Estado Concluído */
+.done-card { border: 2px solid #16a34a !important; background: rgba(22, 163, 74, 0.05) !important; }
+.post-block, .item-list-card { position: relative; transition: 0.3s; }
+
+/* Modal de Usuários */
+#user-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 9999; }
+.user-modal-content { background: #1e293b; padding: 25px; border-radius: 12px; border: 1px solid var(--primary); width: 320px; max-height: 80vh; overflow-y: auto; }
+.user-option { padding: 12px; margin-bottom: 8px; background: #0f172a; border-radius: 6px; cursor: pointer; transition: 0.2s; border: 1px solid var(--border); text-align: center; }
+.user-option:hover { background: var(--primary); border-color: white; }
+
     </style>
 </head>
 <body>
@@ -141,6 +156,7 @@
             <button class="nav-filter-btn" onclick="viewCollection('legislacoes', 'Legislações')">Leis</button>
             <button class="nav-filter-btn" onclick="viewCollection('construcoes', 'Construções')">Obras</button>
             <button class="nav-filter-btn" onclick="viewCollection('acoes', 'Ações')">Ações</button>
+            <button class="nav-filter-btn" onclick="viewCollection('midia', 'Mídia')">Mídia</button>
         </div>
 
         <!-- Cabeçalho do Menu com Botão de Configurações -->
@@ -152,9 +168,34 @@
         <div id="tree-menu">Carregando categorias...</div>
     </aside>
 
+
+    <div id="user-modal">
+    <div class="user-modal-content">
+        <h3 style="margin-top:0; color:var(--primary); text-align:center;">Quem concluiu?</h3>
+        <div id="user-options-list"></div>
+        <button onclick="document.getElementById('user-modal').style.display='none'" style="width:100%; background:transparent; color:gray; border:none; margin-top:10px; cursor:pointer;">Cancelar</button>
+    </div>
+</div>
+
+
+<!-- Modal de Confirmação para Desfazer -->
+<div id="undo-modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 10000;">
+    <div class="user-modal-content" style="text-align: center;">
+        <h3 style="color: var(--primary); margin-top: 0;">Desfazer Ação?</h3>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 25px;">Tem a certeza que quer remover a marcação de concluído deste item?</p>
+        
+        <div style="display: flex; gap: 10px;">
+            <button onclick="confirmarDesfazer()" style="flex: 1; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">Sim, Desfazer</button>
+            <button onclick="document.getElementById('undo-modal').style.display='none'" style="flex: 1; padding: 12px; background: #334155; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">Cancelar</button>
+        </div>
+    </div>
+</div>
+
+
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, query, orderBy, limit,  doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         
         const firebaseConfig = {
             apiKey: "AIzaSyDPLJ4Ln3Ton-DxsJ0tEKeioWHnV01Plo0",
@@ -168,13 +209,20 @@
         const db = getFirestore(app);
 
         let allDocs = [];
-        let currentTopicData = { posts: [], legislacoes: [], construcoes: [], acoes: [], name: "" };
+        let currentTopicData = { posts: [], legislacoes: [], construcoes: [], acoes: [], midia: [], name: "" };
+let allUsers = []; // Variável global para usuários
+let currentTaskRef = null; // Para saber qual card estamos marcando
 
-        async function init() {
-            const snap = await getDocs(query(collection(db, "docs"), orderBy("createdAt", "asc")));
-            allDocs = snap.docs.map(d => ({id: d.id, ...d.data()}));
-            renderSidebar();
-        }
+       async function init() {
+    // Carrega usuários
+    const uSnap = await getDocs(collection(db, "users"));
+    allUsers = uSnap.docs.map(d => ({ id: d.id, nome: d.data().nome }));
+    
+    // Carrega docs (o que já existia)
+    const snap = await getDocs(query(collection(db, "docs"), orderBy("createdAt", "asc")));
+    allDocs = snap.docs.map(d => ({id: d.id, ...d.data()}));
+    renderSidebar();
+}
 
    function renderSidebar() {
     const menu = document.getElementById('tree-menu');
@@ -305,7 +353,7 @@ window.selectTopic = async (docId) => {
     });
 
     // 3. FILTRO DE COLEÇÕES (Leis, Obras, etc)
-    const collections = ['legislacoes', 'construcoes', 'acoes'];
+    const collections = ['legislacoes', 'construcoes', 'acoes', 'midia']; // Adicionado 'midia'
     for (const col of collections) {
         const snap = await getDocs(collection(db, col));
         currentTopicData[col] = snap.docs.map(d => ({id: d.id, ...d.data()})).filter(item => {
@@ -348,15 +396,17 @@ window.selectTopic = async (docId) => {
 
    
 
-        function renderTabs() {
-            const tabsContainer = document.getElementById('sub-tabs');
-            tabsContainer.innerHTML = '';
-            const tabs = [{ id: 'tudo', label: 'Tudo' }];
-            if(currentTopicData.legislacoes.length > 0) tabs.push({ id: 'legislacoes', label: `Leis (${currentTopicData.legislacoes.length})` });
-            if(currentTopicData.construcoes.length > 0) tabs.push({ id: 'construcoes', label: `Obras (${currentTopicData.construcoes.length})` });
-            if(currentTopicData.acoes.length > 0) tabs.push({ id: 'acoes', label: `Ações (${currentTopicData.acoes.length})` });
+      function renderTabs() {
+    const tabsContainer = document.getElementById('sub-tabs');
+    tabsContainer.innerHTML = '';
+    const tabs = [{ id: 'tudo', label: 'Tudo' }];
+    
+    if(currentTopicData.legislacoes.length > 0) tabs.push({ id: 'legislacoes', label: `Leis (${currentTopicData.legislacoes.length})` });
+    if(currentTopicData.construcoes.length > 0) tabs.push({ id: 'construcoes', label: `Obras (${currentTopicData.construcoes.length})` });
+    if(currentTopicData.acoes.length > 0) tabs.push({ id: 'acoes', label: `Ações (${currentTopicData.acoes.length})` });
+    if(currentTopicData.midia.length > 0) tabs.push({ id: 'midia', label: `Mídia (${currentTopicData.midia.length})` }); // NOVO
 
-            if(tabs.length > 1) {
+    if(tabs.length > 1) {
                 tabsContainer.classList.remove('hidden');
                 tabs.forEach(t => {
                     const btn = document.createElement('div');
@@ -371,49 +421,93 @@ window.selectTopic = async (docId) => {
             }
         }
 
-        function renderTabContent(tabId) {
-            const area = document.getElementById('content-area');
-            area.innerHTML = '';
-            const renderItem = (i, color) => `<div class="item-list-card" style="border-left-color: ${color}"><h3>${i.nome}</h3><p>${i.descricao || 'Sem descrição.'}</p></div>`;
+ function renderTabContent(tabId) {
+    const area = document.getElementById('content-area');
+    area.innerHTML = '';
 
-            if(tabId === 'tudo' || tabId === 'posts') currentTopicData.posts.forEach(p => area.innerHTML += `<div class="post-block">${p.textoHtml}</div>`);
-            if(tabId === 'tudo' || tabId === 'legislacoes') currentTopicData.legislacoes.forEach(i => area.innerHTML += renderItem(i, '#6366f1'));
-            if(tabId === 'tudo' || tabId === 'construcoes') currentTopicData.construcoes.forEach(i => area.innerHTML += renderItem(i, '#16a34a'));
-            if(tabId === 'tudo' || tabId === 'acoes') currentTopicData.acoes.forEach(i => area.innerHTML += renderItem(i, '#f59e0b'));
-            
-            if(!area.innerHTML) area.innerHTML = "<p style='color:var(--text-muted)'>Nenhum conteúdo específico para este nível.</p>";
-        }
+    // Helper para renderizar cards de coleções (Leis, Obras, Ações, Mídia)
+    const renderItem = (i, color, colName) => {
+        const isDone = i.status === 'done';
+        return `
+            <div class="item-list-card ${isDone ? 'done-card' : ''}" style="border-left-color: ${color}">
+                <div class="card-check ${isDone ? 'checked' : ''}" 
+                     onclick="event.stopPropagation(); openCheckModal('${colName}', '${i.id}', ${isDone})">
+                    ${isDone ? '✅' : '✔️'}
+                </div>
+                <h3>${i.nome}</h3>
+                <p>${i.descricao || 'Sem descrição.'}</p>
+                ${isDone ? `<div style="font-size:0.7rem; color:#16a34a; margin-top:8px; font-weight:bold;">✅ Concluído por: ${i.concluidoPor}</div>` : ''}
+            </div>`;
+    };
+
+    // Renderiza Posts do Manual (Coleção 'docs')
+    if(tabId === 'tudo' || tabId === 'posts') {
+        currentTopicData.posts.forEach(p => {
+            const isDone = p.status === 'done';
+            area.innerHTML += `
+                <div class="post-block ${isDone ? 'done-card' : ''}">
+                    <div class="card-check ${isDone ? 'checked' : ''}" 
+                         onclick="event.stopPropagation(); openCheckModal('docs', '${p.id}', ${isDone})">
+                        ${isDone ? '✅' : '✔️'}
+                    </div>
+                    ${p.textoHtml}
+                    ${isDone ? `<div style="font-size:0.7rem; color:#16a34a; margin-top:12px; font-weight:bold;">✅ Concluído por: ${p.concluidoPor}</div>` : ''}
+                </div>`;
+        });
+    }
+
+    // Renderiza itens das outras coleções vinculadas
+    if(tabId === 'tudo' || tabId === 'legislacoes') currentTopicData.legislacoes.forEach(i => area.innerHTML += renderItem(i, '#6366f1', 'legislacoes'));
+    if(tabId === 'tudo' || tabId === 'construcoes') currentTopicData.construcoes.forEach(i => area.innerHTML += renderItem(i, '#16a34a', 'construcoes'));
+    if(tabId === 'tudo' || tabId === 'acoes') currentTopicData.acoes.forEach(i => area.innerHTML += renderItem(i, '#f59e0b', 'acoes'));
+    if(tabId === 'tudo' || tabId === 'midia') currentTopicData.midia.forEach(i => area.innerHTML += renderItem(i, '#06b6d4', 'midia'));
+    
+    if(!area.innerHTML) area.innerHTML = "<p style='color:var(--text-muted)'>Nenhum conteúdo específico para este nível.</p>";
+}
+
 
         // --- LÓGICA DE ÚLTIMAS E COLEÇÕES GLOBAIS ---
         
-        window.viewLatest = async () => {
-            const area = document.getElementById('content-area');
-            const header = document.getElementById('topic-header');
-            document.getElementById('sub-tabs').classList.add('hidden');
-            document.getElementById('cards-container').innerHTML = '';
-            area.innerHTML = "Buscando novidades...";
-            header.innerHTML = "<h1>Últimas Atualizações</h1>";
+window.viewLatest = async () => {
+    const area = document.getElementById('content-area');
+    const header = document.getElementById('topic-header');
+    
+    document.getElementById('sub-tabs').classList.add('hidden');
+    document.getElementById('cards-container').innerHTML = '';
+    area.innerHTML = "Buscando novidades...";
+    header.innerHTML = "<h1>Últimas Atualizações</h1>";
 
-            const collections = ['docs', 'legislacoes', 'construcoes', 'acoes'];
-            const promises = collections.map(col => getDocs(query(collection(db, col), orderBy("createdAt", "desc"), limit(5))));
-            const snapshots = await Promise.all(promises);
-            
-            let combined = [];
-            snapshots.forEach((snap, index) => {
-                snap.forEach(d => combined.push({ ...d.data(), type: collections[index] }));
-            });
-            
-            combined.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
-            area.innerHTML = '';
-            combined.forEach(item => {
-                const label = item.type === 'docs' ? 'MANUAL' : item.type.toUpperCase();
-                area.innerHTML += `
-                    <div class="post-block">
-                        <div style="margin-bottom:10px;"><span class="tag" style="background:var(--primary)">${label}</span></div>
-                        ${item.type === 'docs' ? item.textoHtml : `<h3>${item.nome}</h3><p>${item.descricao || ''}</p>`}
-                    </div>`;
-            });
-        };
+    const collections = ['docs', 'legislacoes', 'construcoes', 'acoes', 'midia'];
+    const promises = collections.map(col => getDocs(query(collection(db, col), orderBy("createdAt", "desc"), limit(5))));
+    const snapshots = await Promise.all(promises);
+    
+    let combined = [];
+    snapshots.forEach((snap, index) => {
+        snap.forEach(d => combined.push({ id: d.id, ...d.data(), type: collections[index] }));
+    });
+    
+    // Ordenar por data (mais recentes primeiro)
+    combined.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
+    
+    area.innerHTML = '';
+    combined.forEach(item => {
+        const isDone = item.status === 'done';
+        const label = item.type === 'docs' ? 'MANUAL' : item.type.toUpperCase();
+        
+        area.innerHTML += `
+            <div class="post-block ${isDone ? 'done-card' : ''}">
+                <div class="card-check ${isDone ? 'checked' : ''}" 
+                     onclick="event.stopPropagation(); openCheckModal('${item.type}', '${item.id}', ${isDone})">
+                    ${isDone ? '✅' : '✔️'}
+                </div>
+                <div style="margin-bottom:10px;"><span class="tag" style="background:var(--primary)">${label}</span></div>
+                ${item.type === 'docs' ? item.textoHtml : `<h3>${item.nome}</h3><p>${item.descricao || 'Sem descrição.'}</p>`}
+                ${isDone ? `<div style="font-size:0.7rem; color:#16a34a; margin-top:12px; font-weight:bold;">✅ Concluído por: ${item.concluidoPor}</div>` : ''}
+            </div>`;
+    });
+
+    if(combined.length === 0) area.innerHTML = "<p>Nenhuma atividade recente.</p>";
+};
 
         window.viewCollection = async (col, title) => {
             document.getElementById('sub-tabs').classList.add('hidden');
@@ -436,6 +530,142 @@ window.selectTopic = async (docId) => {
         };
 
         init();
+
+window.openCheckModal = (col, docId, isAlreadyDone) => {
+    currentTaskRef = { col, docId };
+
+    if (isAlreadyDone) {
+        // Em vez de confirm(), mostra o modal de desfazer
+        document.getElementById('undo-modal').style.display = 'flex';
+        return;
+    }
+
+    // Lógica normal para abrir seleção de usuários
+    const list = document.getElementById('user-options-list');
+    list.innerHTML = '';
+    allUsers.forEach(u => {
+        const div = document.createElement('div');
+        div.className = 'user-option';
+        div.innerText = u.nome;
+        div.onclick = () => processarCheck(u.nome);
+        list.appendChild(div);
+    });
+    document.getElementById('user-modal').style.display = 'flex';
+};
+
+// Função chamada pelo botão "Sim" do novo popup
+window.confirmarDesfazer = () => {
+    document.getElementById('undo-modal').style.display = 'none';
+    processarCheck(null); // Chama a função enviando null para limpar os dados
+};
+
+
+// Função unificada para Gravar ou Limpar o "Feito"
+window.processarCheck = async (userName) => {
+    try {
+        const { col, docId } = currentTaskRef;
+        const docRef = doc(db, col, docId); 
+        
+        const novosDados = userName 
+            ? { concluidoPor: userName, status: 'done' } 
+            : { concluidoPor: "", status: "" };
+
+        await updateDoc(docRef, novosDados);
+
+        // Atualiza localmente
+        const atualizarListaLocal = (lista) => {
+            const item = lista.find(d => d.id === docId);
+            if (item) {
+                item.status = novosDados.status;
+                item.concluidoPor = novosDados.concluidoPor;
+            }
+        };
+
+        [allDocs, currentTopicData.posts, currentTopicData.legislacoes, 
+         currentTopicData.construcoes, currentTopicData.acoes, currentTopicData.midia]
+        .forEach(atualizarListaLocal);
+
+        document.getElementById('user-modal').style.display = 'none';
+        refreshView(col); // Atualiza a tela
+
+    } catch (e) {
+        console.error(e);
+        alert("Erro ao processar.");
+    }
+};
+
+// Função auxiliar para re-renderizar a tela atual
+window.refreshView = (col) => {
+    const header = document.getElementById('topic-header').innerText;
+    if (header.includes("Últimas")) {
+        viewLatest();
+    } else if (document.getElementById('sub-tabs').classList.contains('hidden') && header !== "Manual do Jogo") {
+        viewCollection(col, header);
+    } else {
+        const abaAtiva = document.querySelector('.tab-item.active');
+        const tabId = abaAtiva ? abaAtiva.innerText.split(' ')[0].toLowerCase() : 'tudo';
+        const mapTabs = { 'leis': 'legislacoes', 'obras': 'construcoes', 'ações': 'acoes', 'mídia': 'midia', 'tudo': 'tudo' };
+        renderTabContent(mapTabs[tabId] || tabId);
+    }
+};
+
+window.confirmCheck = async (userName) => {
+    try {
+        const { col, docId } = currentTaskRef;
+        const docRef = doc(db, col, docId); 
+        
+        // 1. Grava no Firebase
+        await updateDoc(docRef, { 
+            concluidoPor: userName,
+            status: 'done'
+        });
+        
+        // 2. Atualiza os dados localmente (para refletir a mudança sem refresh)
+        const atualizarListaLocal = (lista) => {
+            const item = lista.find(d => d.id === docId);
+            if (item) {
+                item.status = 'done';
+                item.concluidoPor = userName;
+            }
+        };
+
+        atualizarListaLocal(allDocs);
+        atualizarListaLocal(currentTopicData.posts);
+        atualizarListaLocal(currentTopicData.legislacoes);
+        atualizarListaLocal(currentTopicData.construcoes);
+        atualizarListaLocal(currentTopicData.acoes);
+        atualizarListaLocal(currentTopicData.midia);
+
+        // 3. Fecha o Modal
+        document.getElementById('user-modal').style.display = 'none';
+
+        // 4. Identifica onde o usuário está e atualiza apenas a parte visual
+        const tituloAtual = document.getElementById('topic-header').innerText;
+        
+        if (tituloAtual.includes("Últimas")) {
+            viewLatest(); // Re-renderiza a tela de novidades
+        } else if (tituloAtual.includes("Legislações") || tituloAtual.includes("Construções") || tituloAtual.includes("Ações") || tituloAtual.includes("Mídia")) {
+            // Se estiver em uma coleção global, identifica qual e re-renderiza
+            const colTitle = tituloAtual.split(' ').pop();
+            viewCollection(col, tituloAtual);
+        } else {
+            // Se estiver dentro de um tópico do manual, renderiza a aba atual
+            const abaAtiva = document.querySelector('.tab-item.active');
+            const tabId = abaAtiva ? abaAtiva.innerText.split(' ')[0].toLowerCase() : 'tudo';
+            
+            // Tradução de nomes de abas para IDs de busca
+            const mapTabs = { 'leis': 'legislacoes', 'obras': 'construcoes', 'ações': 'acoes', 'mídia': 'midia', 'tudo': 'tudo' };
+            renderTabContent(mapTabs[tabId] || tabId);
+        }
+
+    } catch (e) {
+        console.error("Erro ao atualizar:", e);
+        alert("Erro ao salvar.");
+    }
+};
+
+
+
     </script>
 </body>
 </html>
