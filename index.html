@@ -279,10 +279,38 @@
             .post-block { padding: 15px; }
         }
 
+/* Estilo do Spinner */
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid rgba(99, 102, 241, 0.1);
+    border-top: 4px solid var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Classe para esconder com transição */
+.loader-hidden {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+}
+
     </style>
 </head>
 <body>
 
+
+    <!-- Tela de Carregamento -->
+<div id="loading-screen" style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.9); z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+    <div class="spinner"></div>
+    <p style="margin-top: 15px; color: var(--primary); font-weight: 600; font-size: 1rem; letter-spacing: 1px;">CARREGANDO DADOS...</p>
+</div>
     
     <!-- Overlay e Header Mobile -->
     <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
@@ -368,15 +396,30 @@
 let allUsers = []; // Variável global para usuários
 let currentTaskRef = null; // Para saber qual card estamos marcando
 
-       async function init() {
-    // Carrega usuários
-    const uSnap = await getDocs(collection(db, "users"));
-    allUsers = uSnap.docs.map(d => ({ id: d.id, nome: d.data().nome }));
-    
-    // Carrega docs (o que já existia)
-    const snap = await getDocs(query(collection(db, "docs"), orderBy("createdAt", "asc")));
-    allDocs = snap.docs.map(d => ({id: d.id, ...d.data()}));
-    renderSidebar();
+async function init() {
+    showLoading(); // Começa mostrando
+    try {
+        const uSnap = await getDocs(collection(db, "users"));
+        allUsers = uSnap.docs.map(d => ({ id: d.id, nome: d.data().nome }));
+        
+        const snap = await getDocs(query(collection(db, "docs"), orderBy("createdAt", "asc")));
+        allDocs = snap.docs.map(d => ({id: d.id, ...d.data()}));
+        renderSidebar();
+    } catch (e) {
+        console.error(e);
+    } finally {
+        hideLoading(); // Esconde quando terminar (mesmo se der erro)
+    }
+}
+
+const loader = document.getElementById('loading-screen');
+
+function showLoading() {
+    loader.classList.remove('loader-hidden');
+}
+
+function hideLoading() {
+    loader.classList.add('loader-hidden');
 }
 
    function renderSidebar() {
@@ -454,99 +497,120 @@ window.toggleFolder = (folderId, docId) => {
 
 // 2. Seleção de Tópico com persistência de Cards para Bisnetos
 window.selectTopic = async (docId) => {
-    const ref = allDocs.find(d => d.id === docId);
-    if(!ref) return;
+    // 1. Inicia o carregamento (bloqueia a tela)
+    if (typeof showLoading === 'function') showLoading();
 
-    // 1. Destaque Visual no Menu
-    document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('tree-active'));
-    const selectedMenu = document.getElementById(`menu-${docId}`);
-    if(selectedMenu) selectedMenu.classList.add('tree-active');
+    try {
+        const ref = allDocs.find(d => d.id === docId);
+        if (!ref) return;
 
-    const backContainer = document.getElementById('back-container');
-    const cards = document.getElementById('cards-container');
-    const area = document.getElementById('content-area');
-    const tabsContainer = document.getElementById('sub-tabs');
-    const header = document.getElementById('topic-header');
+        // 2. Destaque Visual no Menu Lateral
+        document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('tree-active'));
+        const selectedMenu = document.getElementById(`menu-${docId}`);
+        if (selectedMenu) selectedMenu.classList.add('tree-active');
 
-    area.innerHTML = "Carregando...";
-    tabsContainer.classList.add('hidden');
-    backContainer.innerHTML = ''; // Limpa o botão voltar
+        const backContainer = document.getElementById('back-container');
+        const cards = document.getElementById('cards-container');
+        const area = document.getElementById('content-area');
+        const tabsContainer = document.getElementById('sub-tabs');
+        const header = document.getElementById('topic-header');
 
-    // --- LÓGICA DO BOTÃO VOLTAR ---
-    if (ref.categoria !== 'pai') {
-        let paiId = null;
-        
-        if (ref.categoria === 'filho') {
-            const p = allDocs.find(d => d.categoria === 'pai' && d.nome === ref.categoriaPai);
-            if(p) paiId = p.id;
-        } else if (ref.categoria === 'neto') {
-            const p = allDocs.find(d => d.categoria === 'filho' && d.nome === ref.categoriaFilho && d.categoriaPai === ref.categoriaPai);
-            if(p) paiId = p.id;
-        } else if (ref.categoria === 'bisneto') {
-            const p = allDocs.find(d => d.categoria === 'neto' && d.nome === ref.categoriaNeto && d.categoriaFilho === ref.categoriaFilho);
-            if(p) paiId = p.id;
+        area.innerHTML = "Processando informações...";
+        tabsContainer.classList.add('hidden');
+        backContainer.innerHTML = ''; 
+
+        // 3. Lógica do Botão Voltar (Navegação Hierárquica)
+        if (ref.categoria !== 'pai') {
+            let paiId = null;
+            if (ref.categoria === 'filho') {
+                const p = allDocs.find(d => d.categoria === 'pai' && d.nome === ref.categoriaPai);
+                if(p) paiId = p.id;
+            } else if (ref.categoria === 'neto') {
+                const p = allDocs.find(d => d.categoria === 'filho' && d.nome === ref.categoriaFilho && d.categoriaPai === ref.categoriaPai);
+                if(p) paiId = p.id;
+            } else if (ref.categoria === 'bisneto') {
+                const p = allDocs.find(d => d.categoria === 'neto' && d.nome === ref.categoriaNeto && d.categoriaFilho === ref.categoriaFilho);
+                if(p) paiId = p.id;
+            }
+
+            if (paiId) {
+                const btn = document.createElement('button');
+                btn.className = 'btn-back';
+                btn.innerHTML = `← Voltar`;
+                btn.onclick = () => selectTopic(paiId);
+                backContainer.appendChild(btn);
+            }
         }
 
-        if (paiId) {
-            const btn = document.createElement('button');
-            btn.className = 'btn-back';
-            btn.innerHTML = `← Voltar`;
-            btn.onclick = () => selectTopic(paiId);
-            backContainer.appendChild(btn);
-        }
-    }
-
-    // 2. FILTRO DE POSTS
-    currentTopicData.posts = allDocs.filter(d => {
-        const mesmoNome = d.nome === ref.nome;
-        const mesmaCat = d.categoria === ref.categoria;
-        let linhagemCorreta = true;
-        if (ref.categoria === 'filho') linhagemCorreta = d.categoriaPai === ref.categoriaPai;
-        else if (ref.categoria === 'neto') linhagemCorreta = d.categoriaPai === ref.categoriaPai && d.categoriaFilho === ref.categoriaFilho;
-        else if (ref.categoria === 'bisneto') linhagemCorreta = d.categoriaPai === ref.categoriaPai && d.categoriaFilho === ref.categoriaFilho && d.categoriaNeto === ref.categoriaNeto;
-        return mesmoNome && mesmaCat && linhagemCorreta;
-    });
-
-    // 3. FILTRO DE COLEÇÕES (Leis, Obras, etc)
-    const collections = ['legislacoes', 'construcoes', 'acoes', 'midia']; // Adicionado 'midia'
-    for (const col of collections) {
-        const snap = await getDocs(collection(db, col));
-        currentTopicData[col] = snap.docs.map(d => ({id: d.id, ...d.data()})).filter(item => {
-            return item.vinculos?.some(v => {
-                if (ref.categoria === 'pai') return v.pai === ref.nome && !v.filho;
-                if (ref.categoria === 'filho') return v.pai === ref.categoriaPai && v.filho === ref.nome && !v.neto;
-                if (ref.categoria === 'neto') return v.pai === ref.categoriaPai && v.filho === ref.categoriaFilho && v.neto === ref.nome && !v.bisneto;
-                if (ref.categoria === 'bisneto') return v.pai === ref.categoriaPai && v.filho === ref.categoriaFilho && v.neto === ref.categoriaNeto && v.bisneto === ref.nome;
-                return false;
-            });
+        // 4. Filtro de Posts (Manual do Jogo)
+        currentTopicData.posts = allDocs.filter(d => {
+            const mesmoNome = d.nome === ref.nome;
+            const mesmaCat = d.categoria === ref.categoria;
+            let linhagemCorreta = true;
+            if (ref.categoria === 'filho') linhagemCorreta = d.categoriaPai === ref.categoriaPai;
+            else if (ref.categoria === 'neto') linhagemCorreta = d.categoriaPai === ref.categoriaPai && d.categoriaFilho === ref.categoriaFilho;
+            else if (ref.categoria === 'bisneto') linhagemCorreta = d.categoriaPai === ref.categoriaPai && d.categoriaFilho === ref.categoriaFilho && d.categoriaNeto === ref.categoriaNeto;
+            return mesmoNome && mesmaCat && linhagemCorreta;
         });
+
+        // 5. Busca Assíncrona nas Coleções Vinculadas (Firebase)
+        const collectionsList = ['legislacoes', 'construcoes', 'acoes', 'midia'];
+        for (const col of collectionsList) {
+            const snap = await getDocs(collection(db, col));
+            currentTopicData[col] = snap.docs.map(d => ({id: d.id, ...d.data()})).filter(item => {
+                return item.vinculos?.some(v => {
+                    if (ref.categoria === 'pai') return v.pai === ref.nome && !v.filho;
+                    if (ref.categoria === 'filho') return v.pai === ref.categoriaPai && v.filho === ref.nome && !v.neto;
+                    if (ref.categoria === 'neto') return v.pai === ref.categoriaPai && v.filho === ref.categoriaFilho && v.neto === ref.nome && !v.bisneto;
+                    if (ref.categoria === 'bisneto') return v.pai === ref.categoriaPai && v.filho === ref.categoriaFilho && v.neto === ref.categoriaNeto && v.bisneto === ref.nome;
+                    return false;
+                });
+            });
+        }
+
+        // 6. Cards de Navegação Superior
+        let subItems = [];
+        if (ref.categoria === 'bisneto') {
+            subItems = allDocs.filter(d => d.categoria === 'bisneto' && d.categoriaNeto === ref.categoriaNeto);
+        } else {
+            if(ref.categoria === 'pai') subItems = allDocs.filter(d => d.categoria === 'filho' && d.categoriaPai === ref.nome);
+            if(ref.categoria === 'filho') subItems = allDocs.filter(d => d.categoria === 'neto' && d.categoriaFilho === ref.nome);
+            if(ref.categoria === 'neto') subItems = allDocs.filter(d => d.categoria === 'bisneto' && d.categoriaNeto === ref.nome);
+        }
+
+        cards.innerHTML = '';
+        subItems.sort((a,b) => a.ordem - b.ordem).forEach(s => {
+            const c = document.createElement('div');
+            c.className = `nav-card ${s.id === docId ? 'active-card' : ''}`; 
+            c.innerText = s.nome;
+            c.onclick = () => selectTopic(s.id);
+            cards.appendChild(c);
+        });
+
+        // 7. Renderização Final da UI
+        header.innerHTML = `<h1>${ref.nome}</h1>`;
+        renderTabs();
+        renderTabContent('tudo');
+        
+        // Scroll para o topo
+        document.querySelector('.main-content').scrollTop = 0;
+
+        // Se estiver no mobile, fecha o menu lateral após selecionar
+        if (window.innerWidth <= 1024 && typeof toggleMenu === 'function') {
+            const sb = document.getElementById('sidebar');
+            if(sb.classList.contains('active')) toggleMenu();
+        }
+
+    } catch (error) {
+        console.error("Erro ao carregar tópico:", error);
+        area.innerHTML = "<p style='color:red'>Erro ao carregar conteúdo. Tente novamente.</p>";
+    } finally {
+        // 8. Esconde o carregamento (libera a tela)
+        if (typeof hideLoading === 'function') hideLoading();
     }
-
-    // 4. CARDS DE NAVEGAÇÃO
-    let subItems = [];
-    if (ref.categoria === 'bisneto') {
-        subItems = allDocs.filter(d => d.categoria === 'bisneto' && d.categoriaNeto === ref.categoriaNeto);
-    } else {
-        if(ref.categoria === 'pai') subItems = allDocs.filter(d => d.categoria === 'filho' && d.categoriaPai === ref.nome);
-        if(ref.categoria === 'filho') subItems = allDocs.filter(d => d.categoria === 'neto' && d.categoriaFilho === ref.nome);
-        if(ref.categoria === 'neto') subItems = allDocs.filter(d => d.categoria === 'bisneto' && d.categoriaNeto === ref.nome);
-    }
-
-    cards.innerHTML = '';
-    subItems.sort((a,b) => a.ordem - b.ordem).forEach(s => {
-        const c = document.createElement('div');
-        c.className = `nav-card ${s.id === docId ? 'active-card' : ''}`; 
-        c.innerText = s.nome;
-        c.onclick = () => selectTopic(s.id);
-        cards.appendChild(c);
-    });
-
-    header.innerHTML = `<h1>${ref.nome}</h1>`;
-    renderTabs();
-    renderTabContent('tudo');
-    document.querySelector('.main-content').scrollTop = 0;
 };
 
+   
   
 
    
@@ -624,44 +688,110 @@ window.selectTopic = async (docId) => {
         // --- LÓGICA DE ÚLTIMAS E COLEÇÕES GLOBAIS ---
         
 window.viewLatest = async () => {
-    const area = document.getElementById('content-area');
-    const header = document.getElementById('topic-header');
-    
-    document.getElementById('sub-tabs').classList.add('hidden');
-    document.getElementById('cards-container').innerHTML = '';
-    area.innerHTML = "Buscando novidades...";
-    header.innerHTML = "<h1>Últimas Atualizações</h1>";
+    // 1. Inicia o carregamento (bloqueia a tela)
+    if (typeof showLoading === 'function') showLoading();
 
-    const collections = ['docs', 'legislacoes', 'construcoes', 'acoes', 'midia'];
-    const promises = collections.map(col => getDocs(query(collection(db, col), orderBy("createdAt", "desc"), limit(5))));
-    const snapshots = await Promise.all(promises);
-    
-    let combined = [];
-    snapshots.forEach((snap, index) => {
-        snap.forEach(d => combined.push({ id: d.id, ...d.data(), type: collections[index] }));
-    });
-    
-    // Ordenar por data (mais recentes primeiro)
-    combined.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
-    
-    area.innerHTML = '';
-    combined.forEach(item => {
-        const isDone = item.status === 'done';
-        const label = item.type === 'docs' ? 'MANUAL' : item.type.toUpperCase();
+    try {
+        const area = document.getElementById('content-area');
+        const header = document.getElementById('topic-header');
+        const cards = document.getElementById('cards-container');
+        const tabsContainer = document.getElementById('sub-tabs');
         
-        area.innerHTML += `
-            <div class="post-block ${isDone ? 'done-card' : ''}">
-                <div class="card-check ${isDone ? 'checked' : ''}" 
-                     onclick="event.stopPropagation(); openCheckModal('${item.type}', '${item.id}', ${isDone})">
-                    ${isDone ? '✅' : '✔️'}
-                </div>
-                <div style="margin-bottom:10px;"><span class="tag" style="background:var(--primary)">${label}</span></div>
-                ${item.type === 'docs' ? item.textoHtml : `<h3>${item.nome}</h3><p>${item.descricao || 'Sem descrição.'}</p>`}
-                ${isDone ? `<div style="font-size:0.7rem; color:#16a34a; margin-top:12px; font-weight:bold;">✅ Concluído por: ${item.concluidoPor}</div>` : ''}
-            </div>`;
-    });
+        // 2. Limpa a interface para o novo estado
+        tabsContainer.classList.add('hidden');
+        cards.innerHTML = '';
+        area.innerHTML = "Buscando novidades em todas as categorias...";
+        header.innerHTML = "<h1>Últimas Atualizações</h1>";
 
-    if(combined.length === 0) area.innerHTML = "<p>Nenhuma atividade recente.</p>";
+        // 3. Define as coleções para buscar
+        const collectionsList = ['docs', 'legislacoes', 'construcoes', 'acoes', 'midia'];
+        
+        // 4. Cria as promessas de busca (limite de 5 itens por coleção para performance)
+        const promises = collectionsList.map(col => 
+            getDocs(query(collection(db, col), orderBy("createdAt", "desc"), limit(5)))
+        );
+
+        // 5. Executa todas as buscas simultaneamente
+        const snapshots = await Promise.all(promises);
+        
+        let combined = [];
+        snapshots.forEach((snap, index) => {
+            snap.forEach(d => {
+                combined.push({ 
+                    id: d.id, 
+                    ...d.data(), 
+                    type: collectionsList[index] 
+                });
+            });
+        });
+        
+        // 6. Ordena o resultado combinado por data (mais recentes primeiro)
+        combined.sort((a, b) => {
+            const dateA = a.createdAt?.toMillis() || 0;
+            const dateB = b.createdAt?.toMillis() || 0;
+            return dateB - dateA;
+        });
+        
+        // 7. Renderiza o conteúdo
+        area.innerHTML = '';
+        
+        if (combined.length === 0) {
+            area.innerHTML = "<p style='color:var(--text-muted)'>Nenhuma atividade recente encontrada.</p>";
+        } else {
+            combined.forEach(item => {
+                const isDone = item.status === 'done';
+                
+                // Define o label da tag baseado no tipo
+                const labelMap = {
+                    'docs': 'MANUAL',
+                    'legislacoes': 'LEIS',
+                    'construcoes': 'OBRAS',
+                    'acoes': 'AÇÕES',
+                    'midia': 'MÍDIA'
+                };
+                const label = labelMap[item.type] || 'ITEM';
+
+                // Cria o bloco de post
+                const block = document.createElement('div');
+                block.className = `post-block ${isDone ? 'done-card' : ''}`;
+                
+                block.innerHTML = `
+                    <div class="card-check ${isDone ? 'checked' : ''}" 
+                         onclick="event.stopPropagation(); openCheckModal('${item.type}', '${item.id}', ${isDone})">
+                        ${isDone ? '✅' : '✔️'}
+                    </div>
+                    <div style="margin-bottom:12px;">
+                        <span class="tag" style="background:var(--primary)">${label}</span>
+                        <span style="font-size: 0.7rem; color: var(--text-muted);">
+                            ${item.createdAt ? new Date(item.createdAt.toMillis()).toLocaleDateString('pt-BR') : ''}
+                        </span>
+                    </div>
+                    ${item.type === 'docs' 
+                        ? `<div class="manual-content">${item.textoHtml}</div>` 
+                        : `<h3>${item.nome}</h3><p>${item.descricao || 'Sem descrição.'}</p>`
+                    }
+                    ${isDone ? `
+                        <div style="font-size:0.75rem; color:#16a34a; margin-top:15px; font-weight:bold; border-top: 1px solid rgba(22, 163, 74, 0.2); padding-top: 10px;">
+                            ✅ Concluído por: ${item.concluidoPor}
+                        </div>` : ''}
+                `;
+                area.appendChild(block);
+            });
+        }
+
+        // 8. Ajustes finais de UI
+        document.querySelector('.main-content').scrollTop = 0;
+        
+        // Remove destaque de qualquer item do menu lateral
+        document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('tree-active'));
+
+    } catch (error) {
+        console.error("Erro ao carregar últimas atualizações:", error);
+        document.getElementById('content-area').innerHTML = "<p style='color:red'>Erro ao carregar novidades.</p>";
+    } finally {
+        // 9. Esconde o carregamento (libera a tela)
+        if (typeof hideLoading === 'function') hideLoading();
+    }
 };
 
         window.viewCollection = async (col, title) => {
