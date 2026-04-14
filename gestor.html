@@ -744,27 +744,80 @@ document.getElementById('btn-toggle-tree').addEventListener('click', () => {
 
 window.salvarPost = async () => {
     const html = document.getElementById('editor').innerHTML;
-    if(!html.trim()) return alert("O conteúdo não pode estar vazio.");
+    
+    // 1. Validação básica: não permitir post sem conteúdo
+    if (!html || html.trim() === "" || html === "<br>") {
+        alert("O conteúdo não pode estar vazio.");
+        return;
+    }
 
     try {
-        if(manualEditId) {
-            await updateDoc(doc(db, "docs", manualEditId), { textoHtml: html });
+        if (manualEditId) {
+            // --- CASO A: EDITANDO UM POST EXISTENTE ---
+            await updateDoc(doc(db, "docs", manualEditId), { 
+                textoHtml: html 
+            });
+            console.log("Post atualizado com sucesso.");
         } else {
-            const d = {...currentManualTopic, textoHtml: html, createdAt: serverTimestamp()};
-            delete d.id;
-            await addDoc(collection(db, "docs"), d);
+            // --- CASO B: CRIANDO UM NOVO POST ---
+            
+            // Procuramos se já existe um documento "vazio" (placeholder) para esta categoria exata.
+            // Isso acontece quando você apaga o último post mas a categoria permanece na árvore.
+            const placeholder = allDocs.find(d =>
+                d.nome === currentManualTopic.nome &&
+                d.categoria === currentManualTopic.categoria &&
+                d.categoriaPai === (currentManualTopic.categoriaPai || null) &&
+                d.categoriaFilho === (currentManualTopic.categoriaFilho || null) &&
+                d.categoriaNeto === (currentManualTopic.categoriaNeto || null) &&
+                (!d.textoHtml || d.textoHtml.trim() === "")
+            );
+
+            if (placeholder) {
+                // Se encontramos um documento vazio, apenas preenchemos ele.
+                await updateDoc(doc(db, "docs", placeholder.id), { 
+                    textoHtml: html, 
+                    createdAt: serverTimestamp(),
+                    status: '', // Reseta status se estiver salvando algo novo
+                    concluidoPor: ''
+                });
+                console.log("Documento existente preenchido.");
+            } else {
+                // Se não existe nenhum documento para essa categoria, cria um novo do zero.
+                const novoPost = {
+                    ...currentManualTopic, // Copia a hierarquia (pai, filho, etc)
+                    textoHtml: html,
+                    createdAt: serverTimestamp(),
+                    status: '',
+                    concluidoPor: ''
+                };
+                // Remove o ID do objeto de origem para o Firebase gerar um novo ID único
+                delete novoPost.id; 
+                
+                await addDoc(collection(db, "docs"), novoPost);
+                console.log("Novo documento criado.");
+            }
         }
+
+        // --- FINALIZAÇÃO ---
         
-        // SUCESSO: Esconde editor e atualiza
+        // 1. Esconde a área do editor e limpa o campo
         document.getElementById('editor-area').classList.add('hidden');
         document.getElementById('editor').innerHTML = "";
+        manualEditId = null; // Reseta o estado de edição
+
+        // 2. Recarrega todos os documentos do banco para atualizar a árvore e a lista local
         await carregarTudo();
-        selecionarTopico(currentManualTopic.id);
+
+        // 3. Atualiza a visualização do tópico onde o usuário está
+        if (currentManualTopic) {
+            selecionarTopico(currentManualTopic.id);
+        }
+
         alert("Gravado com sucesso!");
-        
+
     } catch (e) {
-        console.error(e);
-        alert("Erro ao salvar.");
+        console.error("Erro ao salvar post:", e);
+        alert("Erro técnico ao salvar. Verifique o console.");
     }
 };
 
@@ -1314,12 +1367,12 @@ window.renderizarConteudoAba = (aba) => {
 
     let itensParaExibir = [];
 
-    // Adiciona os posts do manual se for "tudo" ou a aba "posts" (opcional)
+    // 1. Coleta os Posts do Manual
     if (aba === 'tudo') {
         currentViewData.posts.forEach(p => itensParaExibir.push({ ...p, type: 'post' }));
     }
 
-    // Adiciona itens das outras coleções
+    // 2. Coleta os itens das outras coleções (Leis, Obras, etc)
     const colecoes = ['legislacoes', 'construcoes', 'acoes', 'midia'];
     colecoes.forEach(col => {
         if (aba === 'tudo' || aba === col) {
@@ -1327,20 +1380,31 @@ window.renderizarConteudoAba = (aba) => {
         }
     });
 
+    // --- LOGICA DE ORDENAÇÃO: MAIS ANTIGO PARA O MAIS NOVO ---
+    itensParaExibir.sort((a, b) => {
+        // Pega o tempo em segundos ou usa 0 se não houver data definida
+        const timeA = a.createdAt?.seconds || 0;
+        const timeB = b.createdAt?.seconds || 0;
+        
+        // Ordem crescente (Antigo -> Novo)
+        return timeA - timeB;
+    });
+
     if (itensParaExibir.length === 0) {
         container.innerHTML = "<p style='color:gray; padding:20px;'>Nenhum item encontrado nesta categoria.</p>";
         return;
     }
 
- itensParaExibir.forEach(item => {
-    const isDone = item.status === 'done';
-    const card = document.createElement('div');
-    
-    if (item.type === 'post') {
-        // NOVA LINHA AQUI: Se o post não tiver texto, não desenha o card
-        if (!item.textoHtml || item.textoHtml.trim() === "") return; 
+    // 3. Renderização dos Cards (agora ordenados)
+    itensParaExibir.forEach(item => {
+        const isDone = item.status === 'done';
+        const card = document.createElement('div');
+        
+        if (item.type === 'post') {
+            // Se o post estiver vazio (placeholder para a árvore), não renderiza o card
+            if (!item.textoHtml || item.textoHtml.trim() === "") return;
 
-        card.className = `post-card ${isDone ? 'done-card' : ''}`;
+            card.className = `post-card ${isDone ? 'done-card' : ''}`;
             card.innerHTML = `
                 <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('docs', '${item.id}', ${isDone})">${isDone ? '✅' : '✔️'}</div>
                 <div style="margin-bottom:15px">${item.textoHtml || ''}</div>
@@ -1351,36 +1415,22 @@ window.renderizarConteudoAba = (aba) => {
         } else {
             // CARD DE GESTÃO (Leis, Obras, etc)
             card.className = `item-row ${isDone ? 'done-card' : ''}`;
-            card.style.display = "block"; // Garante que a descrição fique embaixo
+            card.style.display = "block";
             
-            // Define uma cor para o Badge baseada na coleção
             const cores = { legislacoes: '#6366f1', construcoes: '#f59e0b', acoes: '#16a34a', midia: '#ec4899' };
             const corBadge = cores[item.colOrigem] || 'var(--accent)';
 
             card.innerHTML = `
                 <div style="display:flex; justify-content:space-between; align-items:center">
                     <div style="display:flex; align-items:center">
-                        <!-- Checkbox -->
-                        <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('${item.colOrigem}', '${item.id}', ${isDone})">
-                            ${isDone ? '✅' : '✔️'}
-                        </div>
-                        
-                        <!-- Badge da Categoria (O "card pequeno") -->
-                        <span style="background: ${corBadge}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; margin: 0 12px; text-transform: uppercase; letter-spacing: 0.5px; display: inline-block;">
+                        <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('${item.colOrigem}', '${item.id}', ${isDone})">${isDone ? '✅' : '✔️'}</div>
+                        <span style="background: ${corBadge}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; margin: 0 12px; text-transform: uppercase;">
                             ${item.colOrigem === 'legislacoes' ? 'LEI' : item.colOrigem === 'construcoes' ? 'OBRA' : item.colOrigem.toUpperCase()}
                         </span>
-
-                        <!-- Título do Item -->
                         <strong style="color:var(--white); font-size: 0.9rem;">${item.nome}</strong>
                     </div>
-
-                    <!-- Botão Editar Simplificado -->
-                    <button class="btn btn-edit" style="padding: 5px 15px; font-size: 0.7rem;" onclick="abrirModalGestao('${item.colOrigem}', '${item.id}')">
-                        EDITAR
-                    </button>
+                    <button class="btn btn-edit" style="padding: 5px 15px; font-size: 0.7rem;" onclick="abrirModalGestao('${item.colOrigem}', '${item.id}')">EDITAR</button>
                 </div>
-                
-                <!-- Descrição -->
                 <div style="margin: 8px 0 0 45px; color:#94a3b8; font-size:0.8rem; font-style: italic;">
                     ${item.descricao || 'Sem descrição definida.'}
                 </div>
