@@ -769,20 +769,41 @@ window.salvarPost = async () => {
 };
 
         // --- GESTÃO LEGISLAÇÕES (CORREÇÃO FILTROS) ---
-      window.abrirModalGestao = (col, id = null) => {
+window.abrirModalGestao = (col, id = null) => {
     currentGestaoCol = col;
     gestaoEditId = id;
+    
+    // 1. Montar o título dinâmico com a hierarquia
+    let tituloBreadcrumb = "Item";
+    if (currentManualTopic) {
+        let partes = [];
+        // Adicionamos os nomes conforme a hierarquia existente
+        if (currentManualTopic.categoriaPai) partes.push(currentManualTopic.categoriaPai);
+        if (currentManualTopic.categoriaFilho) partes.push(currentManualTopic.categoriaFilho);
+        if (currentManualTopic.categoriaNeto) partes.push(currentManualTopic.categoriaNeto);
+        
+        // O nome do tópico atual (seja ele pai, filho, neto ou bisneto)
+        partes.push(currentManualTopic.nome);
+        
+        tituloBreadcrumb = "Item: " + partes.join(" > ");
+    }
+
+    // 2. Aplicar o título no HTML
+    const modalTitleEl = document.getElementById('modal-title');
+    modalTitleEl.innerText = tituloBreadcrumb;
+    modalTitleEl.style.fontSize = "0.85rem"; // Ajuste para caber nomes longos
+    modalTitleEl.style.color = "var(--accent)";
+
+    // 3. Abrir o modal e limpar/preencher campos
     document.getElementById('modal').classList.add('active');
     document.getElementById('vinculos-container').innerHTML = '';
 
     if(!id) {
-        // Lógica para NOVO item
+        // NOVO ITEM
         document.getElementById('m-nome').value = "";
         document.getElementById('m-desc').value = "";
 
         let vinculoInicial = null;
-
-        // Se o usuário estiver visualizando um tópico do manual, preenchemos o contexto
         if (currentManualTopic) {
             vinculoInicial = { pai: "", filho: "", neto: "", bisneto: "" };
             const cat = currentManualTopic.categoria;
@@ -790,28 +811,23 @@ window.salvarPost = async () => {
 
             if (cat === 'pai') {
                 vinculoInicial.pai = nome;
-            } 
-            else if (cat === 'filho') {
+            } else if (cat === 'filho') {
                 vinculoInicial.pai = currentManualTopic.categoriaPai;
                 vinculoInicial.filho = nome;
-            } 
-            else if (cat === 'neto') {
+            } else if (cat === 'neto') {
                 vinculoInicial.pai = currentManualTopic.categoriaPai;
                 vinculoInicial.filho = currentManualTopic.categoriaFilho;
                 vinculoInicial.neto = nome;
-            } 
-            else if (cat === 'bisneto') {
+            } else if (cat === 'bisneto') {
                 vinculoInicial.pai = currentManualTopic.categoriaPai;
                 vinculoInicial.filho = currentManualTopic.categoriaFilho;
                 vinculoInicial.neto = currentManualTopic.categoriaNeto;
                 vinculoInicial.bisneto = nome;
             }
         }
-
-        // Adiciona a linha já com o preenchimento automático (se houver)
         addLinhaVinculo(vinculoInicial);
     } else {
-        // Lógica para EDIÇÃO de item existente
+        // EDIÇÃO
         carregarParaEditarGestao(id);
     }
 };
@@ -890,25 +906,58 @@ window.salvarPost = async () => {
             }
         };
 
-        window.salvarItemGestao = async () => {
-            const vinculos = [];
-            document.querySelectorAll('.vinculo-row').forEach(row => {
-                const p = row.querySelector('.s-p').value;
-                if(p) vinculos.push({
-                    pai: p, filho: row.querySelector('.s-f').value,
-                    neto: row.querySelector('.s-n').value, bisneto: row.querySelector('.s-b').value
-                });
+     window.salvarItemGestao = async () => {
+    // 1. Coletar os vínculos das linhas do modal
+    const vinculos = [];
+    document.querySelectorAll('.vinculo-row').forEach(row => {
+        const p = row.querySelector('.s-p').value;
+        if(p) vinculos.push({
+            pai: p, 
+            filho: row.querySelector('.s-f').value,
+            neto: row.querySelector('.s-n').value, 
+            bisneto: row.querySelector('.s-b').value
+        });
+    });
+
+    // 2. Montar o objeto para o Firebase
+    const payload = { 
+        nome: document.getElementById('m-nome').value, 
+        descricao: document.getElementById('m-desc').value, 
+        vinculos,
+        // Mantém o status atual se for edição, ou vazio se for novo
+        status: gestaoEditId ? (currentViewData[currentGestaoCol].find(i => i.id === gestaoEditId)?.status || '') : ''
+    };
+
+    try {
+        if(gestaoEditId) {
+            // Atualizar existente
+            await updateDoc(doc(db, currentGestaoCol, gestaoEditId), payload);
+        } else {
+            // Criar novo
+            await addDoc(collection(db, currentGestaoCol), {
+                ...payload, 
+                createdAt: serverTimestamp()
             });
-            const payload = { 
-                nome: document.getElementById('m-nome').value, 
-                descricao: document.getElementById('m-desc').value, 
-                vinculos 
-            };
-            if(gestaoEditId) await updateDoc(doc(db, currentGestaoCol, gestaoEditId), payload);
-            else await addDoc(collection(db, currentGestaoCol), {...payload, createdAt: serverTimestamp()});
-            fecharModal();
+        }
+
+        // 3. Fechar o Modal
+        fecharModal();
+
+        // 4. ATUALIZAÇÃO INTELIGENTE (O segredo para não mudar de página)
+        if (currentManualTopic) {
+            // Se estou dentro de um tópico do manual, apenas recarrego os dados desse tópico
+            console.log("Recarregando tópico atual para exibir o novo item...");
+            await selecionarTopico(currentManualTopic.id);
+        } else {
+            // Se eu estava na lista geral (clicada pelo botão '!' da direita), recarrego a lista geral
             listarItensGestao(currentGestaoCol);
-        };
+        }
+
+    } catch (e) {
+        console.error("Erro ao salvar item de gestão:", e);
+        alert("Erro ao gravar dados.");
+    }
+};
 
         window.listarItensGestao = async (col) => {
             currentGestaoCol = col;
