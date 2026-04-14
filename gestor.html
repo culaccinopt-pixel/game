@@ -10,12 +10,35 @@
             --white: #f8fafc; --border: #334155; --card-bg: #1e293b;
             --danger: #ef4444; --success: #16a34a; --warning: #f59e0b;
         }
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; height: 100vh; background: var(--bg); color: var(--white); overflow: hidden; }
-        
+body { 
+    font-family: 'Segoe UI', sans-serif; 
+    margin: 0; 
+    display: flex; 
+    height: 100vh; 
+    background: var(--bg); 
+    color: var(--white); 
+    overflow: hidden; 
+}
+
         /* Sidebars */
-        .sidebar { width: 280px; background: #1e293b; padding: 20px; overflow-y: auto; flex-shrink: 0; border-right: 1px solid var(--border); }
+.sidebar { 
+    width: 280px; 
+    background: #1e293b; 
+    padding: 20px; 
+    overflow-y: auto; 
+    flex-shrink: 0; 
+    border-right: 1px solid var(--border); 
+    transition: 0.3s ease;
+    z-index: 1001;
+}
+
         .sidebar-right { border-right: none; border-left: 1px solid var(--border); }
-        .main-content { flex: 1; overflow-y: auto; padding: 30px; scroll-behavior: smooth; }
+        .main-content { 
+    flex: 1; 
+    overflow-y: auto; 
+    padding: 30px; 
+    scroll-behavior: smooth; 
+}
         
         /* Componentes */
         .side-group { background: #0f172a; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid var(--border); }
@@ -68,6 +91,73 @@
     display: inline-block;
     width: 10px;
 }
+
+/* Estilos para o Check nos Cards de Gestão */
+.card-check { position: absolute; top: 10px; right: 10px; cursor: pointer; font-size: 1.2rem; z-index: 5; color: #475569; }
+.card-check.checked { color: var(--success); }
+.done-card { border: 2px solid var(--success) !important; background: rgba(22, 163, 74, 0.05) !important; }
+.post-card, .item-row { position: relative; }
+
+/* Modais de Usuários e Desfazer */
+.modal-check { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 2000; }
+.check-content { background: #1e293b; padding: 25px; border-radius: 12px; border: 1px solid var(--accent); width: 320px; text-align: center; }
+.user-opt { padding: 12px; margin-bottom: 8px; background: #0f172a; border-radius: 6px; cursor: pointer; border: 1px solid var(--border); transition: 0.2s; }
+.user-opt:hover { background: var(--accent); }
+
+/* Barra de Topo exclusiva para Mobile */
+.mobile-nav {
+    display: none;
+    background: #1e293b;
+    padding: 10px 15px;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 1002;
+}
+
+/* Responsividade Geral */
+@media (max-width: 1024px) {
+    .sidebar {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: -300px; /* Esconde a esquerda */
+        width: 260px;
+        box-shadow: 10px 0 20px rgba(0,0,0,0.5);
+    }
+    
+    .sidebar-right {
+        left: auto;
+        right: -300px; /* Esconde a direita */
+        border-right: none;
+        border-left: 1px solid var(--border);
+    }
+
+    .sidebar.active { left: 0; }
+    .sidebar-right.active { right: 0; }
+
+    .mobile-nav { display: flex; }
+    
+    .main-content { padding: 15px; }
+
+    /* Overlay para fechar menus ao clicar fora */
+    .overlay-screen {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.6);
+        z-index: 1000;
+    }
+    .overlay-screen.active { display: block; }
+
+    .modal-content { width: 95%; padding: 15px; }
+}
+
+/* Ajustes de toque */
+.btn-icon { width: 44px; height: 44px; } /* Botões maiores no mobile */
+.tree-label { padding: 10px 5px; font-size: 0.95rem; }
 
     </style>
 </head>
@@ -162,6 +252,38 @@
         </div>
     </div>
 
+    <!-- Modal Seleção de Usuário -->
+<div id="user-modal" class="modal-check">
+    <div class="check-content">
+        <h3 style="margin-top:0; color:var(--accent)">Concluir como:</h3>
+        <div id="user-options-list"></div>
+        <button onclick="fecharModaisCheck()" style="background:none; border:none; color:gray; cursor:pointer; margin-top:10px;">Cancelar</button>
+    </div>
+</div>
+
+<!-- Modal Desfazer -->
+<div id="undo-modal" class="modal-check">
+    <div class="check-content">
+        <h3 style="color:var(--accent)">Desfazer Ação?</h3>
+        <p style="font-size:0.9rem; color:#94a3b8">Deseja remover a marcação de concluído?</p>
+        <div style="display:flex; gap:10px; margin-top:20px;">
+            <button onclick="confirmarDesfazer()" style="flex:1; padding:10px; background:var(--accent); border:none; border-radius:6px; color:white; cursor:pointer;">Sim</button>
+            <button onclick="fecharModaisCheck()" style="flex:1; padding:10px; background:#475569; border:none; border-radius:6px; color:white; cursor:pointer;">Não</button>
+        </div>
+    </div>
+</div>
+
+
+<div class="mobile-nav">
+    <button class="btn btn-view" onclick="toggleSidebar('left')">☰ Menu</button>
+    <span style="font-weight: bold; color: var(--accent); font-size: 0.8rem;">GESTOR MASTER</span>
+    <button class="btn btn-view" onclick="toggleSidebar('right')">Ferramentas ⚙️</button>
+</div>
+
+<!-- Div para escurecer o fundo ao abrir menu no celular -->
+<div class="overlay-screen" id="overlay" onclick="closeAllMenus()"></div>
+
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, getDocs, query, orderBy, where, serverTimestamp, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -182,12 +304,21 @@
         let manualEditId = null;
         let currentGestaoCol = "";
         let gestaoEditId = null;
+let allUsers = [];
+let currentTaskRef = null;
 
-        async function carregarTudo() {
-            const snap = await getDocs(query(collection(db, "docs"), orderBy("createdAt", "asc")));
-            allDocs = snap.docs.map(d => ({id: d.id, ...d.data()}));
-            renderizarArvore();
-        }
+
+async function carregarTudo() {
+    // Busca os documentos do manual
+    const snapManual = await getDocs(query(collection(db, "docs"), orderBy("createdAt", "asc")));
+    allDocs = snapManual.docs.map(d => ({id: d.id, ...d.data()}));
+
+    // Busca os usuários para o check
+    const uSnap = await getDocs(collection(db, "users"));
+    allUsers = uSnap.docs.map(d => ({id: d.id, nome: d.data().nome}));
+
+    renderizarArvore();
+}
 
         // --- LÓGICA DE PESQUISA ---
 document.getElementById('search-manual').addEventListener('input', (e) => {
@@ -355,18 +486,22 @@ document.getElementById('btn-toggle-tree').addEventListener('click', () => {
                d.categoriaNeto === docEncontrado.categoriaNeto;
     });
 
-    postsRelacionados.forEach(p => {
-        const card = document.createElement('div');
-        card.className = 'post-card';
-        card.innerHTML = `
-            <div style="margin-bottom:15px">${p.textoHtml || '<em>Sem conteúdo.</em>'}</div>
-            <div style="border-top: 1px solid var(--border); padding-top: 10px; display: flex; gap: 10px;">
-                <button class="btn btn-edit" onclick="editarPostManual('${p.id}')">EDITAR CONTEÚDO</button>
-                <button class="btn btn-delete" onclick="excluirPostManual('${p.id}')">EXCLUIR</button>
-            </div>
-        `;
-        list.appendChild(card);
-    });
+  postsRelacionados.forEach(p => {
+    const isDone = p.status === 'done';
+    const card = document.createElement('div');
+    card.className = `post-card ${isDone ? 'done-card' : ''}`;
+    card.innerHTML = `
+        <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('docs', '${p.id}', ${isDone})">
+            ${isDone ? '✅' : '✔️'}
+        </div>
+        <div style="margin-bottom:15px">${p.textoHtml || '<em>Sem conteúdo.</em>'}</div>
+        <div style="border-top: 1px solid var(--border); padding-top: 10px; display: flex; gap: 10px;">
+            <button class="btn btn-edit" onclick="editarPostManual('${p.id}')">EDITAR</button>
+            <button class="btn btn-delete" onclick="excluirPostManual('${p.id}')">EXCLUIR</button>
+        </div>
+    `;
+    list.appendChild(card);
+});
 };
 
         window.editarPostManual = (id) => {
@@ -518,15 +653,21 @@ window.salvarPost = async () => {
             listDiv.innerHTML = "Carregando...";
             const snap = await getDocs(collection(db, col));
             listDiv.innerHTML = `<h2>Lista: ${col}</h2>`;
-            snap.forEach(d => {
-                const item = d.data();
-                const div = document.createElement('div');
-                div.className = 'item-row';
-                div.innerHTML = `<div>${item.nome}</div>
-                <button class="btn btn-edit" onclick="abrirModalGestao('${col}', '${d.id}')">Editar</button>
-                <button class="btn btn-delete" onclick="excluirItemGestao('${col}', '${d.id}')">X</button>`;
-                listDiv.appendChild(div);
-            });
+          snap.forEach(d => {
+    const item = d.data();
+    const isDone = item.status === 'done';
+    const div = document.createElement('div');
+    div.className = `item-row ${isDone ? 'done-card' : ''}`;
+    div.innerHTML = `
+        <div class="card-check ${isDone ? 'checked' : ''}" style="position:relative; top:0; right:0; margin-right:10px" 
+             onclick="openCheckModal('${col}', '${d.id}', ${isDone})">
+            ${isDone ? '✅' : '✔️'}
+        </div>
+        <div style="flex:1">${item.nome}</div>
+        <button class="btn btn-edit" onclick="abrirModalGestao('${col}', '${d.id}')">Editar</button>
+        <button class="btn btn-delete" onclick="excluirItemGestao('${col}', '${d.id}')">X</button>`;
+    listDiv.appendChild(div);
+});
         };
 
         window.excluirItemGestao = async (col, id) => {
@@ -582,6 +723,94 @@ window.excluirPostManual = async (id) => {
     }
 };
 
+window.openCheckModal = (col, docId, isAlreadyDone) => {
+    currentTaskRef = { col, docId };
+    if (isAlreadyDone) {
+        document.getElementById('undo-modal').style.display = 'flex';
+        return;
+    }
+    const list = document.getElementById('user-options-list');
+    list.innerHTML = '';
+    allUsers.forEach(u => {
+        const div = document.createElement('div');
+        div.className = 'user-opt';
+        div.innerText = u.nome;
+        div.onclick = () => processarCheck(u.nome);
+        list.appendChild(div);
+    });
+    document.getElementById('user-modal').style.display = 'flex';
+};
+
+window.processarCheck = async (userName) => {
+    const { col, docId } = currentTaskRef;
+    const novosDados = userName ? { status: 'done', concluidoPor: userName } : { status: '', concluidoPor: '' };
+
+    try {
+        // 1. Grava no Firebase
+        await updateDoc(doc(db, col, docId), novosDados);
+
+        // 2. Atualiza o dado na nossa lista local (sem precisar baixar tudo de novo)
+        const atualizarLocal = (lista) => {
+            const item = lista.find(d => d.id === docId);
+            if (item) {
+                item.status = novosDados.status;
+                item.concluidoPor = novosDados.concluidoPor;
+            }
+        };
+        atualizarLocal(allDocs);
+
+        // 3. Fecha os modais de check
+        fecharModaisCheck();
+        
+        // 4. Atualiza a visualização atual (sem recarregar a árvore)
+        // Se o que foi alterado foi um POST do manual (coleção docs)
+        if (col === 'docs' && currentManualTopic) {
+            selecionarTopico(currentManualTopic.id);
+        } 
+        // Se o que foi alterado foi um item das listas da direita (Leis, Obras, etc)
+        else if (currentGestaoCol === col) {
+            listarItensGestao(currentGestaoCol);
+        }
+
+    } catch (e) {
+        console.error("Erro ao processar check:", e);
+        alert("Erro ao salvar alteração.");
+    }
+};
+
+window.confirmarDesfazer = () => processarCheck(null);
+window.fecharModaisCheck = () => {
+    document.querySelectorAll('.modal-check').forEach(m => m.style.display = 'none');
+};
+
+
+// Função para abrir/fechar menus no mobile
+window.toggleSidebar = (side) => {
+    const sidebar = side === 'left' ? document.querySelector('.sidebar') : document.querySelector('.sidebar-right');
+    const overlay = document.getElementById('overlay');
+    
+    sidebar.classList.toggle('active');
+    overlay.classList.toggle('active');
+};
+
+window.closeAllMenus = () => {
+    document.querySelectorAll('.sidebar').forEach(s => s.classList.remove('active'));
+    document.getElementById('overlay').classList.remove('active');
+};
+
+// Modifique sua função selecionarTopico para fechar o menu no mobile ao clicar
+const originalSelecionarTopico = window.selecionarTopico;
+window.selecionarTopico = (id) => {
+    originalSelecionarTopico(id);
+    if (window.innerWidth <= 1024) closeAllMenus();
+};
+
+// Modifique listarItensGestao para fechar o menu no mobile
+const originalListarItens = window.listarItensGestao;
+window.listarItensGestao = (col) => {
+    originalListarItens(col);
+    if (window.innerWidth <= 1024) closeAllMenus();
+};
 
     </script>
 </body>
