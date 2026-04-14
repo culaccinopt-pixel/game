@@ -290,6 +290,28 @@ body {
     .vinculo-row div { grid-template-columns: 1fr !important; } /* Coluna única no mobile para vínculos */
 }
 
+/* Estilo para o botão X de fechar o modal */
+.modal-content {
+    position: relative; /* Necessário para posicionar o X em relação ao card */
+}
+
+.btn-close-modal {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: none;
+    border: none;
+    color: #94a3b8;
+    font-size: 1.8rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-close-modal:hover {
+    color: var(--danger);
+}
+
     </style>
 </head>
 <body>
@@ -367,8 +389,12 @@ body {
 </aside>
 
 
-    <div class="modal-overlay" id="modal">
+  
+       <div class="modal-overlay" id="modal">
         <div class="modal-content">
+            <!-- Botão X adicionado aqui -->
+            <button class="btn-close-modal" onclick="fecharModal()">&times;</button>
+            
             <h3 id="modal-title">Item</h3>
             <label>Nome</label>
             <input type="text" id="m-nome">
@@ -381,7 +407,8 @@ body {
             
             <button class="btn btn-view" style="width:100%; margin-top:10px; font-size:0.7rem; height:30px;" onclick="addLinhaVinculo()">+ ADICIONAR OUTRO VÍNCULO</button>
             <button class="btn btn-save" onclick="salvarItemGestao()">Gravar</button>
-            <button class="btn btn-save" style="background:#475569; margin-top:5px" onclick="fecharModal()">Cancelar</button>
+            
+            <!-- Botão Cancelar removido daqui -->
         </div>
     </div>
 
