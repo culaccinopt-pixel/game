@@ -312,6 +312,42 @@ body {
     color: var(--danger);
 }
 
+/* Submenu de Abas */
+.tabs-container {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 10px;
+    overflow-x: auto;
+}
+.tab-btn {
+    background: #1e293b;
+    border: 1px solid var(--border);
+    color: #94a3b8;
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: 0.3s;
+    font-size: 0.85rem;
+}
+.tab-btn.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+}
+.tab-btn:hover:not(.active) {
+    background: #334155;
+}
+.badge-count {
+    background: rgba(0,0,0,0.3);
+    padding: 2px 6px;
+    border-radius: 10px;
+    margin-left: 5px;
+    font-size: 0.7rem;
+}
+
     </style>
 </head>
 <body>
@@ -465,7 +501,7 @@ body {
         let gestaoEditId = null;
 let allUsers = [];
 let currentTaskRef = null;
-
+let currentViewData = { posts: [], legislacoes: [], construcoes: [], acoes: [], midia: [] };
 
 async function carregarTudo() {
     // Busca os documentos do manual
@@ -586,6 +622,91 @@ function renderizarArvore(filtro = "") {
     });
 }
 
+function renderizarPaginaTopico(abaAtiva) {
+    const list = document.getElementById('dynamic-list');
+    
+    // Header
+    let html = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: #1e293b; padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+            <div>
+                <h3 style="margin:0; color:var(--accent)">${currentManualTopic.nome}</h3>
+                <small style="color:gray">${currentManualTopic.categoria.toUpperCase()}</small>
+            </div>
+            <button class="btn btn-add" onclick="abrirEditorNovoPost()" style="padding: 8px 20px; height: auto;">+ POST</button>
+        </div>
+    `;
+
+    // Renderizar Submenu de Abas
+    html += `<div class="tabs-container">`;
+    html += `<button class="tab-btn ${abaAtiva === 'tudo' ? 'active' : ''}" onclick="renderizarPaginaTopico('tudo')">Tudo</button>`;
+    
+    const labels = { legislacoes: 'Leis', construcoes: 'Construções', acoes: 'Ações', midia: 'Mídia' };
+    
+    for (const key in labels) {
+        const qtd = currentViewData[key].length;
+        if (qtd > 0) {
+            html += `
+                <button class="tab-btn ${abaAtiva === key ? 'active' : ''}" onclick="renderizarPaginaTopico('${key}')">
+                    ${labels[key]} <span class="badge-count">${qtd}</span>
+                </button>`;
+        }
+    }
+    html += `</div><div id="tab-content"></div>`;
+    list.innerHTML = html;
+
+    renderizarConteudoAba(abaAtiva);
+}
+
+function renderizarConteudoAba(aba) {
+    const container = document.getElementById('tab-content');
+    container.innerHTML = "";
+
+    // Unificar o que será exibido
+    let itensParaExibir = [];
+
+    if (aba === 'tudo' || aba === 'posts') {
+        currentViewData.posts.forEach(p => itensParaExibir.push({ ...p, type: 'post' }));
+    }
+    
+    const colecoes = ['legislacoes', 'construcoes', 'acoes', 'midia'];
+    colecoes.forEach(col => {
+        if (aba === 'tudo' || aba === col) {
+            currentViewData[col].forEach(item => itensParaExibir.push({ ...item, type: 'gestao', colOrigem: col }));
+        }
+    });
+
+    // Renderizar na tela
+    itensParaExibir.forEach(item => {
+        const isDone = item.status === 'done';
+        const card = document.createElement('div');
+        
+        if (item.type === 'post') {
+            card.className = `post-card ${isDone ? 'done-card' : ''}`;
+            card.innerHTML = `
+                <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('docs', '${item.id}', ${isDone})">${isDone ? '✅' : '✔️'}</div>
+                <div style="margin-bottom:15px">${item.textoHtml || ''}</div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-edit" onclick="editarPostManual('${item.id}')">EDITAR</button>
+                </div>`;
+        } else {
+            card.className = `item-row ${isDone ? 'done-card' : ''}`;
+            card.style.flexDirection = "column";
+            card.style.alignItems = "flex-start";
+            card.innerHTML = `
+                <div style="display:flex; width:100%; justify-content:space-between; align-items:center">
+                    <div style="display:flex; align-items:center">
+                        <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('${item.colOrigem}', '${item.id}', ${isDone})">${isDone ? '✅' : '✔️'}</div>
+                        <strong style="color:var(--accent)">[${item.colOrigem.toUpperCase()}] ${item.nome}</strong>
+                    </div>
+                    <button class="btn btn-edit" onclick="abrirModalGestao('${item.colOrigem}', '${item.id}')">Ver Detalhes</button>
+                </div>
+                <p style="font-size:0.8rem; color:#94a3b8; margin: 10px 0 0 35px;">${item.descricao || ''}</p>
+            `;
+        }
+        container.appendChild(card);
+    });
+}
+
 // Função para abrir/fechar ramos individualmente clicando na setinha
 window.toggleBranch = (el) => {
     const node = el.parentElement;
@@ -612,56 +733,7 @@ document.getElementById('btn-toggle-tree').addEventListener('click', () => {
     setTimeout(() => btn.classList.remove('pulse'), 500);
 });
 
-   window.selecionarTopico = (id) => {
-    const docEncontrado = allDocs.find(d => d.id === id);
-    if (!docEncontrado) return;
-
-    currentManualTopic = docEncontrado;
-    manualEditId = null; // Reseta o estado de edição
-
-    // Esconde o painel de edição inicialmente
-    document.getElementById('editor-area').classList.add('hidden');
-    document.getElementById('editor').innerHTML = "";
-
-    const list = document.getElementById('dynamic-list');
-    
-    // Header com o botão de Adicionar Post
-    list.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; background: #1e293b; padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
-            <div>
-                <h3 style="margin:0; color:var(--accent)">Tópico: ${docEncontrado.nome}</h3>
-                <small style="color:gray">${docEncontrado.categoria.toUpperCase()}</small>
-            </div>
-            <button class="btn btn-add" onclick="abrirEditorNovoPost()" style="padding: 8px 20px; height: auto;">+ ADICIONAR POST</button>
-        </div>
-    `;
-
-    // Filtra todos os posts vinculados a esta linhagem exata
-    const postsRelacionados = allDocs.filter(d => {
-        return d.nome === docEncontrado.nome &&
-               d.categoria === docEncontrado.categoria &&
-               d.categoriaPai === docEncontrado.categoriaPai &&
-               d.categoriaFilho === docEncontrado.categoriaFilho &&
-               d.categoriaNeto === docEncontrado.categoriaNeto;
-    });
-
-  postsRelacionados.forEach(p => {
-    const isDone = p.status === 'done';
-    const card = document.createElement('div');
-    card.className = `post-card ${isDone ? 'done-card' : ''}`;
-    card.innerHTML = `
-        <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('docs', '${p.id}', ${isDone})">
-            ${isDone ? '✅' : '✔️'}
-        </div>
-        <div style="margin-bottom:15px">${p.textoHtml || '<em>Sem conteúdo.</em>'}</div>
-        <div style="border-top: 1px solid var(--border); padding-top: 10px; display: flex; gap: 10px;">
-            <button class="btn btn-edit" onclick="editarPostManual('${p.id}')">EDITAR</button>
-            <button class="btn btn-delete" onclick="excluirPostManual('${p.id}')">EXCLUIR</button>
-        </div>
-    `;
-    list.appendChild(card);
-});
-};
+  
 
         window.editarPostManual = (id) => {
             const p = allDocs.find(x => x.id === id);
@@ -697,19 +769,52 @@ window.salvarPost = async () => {
 };
 
         // --- GESTÃO LEGISLAÇÕES (CORREÇÃO FILTROS) ---
-        window.abrirModalGestao = (col, id = null) => {
-            currentGestaoCol = col;
-            gestaoEditId = id;
-            document.getElementById('modal').classList.add('active');
-            document.getElementById('vinculos-container').innerHTML = '';
-            if(!id) {
-                document.getElementById('m-nome').value = "";
-                document.getElementById('m-desc').value = "";
-                addLinhaVinculo();
-            } else {
-                carregarParaEditarGestao(id);
+      window.abrirModalGestao = (col, id = null) => {
+    currentGestaoCol = col;
+    gestaoEditId = id;
+    document.getElementById('modal').classList.add('active');
+    document.getElementById('vinculos-container').innerHTML = '';
+
+    if(!id) {
+        // Lógica para NOVO item
+        document.getElementById('m-nome').value = "";
+        document.getElementById('m-desc').value = "";
+
+        let vinculoInicial = null;
+
+        // Se o usuário estiver visualizando um tópico do manual, preenchemos o contexto
+        if (currentManualTopic) {
+            vinculoInicial = { pai: "", filho: "", neto: "", bisneto: "" };
+            const cat = currentManualTopic.categoria;
+            const nome = currentManualTopic.nome;
+
+            if (cat === 'pai') {
+                vinculoInicial.pai = nome;
+            } 
+            else if (cat === 'filho') {
+                vinculoInicial.pai = currentManualTopic.categoriaPai;
+                vinculoInicial.filho = nome;
+            } 
+            else if (cat === 'neto') {
+                vinculoInicial.pai = currentManualTopic.categoriaPai;
+                vinculoInicial.filho = currentManualTopic.categoriaFilho;
+                vinculoInicial.neto = nome;
+            } 
+            else if (cat === 'bisneto') {
+                vinculoInicial.pai = currentManualTopic.categoriaPai;
+                vinculoInicial.filho = currentManualTopic.categoriaFilho;
+                vinculoInicial.neto = currentManualTopic.categoriaNeto;
+                vinculoInicial.bisneto = nome;
             }
-        };
+        }
+
+        // Adiciona a linha já com o preenchimento automático (se houver)
+        addLinhaVinculo(vinculoInicial);
+    } else {
+        // Lógica para EDIÇÃO de item existente
+        carregarParaEditarGestao(id);
+    }
+};
 
         async function carregarParaEditarGestao(id) {
             const snap = await getDocs(collection(db, currentGestaoCol));
@@ -970,6 +1075,219 @@ window.listarItensGestao = (col) => {
     originalListarItens(col);
     if (window.innerWidth <= 1024) closeAllMenus();
 };
+
+window.selecionarTopico = async (id) => {
+    const docEncontrado = allDocs.find(d => d.id === id);
+    if (!docEncontrado) return;
+
+    currentManualTopic = docEncontrado;
+    manualEditId = null;
+    document.getElementById('editor-area').classList.add('hidden');
+
+    // --- LOGS DE INÍCIO ---
+    console.group("🔍 FILTRANDO CONTEÚDO PARA O TÓPICO");
+    console.log("ID Selecionado:", id);
+    console.log("Nome:", docEncontrado.nome);
+    console.log("Categoria:", docEncontrado.categoria);
+    console.log("Hierarquia Completa:", {
+        pai: docEncontrado.categoriaPai || "N/A",
+        filho: docEncontrado.categoriaFilho || "N/A",
+        neto: docEncontrado.categoriaNeto || "N/A"
+    });
+
+    // 1. FILTRAR POSTS DO MANUAL (Docs)
+    // Filtramos para garantir que o post pertence EXATAMENTE a este nível e linhagem
+    currentViewData.posts = allDocs.filter(d => {
+        const matchesNome = d.nome === docEncontrado.nome;
+        const matchesCat = d.categoria === docEncontrado.categoria;
+        const matchesPai = d.categoriaPai === docEncontrado.categoriaPai;
+        const matchesFilho = d.categoriaFilho === docEncontrado.categoriaFilho;
+        const matchesNeto = d.categoriaNeto === docEncontrado.categoriaNeto;
+        return matchesNome && matchesCat && matchesPai && matchesFilho && matchesNeto;
+    });
+    console.log(`✅ Posts Encontrados (${currentViewData.posts.length}):`, currentViewData.posts);
+
+    // 2. BUSCAR ANEXOS (Leis, Obras, etc)
+    const colecoes = ['legislacoes', 'construcoes', 'acoes', 'midia'];
+    document.getElementById('dynamic-list').innerHTML = "<p style='padding:20px; color:gray;'>Buscando anexos...</p>";
+
+ for (const col of colecoes) {
+        try {
+            const snap = await getDocs(collection(db, col));
+            const todosItensDaColecao = snap.docs.map(d => ({id: d.id, ...d.data()}));
+            
+            console.log(`--- Analisando coleção: ${col.toUpperCase()} ---`);
+
+            currentViewData[col] = todosItensDaColecao.filter(item => {
+                if (!item.vinculos || item.vinculos.length === 0) return false;
+
+                return item.vinculos.some(v => {
+                    let match = false;
+
+                    if (docEncontrado.categoria === 'pai') {
+                        match = (v.pai === docEncontrado.nome);
+                    } 
+                    else if (docEncontrado.categoria === 'filho') {
+                        match = (v.pai === docEncontrado.categoriaPai && v.filho === docEncontrado.nome);
+                    }
+                    else if (docEncontrado.categoria === 'neto') {
+                        // LOG DE DIAGNÓSTICO PARA NETO
+                        match = (v.pai === docEncontrado.categoriaPai && 
+                                 v.filho === docEncontrado.categoriaFilho && 
+                                 v.neto === docEncontrado.nome);
+                        
+                        // Se não bateu, vamos ver o que tem no banco vs o que clicamos
+                        if (!match && v.neto === docEncontrado.nome) {
+                            console.warn(`⚠️ Quase deu Match em ${item.nome}! Nome do Neto bate, mas Pai ou Filho são diferentes.`);
+                            console.log(`Esperado: Pai(${docEncontrado.categoriaPai}), Filho(${docEncontrado.categoriaFilho})`);
+                            console.log(`No Banco: Pai(${v.pai}), Filho(${v.filho})`);
+                        }
+                    }
+                    else if (docEncontrado.categoria === 'bisneto') {
+                        match = (v.pai === docEncontrado.categoriaPai && 
+                                 v.filho === docEncontrado.categoriaFilho && 
+                                 v.neto === docEncontrado.categoriaNeto && 
+                                 v.bisneto === docEncontrado.nome);
+                    }
+
+                    return match;
+                });
+            });
+
+            console.log(`✅ Finalizado ${col}: ${currentViewData[col].length} itens encontrados.`);
+
+        } catch (e) {
+            console.error(`❌ Erro em ${col}:`, e);
+            currentViewData[col] = [];
+        }
+    }
+
+    console.groupEnd();
+    window.renderizarPaginaTopico('tudo');
+};
+
+
+// EXPOSTA AO WINDOW PARA O ONCLICK FUNCIONAR
+window.renderizarPaginaTopico = (abaAtiva) => {
+    const list = document.getElementById('dynamic-list');
+    
+    let html = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: #1e293b; padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+            <div>
+                <h3 style="margin:0; color:var(--accent)">${currentManualTopic.nome}</h3>
+                <small style="color:gray">${currentManualTopic.categoria.toUpperCase()}</small>
+            </div>
+            <button class="btn btn-add" onclick="abrirEditorNovoPost()" style="padding: 8px 20px; height: auto;">+ POST</button>
+        </div>
+    `;
+
+    // Submenu de Abas
+    html += `<div class="tabs-container" style="display:flex; gap:10px; margin-bottom:20px; border-bottom:1px solid #334155; padding-bottom:10px; overflow-x:auto;">`;
+    
+    // Aba Tudo sempre existe
+    const activeStyle = "background:var(--accent); color:white; border-color:var(--accent);";
+    const normalStyle = "background:#1e293b; color:#94a3b8; border:1px solid #334155;";
+    
+    html += `<button class="tab-btn" style="padding:8px 16px; border-radius:20px; cursor:pointer; font-size:0.8rem; ${abaAtiva === 'tudo' ? activeStyle : normalStyle}" onclick="renderizarPaginaTopico('tudo')">Tudo</button>`;
+    
+    const labels = { legislacoes: 'Leis', construcoes: 'Obras', acoes: 'Ações', midia: 'Mídia' };
+    
+    for (const key in labels) {
+        const qtd = currentViewData[key].length;
+        if (qtd > 0) {
+            html += `
+                <button class="tab-btn" style="padding:8px 16px; border-radius:20px; cursor:pointer; font-size:0.8rem; ${abaAtiva === key ? activeStyle : normalStyle}" onclick="renderizarPaginaTopico('${key}')">
+                    ${labels[key]} <span style="background:rgba(0,0,0,0.3); padding:2px 6px; border-radius:10px; font-size:0.7rem;">${qtd}</span>
+                </button>`;
+        }
+    }
+    html += `</div><div id="tab-content"></div>`;
+    list.innerHTML = html;
+
+    window.renderizarConteudoAba(abaAtiva);
+};
+
+// EXPOSTA AO WINDOW
+window.renderizarConteudoAba = (aba) => {
+    const container = document.getElementById('tab-content');
+    container.innerHTML = "";
+
+    let itensParaExibir = [];
+
+    // Adiciona os posts do manual se for "tudo" ou a aba "posts" (opcional)
+    if (aba === 'tudo') {
+        currentViewData.posts.forEach(p => itensParaExibir.push({ ...p, type: 'post' }));
+    }
+
+    // Adiciona itens das outras coleções
+    const colecoes = ['legislacoes', 'construcoes', 'acoes', 'midia'];
+    colecoes.forEach(col => {
+        if (aba === 'tudo' || aba === col) {
+            currentViewData[col].forEach(item => itensParaExibir.push({ ...item, type: 'gestao', colOrigem: col }));
+        }
+    });
+
+    if (itensParaExibir.length === 0) {
+        container.innerHTML = "<p style='color:gray; padding:20px;'>Nenhum item encontrado nesta categoria.</p>";
+        return;
+    }
+
+    itensParaExibir.forEach(item => {
+        const isDone = item.status === 'done';
+        const card = document.createElement('div');
+        
+        if (item.type === 'post') {
+            card.className = `post-card ${isDone ? 'done-card' : ''}`;
+            card.innerHTML = `
+                <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('docs', '${item.id}', ${isDone})">${isDone ? '✅' : '✔️'}</div>
+                <div style="margin-bottom:15px">${item.textoHtml || ''}</div>
+                <div style="display: flex; gap: 10px; border-top:1px solid #334155; padding-top:10px;">
+                    <button class="btn btn-edit" onclick="editarPostManual('${item.id}')">EDITAR</button>
+                    <button class="btn btn-delete" onclick="excluirPostManual('${item.id}')">EXCLUIR</button>
+                </div>`;
+        } else {
+            // CARD DE GESTÃO (Leis, Obras, etc)
+            card.className = `item-row ${isDone ? 'done-card' : ''}`;
+            card.style.display = "block"; // Garante que a descrição fique embaixo
+            
+            // Define uma cor para o Badge baseada na coleção
+            const cores = { legislacoes: '#6366f1', construcoes: '#f59e0b', acoes: '#16a34a', midia: '#ec4899' };
+            const corBadge = cores[item.colOrigem] || 'var(--accent)';
+
+            card.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center">
+                    <div style="display:flex; align-items:center">
+                        <!-- Checkbox -->
+                        <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('${item.colOrigem}', '${item.id}', ${isDone})">
+                            ${isDone ? '✅' : '✔️'}
+                        </div>
+                        
+                        <!-- Badge da Categoria (O "card pequeno") -->
+                        <span style="background: ${corBadge}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; margin: 0 12px; text-transform: uppercase; letter-spacing: 0.5px; display: inline-block;">
+                            ${item.colOrigem === 'legislacoes' ? 'LEI' : item.colOrigem === 'construcoes' ? 'OBRA' : item.colOrigem.toUpperCase()}
+                        </span>
+
+                        <!-- Título do Item -->
+                        <strong style="color:var(--white); font-size: 0.9rem;">${item.nome}</strong>
+                    </div>
+
+                    <!-- Botão Editar Simplificado -->
+                    <button class="btn btn-edit" style="padding: 5px 15px; font-size: 0.7rem;" onclick="abrirModalGestao('${item.colOrigem}', '${item.id}')">
+                        EDITAR
+                    </button>
+                </div>
+                
+                <!-- Descrição -->
+                <div style="margin: 8px 0 0 45px; color:#94a3b8; font-size:0.8rem; font-style: italic;">
+                    ${item.descricao || 'Sem descrição definida.'}
+                </div>
+            `;
+        }
+        container.appendChild(card);
+    });
+};
+
+
 
     </script>
 </body>
