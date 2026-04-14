@@ -15,11 +15,9 @@
         /* Sidebars */
         .sidebar { width: 280px; background: #1e293b; padding: 20px; overflow-y: auto; flex-shrink: 0; border-right: 1px solid var(--border); }
         .sidebar-right { border-right: none; border-left: 1px solid var(--border); }
-        
-        /* Main Content */
         .main-content { flex: 1; overflow-y: auto; padding: 30px; scroll-behavior: smooth; }
         
-        /* Componentes de UI */
+        /* Componentes */
         .side-group { background: #0f172a; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid var(--border); }
         .side-btn-row { display: flex; gap: 8px; margin-top: 10px; }
         .btn { border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s; color: white; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
@@ -30,12 +28,12 @@
         .btn-delete { background: var(--danger); padding: 5px 10px; font-size: 0.7rem; }
         .btn-save { background: var(--accent); width: 100%; padding: 12px; margin-top: 10px; }
 
-        /* Árvore de Tópicos */
+        /* Árvore */
         .tree-node { margin-left: 15px; border-left: 1px dashed #475569; padding-left: 10px; }
         .tree-label { padding: 5px; cursor: pointer; font-size: 0.85rem; display: block; border-radius: 4px; color: #cbd5e1; }
         .tree-label:hover { background: #334155; color: var(--accent); }
 
-        /* Editor e Cards */
+        /* Editor e Itens */
         .editor-box { background: #1e293b; padding: 20px; border: 2px solid var(--accent); border-radius: 8px; margin-bottom: 30px; }
         #editor { min-height: 120px; border: 1px solid var(--border); padding: 10px; margin: 10px 0; border-radius: 4px; background: #0f172a; color: white; outline: none; }
         .post-card { background: var(--card-bg); border: 1px solid var(--border); padding: 15px; border-radius: 8px; margin-bottom: 15px; }
@@ -44,70 +42,64 @@
         /* Modal */
         .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 1000; visibility: hidden; opacity: 0; transition: 0.3s; }
         .modal-overlay.active { visibility: visible; opacity: 1; }
-        .modal-content { background: #1e293b; padding: 25px; border-radius: 12px; width: 600px; border: 1px solid var(--accent); max-height: 90vh; overflow-y: auto; }
+        .modal-content { background: #1e293b; padding: 25px; border-radius: 12px; width: 650px; border: 1px solid var(--accent); max-height: 90vh; overflow-y: auto; }
         
         .vinculo-row { background: #0f172a; padding: 15px; border-radius: 8px; margin-bottom: 10px; border: 1px solid var(--border); position: relative; }
         .btn-remove-link { position: absolute; top: 5px; right: 5px; background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.2rem; }
         
-        label { font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; margin-top: 10px; display: block; }
-        input, textarea, select { width: 100%; background: #0f172a; border: 1px solid var(--border); color: white; padding: 8px; margin-top: 5px; border-radius: 4px; box-sizing: border-box; }
-        select:disabled { opacity: 0.3; }
+        label { font-size: 0.65rem; color: #94a3b8; text-transform: uppercase; margin-top: 8px; display: block; }
+        input, textarea, select { width: 100%; background: #0f172a; border: 1px solid var(--border); color: white; padding: 8px; margin-top: 4px; border-radius: 4px; box-sizing: border-box; }
+        select:disabled { opacity: 0.2; cursor: not-allowed; }
 
         .hidden { display: none; }
     </style>
 </head>
 <body>
 
-    <!-- SIDEBAR ESQUERDA: TÓPICOS DO MANUAL -->
     <aside class="sidebar">
         <div class="side-btn-row" style="margin-bottom:20px">
-            <a href="index.html" class="btn btn-view btn-icon" title="Ver Público">👁</a>
-            <a href="add.html" class="btn btn-add btn-icon" title="Novo Tópico">＋</a>
+            <a href="index.html" class="btn btn-view btn-icon">👁</a>
+            <a href="add.html" class="btn btn-add btn-icon">＋</a>
         </div>
         <h3 style="font-size:0.8rem; color:var(--accent)">ESTRUTURA MANUAL</h3>
         <div id="tree-container">Carregando...</div>
     </aside>
 
-    <!-- CONTEÚDO CENTRAL -->
     <main class="main-content" id="main-scroll">
         <div id="content-header">
             <h2>Gestor Administrativo</h2>
-            <p style="color: #94a3b8;">Selecione um tópico ou uma categoria lateral para começar.</p>
+            <p style="color: #94a3b8;">Selecione um tópico ou use as ferramentas laterais.</p>
         </div>
 
-        <!-- Editor de Conteúdo (Só aparece ao clicar em tópicos do manual) -->
         <div id="editor-area" class="hidden">
             <div class="editor-box">
                 <h3 id="editor-title">Nova Atualização</h3>
                 <div id="editor" contenteditable="true"></div>
-                <button onclick="salvarPost()" id="btnSalvar" class="btn btn-save">Publicar no Manual</button>
-                <button onclick="cancelarEdicaoManual()" id="btnCancelarManual" class="btn btn-save" style="background:#475569; margin-top:5px">Cancelar</button>
+                <button onclick="salvarPost()" id="btnSalvar" class="btn btn-save">Publicar</button>
+                <button onclick="cancelarEdicaoManual()" class="btn btn-save" style="background:#475569; margin-top:5px">Cancelar</button>
             </div>
         </div>
 
         <div id="dynamic-list"></div>
     </main>
 
-    <!-- SIDEBAR DIREITA: LEGISLAÇÕES / CONSTRUÇÕES / AÇÕES -->
     <aside class="sidebar sidebar-right">
         <div class="side-group">
-            <h4 style="margin:0; font-size:0.8rem;">1. LEGISLAÇÕES</h4>
+            <h4>1. LEGISLAÇÕES</h4>
             <div class="side-btn-row">
                 <button class="btn btn-add btn-icon" onclick="abrirModalGestao('legislacoes')">+</button>
                 <button class="btn btn-view btn-icon" onclick="listarItensGestao('legislacoes')">!</button>
             </div>
         </div>
-
         <div class="side-group">
-            <h4 style="margin:0; font-size:0.8rem;">2. CONSTRUÇÕES</h4>
+            <h4>2. CONSTRUÇÕES</h4>
             <div class="side-btn-row">
                 <button class="btn btn-add btn-icon" onclick="abrirModalGestao('construcoes')">+</button>
                 <button class="btn btn-view btn-icon" onclick="listarItensGestao('construcoes')">!</button>
             </div>
         </div>
-
         <div class="side-group">
-            <h4 style="margin:0; font-size:0.8rem;">3. AÇÕES</h4>
+            <h4>3. AÇÕES</h4>
             <div class="side-btn-row">
                 <button class="btn btn-add btn-icon" onclick="abrirModalGestao('acoes')">+</button>
                 <button class="btn btn-view btn-icon" onclick="listarItensGestao('acoes')">!</button>
@@ -115,23 +107,20 @@
         </div>
     </aside>
 
-    <!-- MODAL DE GESTÃO (COM VÍNCULOS EM CASCATA) -->
     <div class="modal-overlay" id="modal">
         <div class="modal-content">
-            <h3 id="modal-title">Adicionar Item</h3>
-            <label>Nome / Título</label>
-            <input type="text" id="m-nome" placeholder="Ex: Código Penal">
-            <label>Descrição Curta</label>
-            <textarea id="m-desc" rows="2" placeholder="Opcional..."></textarea>
+            <h3 id="modal-title">Item</h3>
+            <label>Nome</label>
+            <input type="text" id="m-nome">
+            <label>Descrição</label>
+            <textarea id="m-desc" rows="2"></textarea>
 
             <div id="vinculos-container" style="margin-top: 20px; border-top: 1px solid var(--border); padding-top: 15px;">
                 <p style="font-size:0.75rem; color:var(--accent); font-weight:bold;">VÍNCULOS COM O MANUAL</p>
-                <!-- Linhas de cascata entram aqui -->
             </div>
             
             <button class="btn btn-view" style="width:100%; margin-top:10px; font-size:0.7rem; height:30px;" onclick="addLinhaVinculo()">+ ADICIONAR OUTRO VÍNCULO</button>
-
-            <button class="btn btn-save" onclick="salvarItemGestao()">Gravar Dados</button>
+            <button class="btn btn-save" onclick="salvarItemGestao()">Gravar</button>
             <button class="btn btn-save" style="background:#475569; margin-top:5px" onclick="fecharModal()">Cancelar</button>
         </div>
     </div>
@@ -151,26 +140,22 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        let allDocs = []; // Dados do manual (docs)
+        let allDocs = [];
         let currentManualTopic = null;
         let manualEditId = null;
-
         let currentGestaoCol = "";
         let gestaoEditId = null;
 
-        // --- INICIALIZAÇÃO ---
         async function carregarTudo() {
             const snap = await getDocs(query(collection(db, "docs"), orderBy("createdAt", "asc")));
             allDocs = snap.docs.map(d => ({id: d.id, ...d.data()}));
             renderizarArvore();
         }
 
-        // --- GESTÃO DO MANUAL (ESQUERDA + EDITOR) ---
         function renderizarArvore() {
             const container = document.getElementById('tree-container');
             container.innerHTML = '';
             const pais = [...new Set(allDocs.filter(d => d.categoria === 'pai').map(p => p.nome))];
-
             pais.forEach(pName => {
                 const div = document.createElement('div');
                 div.className = 'tree-node';
@@ -189,31 +174,27 @@
         window.selecionarTopico = (nome) => {
             const posts = allDocs.filter(d => d.nome === nome);
             currentManualTopic = posts[0];
-            cancelarEdicaoManual();
-
-            document.getElementById('content-header').innerHTML = `<h2>Tópico: ${nome}</h2>`;
             document.getElementById('editor-area').classList.remove('hidden');
             const list = document.getElementById('dynamic-list');
-            list.innerHTML = '<h3>Histórico de Posts</h3>';
-            
+            list.innerHTML = `<h3>Tópico: ${nome}</h3>`;
             posts.forEach(p => {
                 const card = document.createElement('div');
                 card.className = 'post-card';
-                card.innerHTML = `
-                    <div style="font-size:0.7rem; color:#94a3b8; margin-bottom:10px">Postado: ${p.createdAt?.toDate().toLocaleString() || 'Agora'}</div>
-                    <div>${p.textoHtml}</div>
-                    <div style="margin-top:10px; border-top:1px solid #334155; padding-top:10px">
-                        <button class="btn btn-edit" onclick="editarPostManual('${p.id}')">Editar</button>
-                        <button class="btn btn-delete" onclick="excluirPostManual('${p.id}')">Excluir</button>
-                    </div>
-                `;
+                card.innerHTML = `<div>${p.textoHtml}</div>
+                <button class="btn btn-edit" onclick="editarPostManual('${p.id}')">Editar</button>`;
                 list.appendChild(card);
             });
         };
 
+        window.editarPostManual = (id) => {
+            const p = allDocs.find(x => x.id === id);
+            manualEditId = id;
+            document.getElementById('editor').innerHTML = p.textoHtml;
+            document.getElementById('main-scroll').scrollTop = 0;
+        };
+
         window.salvarPost = async () => {
             const html = document.getElementById('editor').innerHTML;
-            if(!html.trim()) return;
             if(manualEditId) {
                 await updateDoc(doc(db, "docs", manualEditId), { textoHtml: html });
             } else {
@@ -221,42 +202,19 @@
                 delete d.id;
                 await addDoc(collection(db, "docs"), d);
             }
-            cancelarEdicaoManual();
+            document.getElementById('editor').innerHTML = "";
+            manualEditId = null;
             await carregarTudo();
             selecionarTopico(currentManualTopic.nome);
         };
 
-        window.editarPostManual = (id) => {
-            const p = allDocs.find(x => x.id === id);
-            manualEditId = id;
-            document.getElementById('editor').innerHTML = p.textoHtml;
-            document.getElementById('editor-title').innerText = "Editando Post";
-            document.getElementById('main-scroll').scrollTop = 0;
-        };
-
-        window.cancelarEdicaoManual = () => {
-            manualEditId = null;
-            document.getElementById('editor').innerHTML = "";
-            document.getElementById('editor-title').innerText = "Nova Atualização";
-        };
-
-        window.excluirPostManual = async (id) => {
-            if(confirm("Excluir post?")) {
-                await deleteDoc(doc(db, "docs", id));
-                await carregarTudo();
-                selecionarTopico(currentManualTopic.nome);
-            }
-        };
-
-        // --- GESTÃO DE LEGISLAÇÕES / CONSTRUÇÕES / AÇÕES (DIREITA + MODAL) ---
+        // --- GESTÃO LEGISLAÇÕES (CORREÇÃO FILTROS) ---
         window.abrirModalGestao = (col, id = null) => {
             currentGestaoCol = col;
             gestaoEditId = id;
             document.getElementById('modal').classList.add('active');
-            document.getElementById('vinculos-container').innerHTML = '<p style="font-size:0.75rem; color:var(--accent); font-weight:bold;">VÍNCULOS COM O MANUAL</p>';
-            
+            document.getElementById('vinculos-container').innerHTML = '';
             if(!id) {
-                document.getElementById('modal-title').innerText = "Novo em " + col.toUpperCase();
                 document.getElementById('m-nome').value = "";
                 document.getElementById('m-desc').value = "";
                 addLinhaVinculo();
@@ -265,19 +223,12 @@
             }
         };
 
-        window.fecharModal = () => document.getElementById('modal').classList.remove('active');
-
         async function carregarParaEditarGestao(id) {
             const snap = await getDocs(collection(db, currentGestaoCol));
             const item = snap.docs.find(d => d.id === id).data();
-            document.getElementById('modal-title').innerText = "Editando: " + item.nome;
             document.getElementById('m-nome').value = item.nome;
             document.getElementById('m-desc').value = item.descricao || "";
-            if(item.vinculos && item.vinculos.length > 0) {
-                item.vinculos.forEach(v => addLinhaVinculo(v));
-            } else {
-                addLinhaVinculo();
-            }
+            if(item.vinculos) item.vinculos.forEach(v => addLinhaVinculo(v));
         }
 
         window.addLinhaVinculo = (data = null) => {
@@ -299,17 +250,17 @@
 
             const sp = div.querySelector('.s-p'), sf = div.querySelector('.s-f'), sn = div.querySelector('.s-n'), sb = div.querySelector('.s-b');
 
-            // Popular Pai
-            const pais = [...new Set(allDocs.map(d => d.categoriaPai).filter(v => v))].sort();
+            // 1. Popular Pais (docs com categoria "pai")
+            const pais = allDocs.filter(d => d.categoria === 'pai').map(d => d.nome).sort();
             pais.forEach(p => sp.innerHTML += `<option value="${p}">${p}</option>`);
 
-            // Eventos em Cascata
             sp.onchange = () => {
-                const val = sp.value;
+                const valP = sp.value;
                 sf.innerHTML = '<option value="">Selecione...</option>';
-                sf.disabled = !val;
-                if(val) {
-                    const filhos = [...new Set(allDocs.filter(d => d.categoriaPai === val).map(d => d.categoriaFilho).filter(v => v))].sort();
+                sf.disabled = !valP;
+                if(valP) {
+                    // Filhos: documentos que têm categoria "filho" e categoriaPai == valP
+                    const filhos = allDocs.filter(d => d.categoria === 'filho' && d.categoriaPai === valP).map(d => d.nome).sort();
                     filhos.forEach(f => sf.innerHTML += `<option value="${f}">${f}</option>`);
                 }
                 sf.onchange();
@@ -320,7 +271,8 @@
                 sn.innerHTML = '<option value="">Selecione...</option>';
                 sn.disabled = !valF;
                 if(valF) {
-                    const netos = [...new Set(allDocs.filter(d => d.categoriaPai === valP && d.categoriaFilho === valF).map(d => d.categoriaNeto).filter(v => v))].sort();
+                    // Netos: documentos que têm categoria "neto", categoriaPai == valP e categoriaFilho == valF
+                    const netos = allDocs.filter(d => d.categoria === 'neto' && d.categoriaPai === valP && d.categoriaFilho === valF).map(d => d.nome).sort();
                     netos.forEach(n => sn.innerHTML += `<option value="${n}">${n}</option>`);
                 }
                 sn.onchange();
@@ -331,7 +283,8 @@
                 sb.innerHTML = '<option value="">Selecione...</option>';
                 sb.disabled = !valN;
                 if(valN) {
-                    const bis = [...new Set(allDocs.filter(d => d.categoriaPai === valP && d.categoriaFilho === valF && d.categoriaNeto === valN).map(d => d.categoriaBisneto).filter(v => v))].sort();
+                    // Bisnetos: categoria "bisneto" e todos os pais batem
+                    const bis = allDocs.filter(d => d.categoria === 'bisneto' && d.categoriaPai === valP && d.categoriaFilho === valF && d.categoriaNeto === valN).map(d => d.nome).sort();
                     bis.forEach(b => sb.innerHTML += `<option value="${b}">${b}</option>`);
                 }
             };
@@ -345,10 +298,6 @@
         };
 
         window.salvarItemGestao = async () => {
-            const nome = document.getElementById('m-nome').value.trim();
-            const desc = document.getElementById('m-desc').value.trim();
-            if(!nome) return alert("Nome é obrigatório");
-
             const vinculos = [];
             document.querySelectorAll('.vinculo-row').forEach(row => {
                 const p = row.querySelector('.s-p').value;
@@ -357,16 +306,13 @@
                     neto: row.querySelector('.s-n').value, bisneto: row.querySelector('.s-b').value
                 });
             });
-
-            const data = { nome, descricao: desc, vinculos, updatedAt: serverTimestamp() };
-            if(gestaoEditId) {
-                await updateDoc(doc(db, currentGestaoCol, gestaoEditId), data);
-            } else {
-                const q = query(collection(db, currentGestaoCol), where("nome", "==", nome));
-                if(!(await getDocs(q)).empty) return alert("Nome já existe!");
-                data.createdAt = serverTimestamp();
-                await addDoc(collection(db, currentGestaoCol), data);
-            }
+            const payload = { 
+                nome: document.getElementById('m-nome').value, 
+                descricao: document.getElementById('m-desc').value, 
+                vinculos 
+            };
+            if(gestaoEditId) await updateDoc(doc(db, currentGestaoCol, gestaoEditId), payload);
+            else await addDoc(collection(db, currentGestaoCol), {...payload, createdAt: serverTimestamp()});
             fecharModal();
             listarItensGestao(currentGestaoCol);
         };
@@ -374,33 +320,29 @@
         window.listarItensGestao = async (col) => {
             currentGestaoCol = col;
             document.getElementById('editor-area').classList.add('hidden');
-            document.getElementById('content-header').innerHTML = `<h2>Gestão: ${col.toUpperCase()}</h2>`;
             const listDiv = document.getElementById('dynamic-list');
             listDiv.innerHTML = "Carregando...";
-            const snap = await getDocs(query(collection(db, col), orderBy("nome", "asc")));
-            listDiv.innerHTML = "";
+            const snap = await getDocs(collection(db, col));
+            listDiv.innerHTML = `<h2>Lista: ${col}</h2>`;
             snap.forEach(d => {
                 const item = d.data();
-                const row = document.createElement('div');
-                row.className = 'item-row';
-                row.innerHTML = `
-                    <div><strong>${item.nome}</strong><br><small style="color:#94a3b8">${item.vinculos?.length || 0} vínculos</small></div>
-                    <div>
-                        <button class="btn btn-edit" onclick="abrirModalGestao('${col}', '${d.id}')">Editar</button>
-                        <button class="btn btn-delete" onclick="excluirItemGestao('${col}', '${d.id}')">Excluir</button>
-                    </div>
-                `;
-                listDiv.appendChild(row);
+                const div = document.createElement('div');
+                div.className = 'item-row';
+                div.innerHTML = `<div>${item.nome}</div>
+                <button class="btn btn-edit" onclick="abrirModalGestao('${col}', '${d.id}')">Editar</button>
+                <button class="btn btn-delete" onclick="excluirItemGestao('${col}', '${d.id}')">X</button>`;
+                listDiv.appendChild(div);
             });
         };
 
         window.excluirItemGestao = async (col, id) => {
-            if(confirm("Excluir item?")) {
+            if(confirm("Excluir?")) {
                 await deleteDoc(doc(db, col, id));
                 listarItensGestao(col);
             }
         };
 
+        window.fecharModal = () => document.getElementById('modal').classList.remove('active');
         carregarTudo();
     </script>
 </body>
