@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manual - Visualizador Pro</title>
+    <title>Manual - Visualizador Completo</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap">
     <style>
         :root { 
@@ -16,13 +16,13 @@
         .main-content { flex: 1; padding: 40px; overflow-y: auto; order: 1; scroll-behavior: smooth; }
         .content-wrapper { max-width: 1000px; margin: 0 auto; }
 
-        /* Filtros Sidebar */
+        /* Navegação Sidebar (4 Botões) */
         .sidebar-nav-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 25px; }
         .nav-filter-btn { background: #0f172a; border: 1px solid var(--border); color: var(--text-muted); padding: 10px 5px; border-radius: 8px; cursor: pointer; font-size: 0.75rem; font-weight: 600; transition: 0.3s; }
         .nav-filter-btn:hover { border-color: var(--primary); color: var(--white); }
         .nav-filter-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
 
-        /* Árvore Lateral */
+        /* Menu de Árvore */
         .tree-parent { padding: 8px; cursor: pointer; font-weight: bold; border-radius: 6px; color: #e2e8f0; font-size: 0.9rem; margin-top: 5px; }
         .tree-parent:hover { background: #334155; color: var(--primary); }
         .tree-children { margin-left: 20px; display: none; border-left: 1px solid #475569; }
@@ -30,34 +30,38 @@
         .tree-child { padding: 4px 15px; cursor: pointer; color: var(--text-muted); font-size: 0.8rem; }
         .tree-child:hover { color: var(--white); }
 
-        /* Sub-Abas */
+        /* Sub-Abas Dinâmicas */
         .sub-tabs-container { display: flex; gap: 15px; border-bottom: 1px solid var(--border); margin: 20px 0 30px 0; }
         .tab-item { padding: 10px 5px; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); border-bottom: 3px solid transparent; transition: 0.3s; }
         .tab-item.active { color: var(--primary); border-bottom-color: var(--primary); }
 
-        /* Cards de Navegação (Agora mostram o próximo nível sempre) */
+        /* Navegação por Cards Superior */
         .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-bottom: 40px; }
-        .nav-card { background: #1e293b; border: 1px solid var(--border); padding: 18px 10px; border-radius: 8px; cursor: pointer; text-align: center; font-weight: 600; font-size: 0.85rem; transition: 0.3s; display: flex; align-items: center; justify-content: center; min-height: 50px; }
+        .nav-card { background: #1e293b; border: 1px solid var(--border); padding: 18px 10px; border-radius: 8px; cursor: pointer; text-align: center; font-weight: 600; font-size: 0.85rem; transition: 0.3s; min-height: 50px; display: flex; align-items: center; justify-content: center; }
         .nav-card:hover { border-color: var(--primary); transform: translateY(-2px); background: #334155; }
         
-        .post-block { background: #1e293b; padding: 25px; border-radius: 12px; margin-bottom: 25px; border: 1px solid var(--border); }
-        .item-list-card { background: #1e293b; padding: 20px; border-radius: 10px; border-left: 4px solid var(--primary); margin-bottom: 15px; border: 1px solid var(--border); border-left-width: 4px; }
-        
-        h1 { color: var(--primary); font-size: 2.5rem; margin-bottom: 5px; }
-        .hidden { display: none; }
+        /* Blocos de Conteúdo */
+        .post-block { background: #1e293b; padding: 25px; border-radius: 12px; margin-bottom: 25px; border: 1px solid var(--border); line-height: 1.6; }
+        .item-list-card { background: #1e293b; padding: 20px; border-radius: 10px; border: 1px solid var(--border); border-left: 4px solid var(--primary); margin-bottom: 15px; }
+        .item-list-card h3 { margin: 0 0 8px 0; font-size: 1.1rem; color: var(--white); }
+        .item-list-card p { margin: 0; color: var(--text-muted); font-size: 0.9rem; line-height: 1.5; }
+
         .tag { background: #312e81; color: #c7d2fe; padding: 3px 10px; border-radius: 20px; font-size: 0.7rem; margin-right: 8px; font-weight: 600; }
+        h1 { color: var(--primary); font-size: 2.5rem; margin-bottom: 10px; margin-top: 0; }
+        .hidden { display: none; }
+        
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
     </style>
 </head>
 <body>
     <main class="main-content">
         <div class="content-wrapper">
-            <!-- Grid de Navegação Hierárquica -->
             <div id="cards-container" class="cards-grid"></div>
-            
             <div id="main-display">
                 <div id="topic-header">
                     <h1>Manual do Jogo</h1>
-                    <p style="color: var(--text-muted);">Explore a documentação selecionando uma categoria.</p>
+                    <p style="color: var(--text-muted);">Explore a documentação navegando pelas categorias.</p>
                 </div>
                 <div id="sub-tabs" class="sub-tabs-container hidden"></div>
                 <div id="content-area"></div>
@@ -66,18 +70,26 @@
     </main>
 
     <aside class="sidebar">
+        <!-- 4 Botões Principais -->
         <div class="sidebar-nav-grid">
             <button class="nav-filter-btn" onclick="viewLatest()">Últimas</button>
             <button class="nav-filter-btn" onclick="viewCollection('legislacoes', 'Legislações')">Leis</button>
-            <button class="nav-filter-btn" onclick="viewCollection('construcoes', 'Obras')">Obras</button>
+            <button class="nav-filter-btn" onclick="viewCollection('construcoes', 'Construções')">Obras</button>
             <button class="nav-filter-btn" onclick="viewCollection('acoes', 'Ações')">Ações</button>
         </div>
-        <div id="tree-menu"></div>
+
+        <!-- Cabeçalho do Menu com Botão de Configurações -->
+        <div style="margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-weight: bold; color: var(--primary); font-size: 0.8rem; letter-spacing: 1px;">MENU</span>
+            <a href="gestor.html" title="Configurações / Painel Admin" style="text-decoration: none; font-size: 1.1rem;">⚙️</a>
+        </div>
+        
+        <div id="tree-menu">Carregando categorias...</div>
     </aside>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         
         const firebaseConfig = {
             apiKey: "AIzaSyDPLJ4Ln3Ton-DxsJ0tEKeioWHnV01Plo0",
@@ -106,13 +118,11 @@
             pais.forEach(pName => {
                 const firstId = allDocs.find(d => d.nome === pName).id;
                 const div = document.createElement('div');
-                div.innerHTML = `
-                    <div class="tree-parent" onclick="toggleFolder('${firstId}', '${pName}')">📁 ${pName}</div>
-                    <div class="tree-children" id="child-of-${firstId}">
-                        ${allDocs.filter(d => d.categoria === 'filho' && d.categoriaPai === pName)
-                            .map(f => `<div class="tree-child" onclick="selectTopic('${f.nome}')">└ ${f.nome}</div>`).join('')}
-                    </div>
-                `;
+                div.innerHTML = `<div class="tree-parent" onclick="toggleFolder('${firstId}', '${pName}')">📁 ${pName}</div>
+                                 <div class="tree-children" id="child-of-${firstId}">
+                                    ${allDocs.filter(d => d.categoria === 'filho' && d.categoriaPai === pName)
+                                      .map(f => `<div class="tree-child" onclick="selectTopic('${f.nome}')">└ ${f.nome}</div>`).join('')}
+                                 </div>`;
                 menu.appendChild(div);
             });
         }
@@ -133,14 +143,10 @@
             const area = document.getElementById('content-area');
             const header = document.getElementById('topic-header');
             
-            cards.innerHTML = '';
-            area.innerHTML = "Carregando...";
-            tabsContainer.classList.add('hidden');
-
+            cards.innerHTML = ''; area.innerHTML = "Carregando..."; tabsContainer.classList.add('hidden');
             const ref = allDocs.find(d => d.nome === nome);
             if(!ref) return;
 
-            // 1. FILTRO ESTRITO (Match exato da hierarquia)
             const collections = ['legislacoes', 'construcoes', 'acoes'];
             for (const col of collections) {
                 const snap = await getDocs(collection(db, col));
@@ -156,18 +162,17 @@
             }
 
             currentTopicData.posts = allDocs.filter(d => d.nome === nome);
-
-            // 2. NAVEGAÇÃO DE CARDS (Próximo nível)
+            
+            // Navegação Próximo Nível
             let subItems = [];
             if(ref.categoria === 'pai') subItems = allDocs.filter(d => d.categoria === 'filho' && d.categoriaPai === nome);
             if(ref.categoria === 'filho') subItems = allDocs.filter(d => d.categoria === 'neto' && d.categoriaFilho === nome);
             if(ref.categoria === 'neto') subItems = allDocs.filter(d => d.categoria === 'bisneto' && d.categoriaNeto === nome);
             
-            [...new Set(subItems.map(s => s.nome))].forEach(sName => {
+            subItems.forEach(s => {
                 const c = document.createElement('div');
-                c.className = 'nav-card';
-                c.innerText = sName;
-                c.onclick = () => selectTopic(sName);
+                c.className = 'nav-card'; c.innerText = s.nome;
+                c.onclick = () => selectTopic(s.nome);
                 cards.appendChild(c);
             });
 
@@ -193,8 +198,7 @@
                     btn.innerText = t.label;
                     btn.onclick = () => {
                         document.querySelectorAll('.tab-item').forEach(i => i.classList.remove('active'));
-                        btn.classList.add('active');
-                        renderTabContent(t.id);
+                        btn.classList.add('active'); renderTabContent(t.id);
                     };
                     tabsContainer.appendChild(btn);
                 });
@@ -206,26 +210,63 @@
             area.innerHTML = '';
             const renderItem = (i, color) => `<div class="item-list-card" style="border-left-color: ${color}"><h3>${i.nome}</h3><p>${i.descricao || 'Sem descrição.'}</p></div>`;
 
-            if(tabId === 'tudo' || tabId === 'posts') {
-                currentTopicData.posts.forEach(p => area.innerHTML += `<div class="post-block">${p.textoHtml}</div>`);
-            }
+            if(tabId === 'tudo' || tabId === 'posts') currentTopicData.posts.forEach(p => area.innerHTML += `<div class="post-block">${p.textoHtml}</div>`);
             if(tabId === 'tudo' || tabId === 'legislacoes') currentTopicData.legislacoes.forEach(i => area.innerHTML += renderItem(i, '#6366f1'));
             if(tabId === 'tudo' || tabId === 'construcoes') currentTopicData.construcoes.forEach(i => area.innerHTML += renderItem(i, '#16a34a'));
             if(tabId === 'tudo' || tabId === 'acoes') currentTopicData.acoes.forEach(i => area.innerHTML += renderItem(i, '#f59e0b'));
             
-            if(!area.innerHTML) area.innerHTML = "<p style='color:var(--text-muted)'>Nenhum conteúdo vinculado diretamente a este nível.</p>";
+            if(!area.innerHTML) area.innerHTML = "<p style='color:var(--text-muted)'>Nenhum conteúdo específico para este nível.</p>";
         }
 
-        // Funções da Sidebar
+        // --- LÓGICA DE ÚLTIMAS E COLEÇÕES GLOBAIS ---
+        
+        window.viewLatest = async () => {
+            const area = document.getElementById('content-area');
+            const header = document.getElementById('topic-header');
+            document.getElementById('sub-tabs').classList.add('hidden');
+            document.getElementById('cards-container').innerHTML = '';
+            area.innerHTML = "Buscando novidades...";
+            header.innerHTML = "<h1>Últimas Atualizações</h1>";
+
+            const collections = ['docs', 'legislacoes', 'construcoes', 'acoes'];
+            const promises = collections.map(col => getDocs(query(collection(db, col), orderBy("createdAt", "desc"), limit(5))));
+            const snapshots = await Promise.all(promises);
+            
+            let combined = [];
+            snapshots.forEach((snap, index) => {
+                snap.forEach(d => combined.push({ ...d.data(), type: collections[index] }));
+            });
+            
+            combined.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
+            area.innerHTML = '';
+            combined.forEach(item => {
+                const label = item.type === 'docs' ? 'MANUAL' : item.type.toUpperCase();
+                area.innerHTML += `
+                    <div class="post-block">
+                        <div style="margin-bottom:10px;"><span class="tag" style="background:var(--primary)">${label}</span></div>
+                        ${item.type === 'docs' ? item.textoHtml : `<h3>${item.nome}</h3><p>${item.descricao || ''}</p>`}
+                    </div>`;
+            });
+        };
+
         window.viewCollection = async (col, title) => {
             document.getElementById('sub-tabs').classList.add('hidden');
             document.getElementById('cards-container').innerHTML = '';
             const area = document.getElementById('content-area');
-            area.innerHTML = 'Carregando...';
-            const snap = await getDocs(collection(db, col));
-            document.getElementById('topic-header').innerHTML = `<h1>${title}</h1>`;
+            const header = document.getElementById('topic-header');
+            area.innerHTML = "Carregando...";
+            header.innerHTML = `<h1>${title}</h1>`;
+            
+            const snap = await getDocs(query(collection(db, col), orderBy("nome", "asc")));
             area.innerHTML = '';
-            snap.forEach(d => { area.innerHTML += `<div class="item-list-card"><h3>${d.data().nome}</h3><p>${d.data().descricao || ''}</p></div>`; });
+            snap.forEach(d => {
+                const data = d.data();
+                area.innerHTML += `
+                    <div class="item-list-card">
+                        <h3>${data.nome}</h3>
+                        <p>${data.descricao || 'Sem descrição cadastrada.'}</p>
+                    </div>`;
+            });
         };
 
         init();
