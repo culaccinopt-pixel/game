@@ -3,141 +3,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestor do Manual - Admin Pro</title>
+    <title>Gestor do Manual - Admin Ultra</title>
     <style>
         :root { 
-            --primary: #1e293b; 
-            --accent: #6366f1; 
-            --bg: #0f172a; 
-            --white: #f8fafc; 
-            --border: #334155; 
-            --card-bg: #1e293b;
-            --danger: #ef4444;
-            --success: #16a34a;
+            --primary: #1e293b; --accent: #6366f1; --bg: #0f172a; 
+            --white: #f8fafc; --border: #334155; --card-bg: #1e293b;
+            --danger: #ef4444; --success: #16a34a; --warning: #f59e0b;
         }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; height: 100vh; background: var(--bg); color: var(--white); overflow: hidden; }
         
-        /* Sidebars */
-        .sidebar { width: 280px; background: #1e293b; padding: 20px; overflow-y: auto; flex-shrink: 0; }
-        .sidebar-left { border-right: 2px solid var(--border); }
-        .sidebar-right { border-left: 2px solid var(--border); }
-        .sidebar h3, .sidebar h4 { margin-top: 0; color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
-        
+        .sidebar { width: 280px; background: #1e293b; padding: 20px; overflow-y: auto; flex-shrink: 0; border-right: 1px solid var(--border); }
+        .sidebar-right { border-right: none; border-left: 1px solid var(--border); }
+        .main-content { flex: 1; overflow-y: auto; padding: 30px; }
+
         .side-group { background: #0f172a; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid var(--border); }
         .side-btn-row { display: flex; gap: 8px; margin-top: 10px; }
 
-        /* Conteúdo Principal */
-        .main-content { flex: 1; overflow-y: auto; padding: 30px; scroll-behavior: smooth; }
-        
-        /* Árvore */
-        .tree-node { margin-left: 15px; border-left: 1px dashed #475569; padding-left: 10px; }
-        .tree-label { padding: 5px; cursor: pointer; font-size: 0.9rem; display: block; border-radius: 4px; color: #cbd5e1; }
-        .tree-label:hover { background: #334155; color: var(--accent); }
-
-        /* Estilo Item Lista */
-        .item-row { display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 12px; margin-bottom: 8px; border-radius: 6px; border-left: 4px solid var(--accent); }
-
-        /* Botões */
-        .btn { border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s; color: white; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
+        .btn { border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s; color: white; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
         .btn-icon { width: 38px; height: 38px; font-size: 1.1rem; }
         .btn-add { background: var(--success); }
         .btn-view { background: #475569; }
+        .btn-edit { background: var(--warning); padding: 5px 10px; font-size: 0.7rem; margin-right: 5px; }
         .btn-delete { background: var(--danger); padding: 5px 10px; font-size: 0.7rem; }
         .btn-save { background: var(--accent); width: 100%; padding: 12px; margin-top: 10px; }
-        
-        /* Modal */
+
+        /* Modal e Vínculos */
         .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 1000; visibility: hidden; opacity: 0; transition: 0.3s; }
         .modal-overlay.active { visibility: visible; opacity: 1; }
-        .modal-content { background: #1e293b; padding: 25px; border-radius: 12px; width: 450px; border: 1px solid var(--accent); max-height: 90vh; overflow-y: auto; }
+        .modal-content { background: #1e293b; padding: 25px; border-radius: 12px; width: 600px; border: 1px solid var(--accent); max-height: 90vh; overflow-y: auto; }
         
-        .modal-content label { font-size: 0.75rem; color: #94a3b8; display: block; margin-top: 10px; }
-        .modal-content input, .modal-content textarea, .modal-content select { 
-            width: 100%; background: #0f172a; border: 1px solid var(--border); color: white; padding: 10px; margin: 5px 0 10px 0; border-radius: 6px; box-sizing: border-box; font-family: inherit;
-        }
+        .vinculo-row { background: #0f172a; padding: 10px; border-radius: 8px; margin-bottom: 10px; border: 1px solid var(--border); position: relative; }
+        .btn-remove-link { position: absolute; top: 5px; right: 5px; background: none; border: none; color: var(--danger); cursor: pointer; font-weight: bold; }
+        
+        label { font-size: 0.75rem; color: #94a3b8; display: block; margin-top: 10px; }
+        input, textarea, select { width: 100%; background: #0f172a; border: 1px solid var(--border); color: white; padding: 8px; margin-top: 5px; border-radius: 4px; box-sizing: border-box; }
+        select:disabled { opacity: 0.3; cursor: not-allowed; }
 
+        .item-row { background: #1e293b; padding: 15px; margin-bottom: 10px; border-radius: 8px; border-left: 4px solid var(--accent); display: flex; justify-content: space-between; align-items: center; }
         .hidden { display: none; }
     </style>
 </head>
 <body>
 
-    <!-- Sidebar Esquerda -->
-    <aside class="sidebar sidebar-left">
-        <div class="side-btn-row" style="margin-bottom: 20px;">
-            <a href="index.html" class="btn btn-view btn-icon" title="Ver Manual Público">👁</a>
-            <a href="add.html" class="btn btn-add btn-icon" title="Criar Novo Tópico">＋</a>
+    <aside class="sidebar">
+        <div class="side-btn-row" style="margin-bottom:20px">
+            <a href="index.html" class="btn btn-view btn-icon">👁</a>
+            <a href="add.html" class="btn btn-add btn-icon">＋</a>
         </div>
-        <h3>Tópicos do Manual</h3>
+        <h3>Tópicos</h3>
         <div id="tree-container">Carregando...</div>
     </aside>
 
-    <!-- Centro -->
-    <main class="main-content" id="main-scroll">
-        <div id="content-header">
-            <h2>Gestor Administrativo</h2>
-            <p style="color: #94a3b8;">Gerencie as legislações e o conteúdo do manual.</p>
-        </div>
+    <main class="main-content">
+        <div id="content-header"><h2>Painel de Gestão</h2></div>
         <div id="dynamic-list"></div>
     </main>
 
-    <!-- Sidebar Direita -->
     <aside class="sidebar sidebar-right">
         <div class="side-group">
-            <h4>1. Legislações</h4>
+            <h4>Legislações</h4>
             <div class="side-btn-row">
-                <button class="btn btn-add btn-icon" onclick="abrirModal('legislacoes')" title="Adicionar">+</button>
-                <button class="btn btn-view btn-icon" onclick="listarDados('legislacoes', 'Legislações')" title="Gerir">!</button>
+                <button class="btn btn-add btn-icon" onclick="openModal('legislacoes')">+</button>
+                <button class="btn btn-view btn-icon" onclick="listItems('legislacoes')">!</button>
             </div>
         </div>
         <div class="side-group">
-            <h4>2. Construção</h4>
+            <h4>Construções</h4>
             <div class="side-btn-row">
-                <button class="btn btn-add btn-icon" onclick="abrirModal('construcoes')" title="Adicionar">+</button>
-                <button class="btn btn-view btn-icon" onclick="listarDados('construcoes', 'Construções')" title="Gerir">!</button>
+                <button class="btn btn-add btn-icon" onclick="openModal('construcoes')">+</button>
+                <button class="btn btn-view btn-icon" onclick="listItems('construcoes')">!</button>
             </div>
         </div>
         <div class="side-group">
-            <h4>3. Ações</h4>
+            <h4>Ações</h4>
             <div class="side-btn-row">
-                <button class="btn btn-add btn-icon" onclick="abrirModal('acoes')" title="Adicionar">+</button>
-                <button class="btn btn-view btn-icon" onclick="listarDados('acoes', 'Ações')" title="Gerir">!</button>
+                <button class="btn btn-add btn-icon" onclick="openModal('acoes')">+</button>
+                <button class="btn btn-view btn-icon" onclick="listItems('acoes')">!</button>
             </div>
         </div>
     </aside>
 
-    <!-- Modal com Dropdowns -->
+    <!-- Modal Multi-Vínculos -->
     <div class="modal-overlay" id="modal">
         <div class="modal-content">
-            <h3 id="modal-title">Adicionar Novo</h3>
+            <h3 id="modal-title">Editar Item</h3>
+            <label>Nome do Item</label>
+            <input type="text" id="m-nome">
+            <label>Descrição</label>
+            <textarea id="m-desc" rows="2"></textarea>
+
+            <div id="vinculos-container" style="margin-top: 20px;">
+                <p style="font-size:0.8rem; color:var(--accent)">Vínculos com o Manual:</p>
+                <!-- As linhas de dropdown entram aqui -->
+            </div>
             
-            <label>Nome Principal</label>
-            <input type="text" id="modal-nome" placeholder="Ex: Lei de Segurança">
-            
-            <label>Descrição (Opcional)</label>
-            <textarea id="modal-desc" rows="2" placeholder="Resumo do item..."></textarea>
+            <button class="btn btn-view" style="width:100%; margin-top:10px; font-size:0.7rem;" onclick="addVinculoRow()">+ Adicionar outro vínculo</button>
 
-            <hr style="border:0; border-top:1px solid var(--border); margin: 15px 0;">
-            <p style="font-size: 0.8rem; color: var(--accent); font-weight: bold;">Vincular ao Manual (Opcional):</p>
-
-            <label>Categoria Pai</label>
-            <select id="sel-pai"><option value="">Selecione...</option></select>
-
-            <label>Categoria Filho</label>
-            <select id="sel-filho"><option value="">Selecione...</option></select>
-
-            <label>Categoria Neto</label>
-            <select id="sel-neto"><option value="">Selecione...</option></select>
-
-            <label>Categoria Bisneto</label>
-            <select id="sel-bisneto"><option value="">Selecione...</option></select>
-
-            <button class="btn btn-save" onclick="salvarModal()">Confirmar e Gravar</button>
-            <button class="btn btn-save" style="background:#475569; margin-top:5px" onclick="fecharModal()">Cancelar</button>
+            <button class="btn btn-save" id="btn-save-main" onclick="saveItem()">Gravar Alterações</button>
+            <button class="btn btn-save" style="background:#475569; margin-top:5px" onclick="closeModal()">Cancelar</button>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, query, orderBy, where, serverTimestamp, doc, updateDoc, arrayUnion, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, query, orderBy, where, serverTimestamp, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         
         const firebaseConfig = {
             apiKey: "AIzaSyDPLJ4Ln3Ton-DxsJ0tEKeioWHnV01Plo0",
@@ -150,144 +119,207 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        let allDocs = []; // Dados da coleção 'docs'
-        let currentCollection = "";
+        let allDocs = [];
+        let currentCol = "";
+        let editingId = null;
 
-        // --- CARREGAR DADOS DO MANUAL ---
-        async function loadManualData() {
-            const snap = await getDocs(query(collection(db, "docs"), orderBy("createdAt", "asc")));
+        async function init() {
+            const snap = await getDocs(collection(db, "docs"));
             allDocs = snap.docs.map(d => ({id: d.id, ...d.data()}));
             renderTree();
-            populateDropdowns();
         }
 
         function renderTree() {
             const container = document.getElementById('tree-container');
             container.innerHTML = '';
-            const pais = [...new Set(allDocs.filter(d => d.categoria === 'pai').map(p => p.nome))];
-            pais.forEach(pName => {
-                const div = document.createElement('div');
-                div.className = 'tree-node';
-                div.innerHTML = `<span class="tree-label">📁 ${pName}</span>`;
-                const filhos = [...new Set(allDocs.filter(d => d.categoria === 'filho' && d.categoriaPai === pName).map(f => f.nome))];
-                filhos.forEach(fName => {
-                    const fDiv = document.createElement('div');
-                    fDiv.className = 'tree-node';
-                    fDiv.innerHTML = `<span class="tree-label">📄 ${fName}</span>`;
-                    div.appendChild(fDiv);
-                });
-                container.appendChild(div);
+            const pais = [...new Set(allDocs.filter(d => d.categoriaPai).map(d => d.categoriaPai))].sort();
+            pais.forEach(p => {
+                const d = document.createElement('div');
+                d.innerHTML = `<span style="font-size:0.8rem; display:block; padding:3px; color:#cbd5e1">📁 ${p}</span>`;
+                container.appendChild(d);
             });
         }
 
         // --- LÓGICA DO MODAL ---
-        function populateDropdowns() {
-            const fill = (id, field) => {
-                const select = document.getElementById(id);
-                const values = [...new Set(allDocs.map(d => d[field]).filter(v => v))].sort();
-                select.innerHTML = '<option value="">Selecione...</option>';
-                values.forEach(v => select.innerHTML += `<option value="${v}">${v}</option>`);
-            };
-            fill('sel-pai', 'categoriaPai');
-            fill('sel-filho', 'categoriaFilho');
-            fill('sel-neto', 'categoriaNeto');
-            fill('sel-bisneto', 'categoriaBisneto');
-        }
-
-        window.abrirModal = (colecao) => {
-            currentCollection = colecao;
-            document.getElementById('modal-title').innerText = "Novo em " + colecao;
+        window.openModal = (col, id = null) => {
+            currentCol = col;
+            editingId = id;
             document.getElementById('modal').classList.add('active');
-        };
-
-        window.fecharModal = () => {
-            document.getElementById('modal').classList.remove('active');
-            ['modal-nome', 'modal-desc'].forEach(id => document.getElementById(id).value = "");
-            ['sel-pai', 'sel-filho', 'sel-neto', 'sel-bisneto'].forEach(id => document.getElementById(id).value = "");
-        };
-
-        window.salvarModal = async () => {
-            const nome = document.getElementById('modal-nome').value.trim();
-            const desc = document.getElementById('modal-desc').value.trim();
-            const vPai = document.getElementById('sel-pai').value;
-            const vFilho = document.getElementById('sel-filho').value;
-            const vNeto = document.getElementById('sel-neto').value;
-            const vBisneto = document.getElementById('sel-bisneto').value;
-
-            if(!nome) return alert("Nome é obrigatório!");
-
-            try {
-                // 1. Validar duplicado na coleção alvo
-                const q = query(collection(db, currentCollection), where("nome", "==", nome));
-                const snap = await getDocs(q);
-                if(!snap.empty) return alert("Este nome já existe em " + currentCollection);
-
-                // 2. Gravar na coleção específica
-                const novoItem = {
-                    nome, descricao: desc, 
-                    vinculo: { pai: vPai, filho: vFilho, neto: vNeto, bisneto: vBisneto },
-                    createdAt: serverTimestamp()
-                };
-                await addDoc(collection(db, currentCollection), novoItem);
-
-                // 3. EDITAR FIREBASE DOCS (O correspondente)
-                // Procuramos um documento em 'docs' que coincida com a hierarquia selecionada
-                const matches = allDocs.filter(d => 
-                    (vPai ? d.categoriaPai === vPai : true) &&
-                    (vFilho ? d.categoriaFilho === vFilho : true) &&
-                    (vNeto ? d.categoriaNeto === vNeto : true)
-                );
-
-                if(matches.length > 0) {
-                    // Atualiza o primeiro que encontrar (ou todos se preferir)
-                    for(const targetDoc of matches) {
-                        const docRef = doc(db, "docs", targetDoc.id);
-                        await updateDoc(docRef, {
-                            // Adiciona o nome do novo item a uma lista de tags ou campo de referência
-                            itensRelacionados: arrayUnion({ nome, colecao: currentCollection })
-                        });
-                    }
-                    console.log("Documentos em 'docs' atualizados com o vínculo.");
-                }
-
-                alert("Item gravado e vínculos atualizados!");
-                fecharModal();
-                listarDados(currentCollection, currentCollection);
-            } catch (e) {
-                console.error(e);
-                alert("Erro ao processar.");
+            document.getElementById('vinculos-container').innerHTML = '<p style="font-size:0.8rem; color:var(--accent)">Vínculos com o Manual:</p>';
+            
+            if(!id) {
+                document.getElementById('modal-title').innerText = "Novo Item";
+                document.getElementById('m-nome').value = "";
+                document.getElementById('m-desc').value = "";
+                addVinculoRow();
+            } else {
+                loadItemToEdit(id);
             }
         };
 
-        window.listarDados = async (colecao, titulo) => {
-            document.getElementById('content-header').innerHTML = `<h2>Gerindo: ${titulo}</h2>`;
+        window.closeModal = () => document.getElementById('modal').classList.remove('active');
+
+        async function loadItemToEdit(id) {
+            const snap = await getDocs(query(collection(db, currentCol)));
+            const item = snap.docs.find(d => d.id === id).data();
+            document.getElementById('modal-title').innerText = "Editando: " + item.nome;
+            document.getElementById('m-nome').value = item.nome;
+            document.getElementById('m-desc').value = item.descricao || "";
+            
+            if(item.vinculos && item.vinculos.length > 0) {
+                item.vinculos.forEach(v => addVinculoRow(v));
+            } else {
+                addVinculoRow();
+            }
+        }
+
+        window.addVinculoRow = (data = null) => {
+            const container = document.getElementById('vinculos-container');
+            const rowId = Date.now() + Math.random();
+            const div = document.createElement('div');
+            div.className = 'vinculo-row';
+            div.id = `row-${rowId}`;
+            div.innerHTML = `
+                <button class="btn-remove-link" onclick="document.getElementById('row-${rowId}').remove()">✕</button>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <select class="sel-p"><option value="">Pai...</option></select>
+                    <select class="sel-f" disabled><option value="">Filho...</option></select>
+                    <select class="sel-n" disabled><option value="">Neto...</option></select>
+                    <select class="sel-b" disabled><option value="">Bisneto...</option></select>
+                </div>
+            `;
+            container.appendChild(div);
+
+            const sP = div.querySelector('.sel-p');
+            const sF = div.querySelector('.sel-f');
+            const sN = div.querySelector('.sel-n');
+            const sB = div.querySelector('.sel-b');
+
+            // Popular Pai
+            const pais = [...new Set(allDocs.map(d => d.categoriaPai).filter(v => v))].sort();
+            pais.forEach(p => sP.innerHTML += `<option value="${p}">${p}</option>`);
+
+            // Eventos Cascata
+            sP.onchange = () => {
+                const val = sP.value;
+                sF.innerHTML = '<option value="">Filho...</option>';
+                sF.disabled = !val;
+                if(val) {
+                    const filhos = [...new Set(allDocs.filter(d => d.categoriaPai === val).map(d => d.categoriaFilho).filter(v => v))].sort();
+                    filhos.forEach(f => sF.innerHTML += `<option value="${f}">${f}</option>`);
+                }
+                sF.onchange(); 
+            };
+
+            sF.onchange = () => {
+                const valP = sP.value;
+                const valF = sF.value;
+                sN.innerHTML = '<option value="">Neto...</option>';
+                sN.disabled = !valF;
+                if(valF) {
+                    const netos = [...new Set(allDocs.filter(d => d.categoriaPai === valP && d.categoriaFilho === valF).map(d => d.categoriaNeto).filter(v => v))].sort();
+                    netos.forEach(n => sN.innerHTML += `<option value="${n}">${n}</option>`);
+                }
+                sN.onchange();
+            };
+
+            sN.onchange = () => {
+                const valP = sP.value;
+                const valF = sF.value;
+                const valN = sN.value;
+                sB.innerHTML = '<option value="">Bisneto...</option>';
+                sB.disabled = !valN;
+                if(valN) {
+                    const bis = [...new Set(allDocs.filter(d => d.categoriaPai === valP && d.categoriaFilho === valF && d.categoriaNeto === valN).map(d => d.categoriaBisneto).filter(v => v))].sort();
+                    bis.forEach(b => sB.innerHTML += `<option value="${b}">${b}</option>`);
+                }
+            };
+
+            // Se for edição, carregar valores
+            if(data) {
+                sP.value = data.pai || ""; 
+                sP.onchange();
+                sF.value = data.filho || "";
+                sF.onchange();
+                sN.value = data.neto || "";
+                sN.onchange();
+                sB.value = data.bisneto || "";
+            }
+        };
+
+        window.saveItem = async () => {
+            const nome = document.getElementById('m-nome').value.trim();
+            const desc = document.getElementById('m-desc').value.trim();
+            if(!nome) return alert("Nome é obrigatório");
+
+            const vinculos = [];
+            document.querySelectorAll('.vinculo-row').forEach(row => {
+                const p = row.querySelector('.sel-p').value;
+                if(p) {
+                    vinculos.push({
+                        pai: p,
+                        filho: row.querySelector('.sel-f').value,
+                        neto: row.querySelector('.sel-n').value,
+                        bisneto: row.querySelector('.sel-b').value
+                    });
+                }
+            });
+
+            try {
+                const payload = { nome, descricao: desc, vinculos, updatedAt: serverTimestamp() };
+                
+                if(editingId) {
+                    await updateDoc(doc(db, currentCol, editingId), payload);
+                    alert("Atualizado!");
+                } else {
+                    // Check duplicado apenas em novos
+                    const q = query(collection(db, currentCol), where("nome", "==", nome));
+                    const check = await getDocs(q);
+                    if(!check.empty) return alert("Este nome já existe!");
+                    
+                    payload.createdAt = serverTimestamp();
+                    await addDoc(collection(db, currentCol), payload);
+                    alert("Criado!");
+                }
+                closeModal();
+                listItems(currentCol);
+            } catch (e) { console.error(e); alert("Erro ao salvar."); }
+        };
+
+        window.listItems = async (col) => {
+            currentCol = col;
+            document.getElementById('content-header').innerHTML = `<h2>Gestão: ${col.toUpperCase()}</h2>`;
             const listDiv = document.getElementById('dynamic-list');
             listDiv.innerHTML = "Carregando...";
-            const snap = await getDocs(query(collection(db, colecao), orderBy("nome", "asc")));
+            
+            const snap = await getDocs(query(collection(db, col), orderBy("nome", "asc")));
             listDiv.innerHTML = "";
             snap.forEach(d => {
-                const data = d.data();
-                const div = document.createElement('div');
-                div.className = 'item-row';
-                div.innerHTML = `
+                const item = d.data();
+                const row = document.createElement('div');
+                row.className = 'item-row';
+                row.innerHTML = `
                     <div>
-                        <strong>${data.nome}</strong><br>
-                        <small style="color:#6366f1">${data.vinculo?.pai || ''} > ${data.vinculo?.filho || ''}</small>
+                        <strong>${item.nome}</strong><br>
+                        <small style="color:#94a3b8">${item.vinculos?.length || 0} vínculos vinculados</small>
                     </div>
-                    <button class="btn btn-delete" onclick="excluirItem('${colecao}', '${d.id}')">Excluir</button>
+                    <div>
+                        <button class="btn btn-edit" onclick="openModal('${col}', '${d.id}')">Editar</button>
+                        <button class="btn btn-delete" onclick="deleteItem('${col}', '${d.id}')">Excluir</button>
+                    </div>
                 `;
-                listDiv.appendChild(div);
+                listDiv.appendChild(row);
             });
         };
 
-        window.excluirItem = async (col, id) => {
-            if(confirm("Excluir definitivamente?")) {
+        window.deleteItem = async (col, id) => {
+            if(confirm("Tem certeza?")) {
                 await deleteDoc(doc(db, col, id));
-                listarDados(col, col);
+                listItems(col);
             }
         };
 
-        loadManualData();
+        init();
     </script>
 </body>
 </html>
