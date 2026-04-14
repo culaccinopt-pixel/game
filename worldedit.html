@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>World Edit - Gestor Master</title>
+    <style>
+        :root { 
+            --primary: #1e293b; --accent: #6366f1; --bg: #0f172a; 
+            --white: #f8fafc; --border: #334155; --card-bg: #1e293b;
+            --danger: #ef4444; --success: #16a34a; --warning: #f59e0b;
+        }
+        
+        * { box-sizing: border-box; }
+
+        body { 
+            font-family: 'Segoe UI', system-ui, sans-serif; 
+            margin: 0; 
+            background: var(--bg); 
+            color: var(--white); 
+            display: flex; 
+            flex-direction: column; 
+            height: 100vh; 
+            overflow: hidden; 
+        }
+        
+        /* Header */
+        header { 
+            background: var(--primary); 
+            padding: 10px 15px; 
+            border-bottom: 1px solid var(--border); 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .nav-btns { display: flex; gap: 8px; }
+        
+        /* Layout Mobile-First (Drill-down) */
+        .world-container { 
+            display: flex; 
+            flex: 1; 
+            overflow: hidden; 
+            position: relative;
+        }
+
+        .column { 
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: none; /* Escondido por padrão no mobile */
+            flex-direction: column; 
+            padding: 15px;
+            background: var(--bg);
+            z-index: 1;
+        }
+
+        /* Desktop: 3 colunas fixas */
+        @media (min-width: 1025px) {
+            .column { 
+                position: relative; 
+                display: flex !important; 
+                border-right: 1px solid var(--border);
+            }
+            .col-temas { width: 280px; background: #1e293b; }
+            .col-pages { width: 320px; background: #1a2235; }
+            .col-content { flex: 1; }
+            .btn-mobile-back { display: none !important; }
+        }
+
+        /* Mobile: Coluna ativa ganha destaque */
+        @media (max-width: 1024px) {
+            .column.active { display: flex; z-index: 10; }
+            .col-temas { background: var(--bg); }
+            .col-pages { background: var(--bg); }
+        }
+
+        /* UI Elements */
+        .btn { border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; color: white; padding: 10px 12px; text-decoration: none; font-size: 0.85rem; display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+        .btn-accent { background: var(--accent); }
+        .btn-gray { background: #334155; }
+        .btn-add { background: var(--success); width: 100%; margin-bottom: 15px; padding: 12px; }
+        .btn-mobile-back { background: transparent; border: 1px solid var(--border); width: fit-content; margin-bottom: 15px; }
+
+        .list-item { background: #1e293b; padding: 14px; border-radius: 10px; margin-bottom: 8px; border: 1px solid var(--border); cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .list-item:active { background: var(--accent); }
+        .list-item.active { border-color: var(--accent); background: #334155; box-shadow: 0 0 10px rgba(99, 102, 241, 0.2); }
+
+        /* Post Editor */
+        .toolbar { background: #1e293b; padding: 8px; border-radius: 8px 8px 0 0; border: 1px solid var(--border); display: flex; gap: 4px; flex-wrap: wrap; }
+        .toolbar button { background: #0f172a; border: 1px solid var(--border); color: white; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+        #post-editor { min-height: 200px; background: #0f172a; border: 1px solid var(--border); border-top: none; padding: 15px; border-radius: 0 0 8px 8px; outline: none; color: white; line-height: 1.5; overflow-y: auto; }
+
+        /* Modal */
+        .modal { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; z-index: 2000; padding: 20px; }
+        .modal.active { display: flex; }
+        .modal-content { background: var(--card-bg); padding: 20px; border-radius: 12px; width: 100%; max-width: 400px; border: 1px solid var(--accent); }
+        input { width: 100%; background: #0f172a; border: 1px solid var(--border); color: white; padding: 12px; margin: 10px 0; border-radius: 8px; }
+
+        .post-card { background: #1e293b; border: 1px solid var(--border); padding: 15px; border-radius: 10px; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="nav-btns">
+            <a href="index.html" class="btn btn-gray" title="Home">🏠</a>
+            <a href="gestor.html" class="btn btn-gray">Gestor</a>
+        </div>
+        <span style="font-weight: bold; color: var(--accent); font-size: 0.9rem;">WORLD EDIT</span>
+    </header>
+
+    <div class="world-container">
+        <!-- Coluna 1: Temas -->
+        <div class="column col-temas active" id="view-temas">
+            <h3 style="margin-top:0">Temas</h3>
+            <button class="btn btn-add" onclick="openModal('tema')">+ Novo Tema</button>
+            <div id="lista-temas" style="overflow-y:auto">Carregando...</div>
+        </div>
+
+        <!-- Coluna 2: Páginas -->
+        <div class="column col-pages" id="view-pages">
+            <button class="btn btn-mobile-back" onclick="changeView('temas')">← Temas</button>
+            <div id="pages-header" style="margin-bottom:10px"></div>
+            <button class="btn btn-add" onclick="openModal('page')">+ Nova Página</button>
+            <div id="lista-paginas" style="overflow-y:auto"></div>
+        </div>
+
+        <!-- Coluna 3: Conteúdo -->
+        <div class="column col-content" id="view-content">
+            <button class="btn btn-mobile-back" onclick="changeView('pages')">← Páginas</button>
+            <div id="content-header" style="margin-bottom: 15px;"></div>
+            
+            <div id="editor-area" style="display: none; margin-bottom: 25px;">
+                <div class="toolbar">
+                    <button onclick="format('bold')">B</button>
+                    <button onclick="format('italic')">I</button>
+                    <button onclick="execCommand('formatBlock', 'h3')">T</button>
+                    <button onclick="format('insertUnorderedList')">• Lista</button>
+                    <button onclick="insertCheckbox()">☑</button>
+                </div>
+                <div id="post-editor" contenteditable="true"></div>
+                <div style="margin-top:10px; display: flex; gap: 8px;">
+                    <button class="btn btn-accent" style="flex:1" onclick="savePost()">Salvar</button>
+                    <button class="btn btn-gray" onclick="toggleEditor(false)">X</button>
+                </div>
+            </div>
+
+            <button id="btn-show-editor" class="btn btn-add" onclick="toggleEditor(true)">+ Novo Post</button>
+            <div id="lista-posts" style="padding-bottom: 50px;"></div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <h3 id="modal-title" style="margin-top:0">Adicionar</h3>
+            <input type="text" id="modal-input" placeholder="Digite o nome...">
+            <div style="display:flex; gap:10px">
+                <button class="btn btn-accent" style="flex:1" onclick="handleModalSave()">Gravar</button>
+                <button class="btn btn-gray" style="flex:1" onclick="closeModal()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, serverTimestamp, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDPLJ4Ln3Ton-DxsJ0tEKeioWHnV01Plo0",
+            authDomain: "politicalgame-30215.firebaseapp.com",
+            projectId: "politicalgame-30215",
+            storageBucket: "politicalgame-30215.firebasestorage.app",
+            messagingSenderId: "736655823319",
+            appId: "1:736655823319:web:60ebdc530e101784b9bb92"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let modalType = ''; 
+        let currentTemaId = null;
+        let currentPageId = null;
+
+        // Gerenciador de Visão Mobile
+        window.changeView = (view) => {
+            if(window.innerWidth > 1024) return;
+            document.querySelectorAll('.column').forEach(c => c.classList.remove('active'));
+            document.getElementById(`view-${view}`).classList.add('active');
+        };
+
+        // --- TEMAS ---
+        async function loadTemas() {
+            const q = query(collection(db, "temas"), orderBy("createdAt", "desc"));
+            const snap = await getDocs(q);
+            const container = document.getElementById('lista-temas');
+            container.innerHTML = '';
+            snap.forEach(d => {
+                const tema = d.data();
+                const div = document.createElement('div');
+                div.className = 'list-item';
+                div.id = `tema-${d.id}`;
+                div.innerHTML = `<span>${tema.nome}</span> <span style="font-size:12px; opacity:0.5">❯</span>`;
+                div.onclick = () => selectTema(d.id, tema.nome);
+                container.appendChild(div);
+            });
+        }
+
+        window.selectTema = async (id, nome) => {
+            currentTemaId = id;
+            document.querySelectorAll('.col-temas .list-item').forEach(el => el.classList.remove('active'));
+            document.getElementById(`tema-${id}`).classList.add('active');
+            
+            document.getElementById('pages-header').innerHTML = `<h2 style="margin:0; font-size:1.1rem">${nome}</h2>`;
+            loadPages();
+            changeView('pages');
+        };
+
+        // --- PÁGINAS ---
+        async function loadPages() {
+            const q = query(collection(db, "world_pages"), where("temaId", "==", currentTemaId), orderBy("createdAt", "asc"));
+            const snap = await getDocs(q);
+            const container = document.getElementById('lista-paginas');
+            container.innerHTML = '';
+            snap.forEach(d => {
+                const page = d.data();
+                const div = document.createElement('div');
+                div.className = 'list-item';
+                div.id = `page-${d.id}`;
+                div.innerHTML = `<span>${page.titulo}</span> <span style="font-size:12px; opacity:0.5">❯</span>`;
+                div.onclick = () => selectPage(d.id, page.titulo);
+                container.appendChild(div);
+            });
+        }
+
+        window.selectPage = (id, titulo) => {
+            currentPageId = id;
+            document.querySelectorAll('.col-pages .list-item').forEach(el => el.classList.remove('active'));
+            document.getElementById(`page-${id}`).classList.add('active');
+            document.getElementById('content-header').innerHTML = `<h2 style="margin:0; font-size:1.1rem">${titulo}</h2>`;
+            loadPosts();
+            changeView('content');
+        };
+
+        // --- POSTS ---
+        async function loadPosts() {
+            const q = query(collection(db, "world_posts"), where("pageId", "==", currentPageId), orderBy("createdAt", "desc"));
+            const snap = await getDocs(q);
+            const container = document.getElementById('lista-posts');
+            container.innerHTML = '';
+            snap.forEach(d => {
+                const post = d.data();
+                const card = document.createElement('div');
+                card.className = 'post-card';
+                card.innerHTML = `
+                    <div style="font-size:0.95rem">${post.contentHtml}</div>
+                    <div style="margin-top:10px; text-align:right">
+                        <button style="background:none; border:none; color:var(--danger); font-size:12px" onclick="deletePost('${d.id}')">Excluir</button>
+                    </div>`;
+                container.appendChild(card);
+            });
+        }
+
+        window.savePost = async () => {
+            const html = document.getElementById('post-editor').innerHTML;
+            if(!html || html === '<br>') return;
+            await addDoc(collection(db, "world_posts"), { pageId: currentPageId, contentHtml: html, createdAt: serverTimestamp() });
+            document.getElementById('post-editor').innerHTML = '';
+            toggleEditor(false);
+            loadPosts();
+        };
+
+        window.deletePost = async (id) => {
+            if(confirm("Excluir post?")) {
+                await deleteDoc(doc(db, "world_posts", id));
+                loadPosts();
+            }
+        };
+
+        // --- UTILS ---
+        window.handleModalSave = async () => {
+            const val = document.getElementById('modal-input').value;
+            if(!val) return;
+            if(modalType === 'tema') {
+                await addDoc(collection(db, "temas"), { nome: val, createdAt: serverTimestamp() });
+                loadTemas();
+            } else {
+                await addDoc(collection(db, "world_pages"), { temaId: currentTemaId, titulo: val, createdAt: serverTimestamp() });
+                loadPages();
+            }
+            closeModal();
+        };
+
+        window.openModal = (type) => {
+            modalType = type;
+            document.getElementById('modal-title').innerText = type === 'tema' ? 'Novo Tema' : 'Nova Página';
+            document.getElementById('modal').classList.add('active');
+        };
+        window.closeModal = () => document.getElementById('modal').classList.remove('active');
+        window.toggleEditor = (show) => {
+            document.getElementById('editor-area').style.display = show ? 'block' : 'none';
+            document.getElementById('btn-show-editor').style.display = show ? 'none' : 'inline-flex';
+        };
+        window.format = (cmd) => document.execCommand(cmd, false, null);
+        window.execCommand = (cmd, val) => document.execCommand(cmd, false, val);
+        window.insertCheckbox = () => {
+            document.execCommand('insertHTML', false, '<div style="display:flex; align-items:center; gap:8px;"><input type="checkbox" style="width:18px; height:18px;"><span>Texto</span></div>');
+        };
+
+        loadTemas();
+    </script>
+</body>
+</html>
