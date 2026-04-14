@@ -906,8 +906,33 @@ window.abrirModalGestao = (col, id = null) => {
             }
         };
 
-     window.salvarItemGestao = async () => {
-    // 1. Coletar os vínculos das linhas do modal
+  window.salvarItemGestao = async () => {
+    const nomeInput = document.getElementById('m-nome').value.trim();
+    const descInput = document.getElementById('m-desc').value.trim();
+
+    if (!nomeInput) {
+        alert("O nome é obrigatório.");
+        return;
+    }
+
+    // 1. VERIFICAÇÃO DE DUPLICIDADE
+    try {
+        // Buscamos na coleção atual se já existe alguém com esse nome
+        const q = query(collection(db, currentGestaoCol), where("nome", "==", nomeInput));
+        const querySnapshot = await getDocs(q);
+        
+        // Se encontrarmos documentos e o ID não for o mesmo que estamos editando...
+        const existeDuplicado = querySnapshot.docs.some(doc => doc.id !== gestaoEditId);
+
+        if (existeDuplicado) {
+            alert(`⚠️ Atenção: Já existe um item cadastrado com o nome "${nomeInput}" na categoria ${currentGestaoCol.toUpperCase()}. Por favor, use um nome diferente ou adicione um sufixo.`);
+            return; // Interrompe o salvamento
+        }
+    } catch (e) {
+        console.error("Erro ao verificar duplicidade:", e);
+    }
+
+    // 2. COLETA DE VÍNCULOS
     const vinculos = [];
     document.querySelectorAll('.vinculo-row').forEach(row => {
         const p = row.querySelector('.s-p').value;
@@ -919,42 +944,35 @@ window.abrirModalGestao = (col, id = null) => {
         });
     });
 
-    // 2. Montar o objeto para o Firebase
+    // 3. SALVAMENTO
     const payload = { 
-        nome: document.getElementById('m-nome').value, 
-        descricao: document.getElementById('m-desc').value, 
-        vinculos,
-        // Mantém o status atual se for edição, ou vazio se for novo
-        status: gestaoEditId ? (currentViewData[currentGestaoCol].find(i => i.id === gestaoEditId)?.status || '') : ''
+        nome: nomeInput, 
+        descricao: descInput, 
+        vinculos 
     };
 
     try {
         if(gestaoEditId) {
-            // Atualizar existente
             await updateDoc(doc(db, currentGestaoCol, gestaoEditId), payload);
         } else {
-            // Criar novo
             await addDoc(collection(db, currentGestaoCol), {
                 ...payload, 
-                createdAt: serverTimestamp()
+                createdAt: serverTimestamp(),
+                status: '' // Novo item começa sem status
             });
         }
 
-        // 3. Fechar o Modal
         fecharModal();
 
-        // 4. ATUALIZAÇÃO INTELIGENTE (O segredo para não mudar de página)
+        // 4. ATUALIZAR TELA SEM SAIR DA PÁGINA
         if (currentManualTopic) {
-            // Se estou dentro de um tópico do manual, apenas recarrego os dados desse tópico
-            console.log("Recarregando tópico atual para exibir o novo item...");
             await selecionarTopico(currentManualTopic.id);
         } else {
-            // Se eu estava na lista geral (clicada pelo botão '!' da direita), recarrego a lista geral
             listarItensGestao(currentGestaoCol);
         }
 
     } catch (e) {
-        console.error("Erro ao salvar item de gestão:", e);
+        console.error("Erro ao salvar:", e);
         alert("Erro ao gravar dados.");
     }
 };
@@ -1029,10 +1047,43 @@ window.cancelarEdicaoManual = () => {
 
 // Função para excluir post (opcional, mas recomendada)
 window.excluirPostManual = async (id) => {
+    const docParaExcluir = allDocs.find(x => x.id === id);
+    if(!docParaExcluir) return;
+
     if(confirm("Deseja excluir permanentemente este post do manual?")) {
-        await deleteDoc(doc(db, "docs", id));
-        await carregarTudo();
-        selecionarTopico(currentManualTopic.id);
+        // Busca todos os posts que pertencem a esta mesma categoria exata
+        const postsDaMesmaCategoria = allDocs.filter(d =>
+            d.nome === docParaExcluir.nome &&
+            d.categoria === docParaExcluir.categoria &&
+            d.categoriaPai === docParaExcluir.categoriaPai &&
+            d.categoriaFilho === docParaExcluir.categoriaFilho &&
+            d.categoriaNeto === docParaExcluir.categoriaNeto
+        );
+
+        try {
+            if (postsDaMesmaCategoria.length > 1) {
+                // Se existem outros posts para esta categoria, podemos apagar este documento
+                await deleteDoc(doc(db, "docs", id));
+                console.log("Documento removido (havia mais de um).");
+            } else {
+                // SE FOR O ÚLTIMO: Não apagamos o documento, apenas limpamos o conteúdo.
+                // Isso mantém a categoria visível na árvore lateral.
+                await updateDoc(doc(db, "docs", id), {
+                    textoHtml: "",
+                    status: "",
+                    concluidoPor: ""
+                });
+                console.log("Conteúdo limpo, mas categoria preservada na árvore.");
+            }
+
+            // Recarregar dados e atualizar a tela
+            await carregarTudo();
+            selecionarTopico(currentManualTopic.id);
+            
+        } catch (e) {
+            console.error("Erro ao excluir/limpar post:", e);
+            alert("Erro ao processar exclusão.");
+        }
     }
 };
 
@@ -1281,12 +1332,15 @@ window.renderizarConteudoAba = (aba) => {
         return;
     }
 
-    itensParaExibir.forEach(item => {
-        const isDone = item.status === 'done';
-        const card = document.createElement('div');
-        
-        if (item.type === 'post') {
-            card.className = `post-card ${isDone ? 'done-card' : ''}`;
+ itensParaExibir.forEach(item => {
+    const isDone = item.status === 'done';
+    const card = document.createElement('div');
+    
+    if (item.type === 'post') {
+        // NOVA LINHA AQUI: Se o post não tiver texto, não desenha o card
+        if (!item.textoHtml || item.textoHtml.trim() === "") return; 
+
+        card.className = `post-card ${isDone ? 'done-card' : ''}`;
             card.innerHTML = `
                 <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('docs', '${item.id}', ${isDone})">${isDone ? '✅' : '✔️'}</div>
                 <div style="margin-bottom:15px">${item.textoHtml || ''}</div>
