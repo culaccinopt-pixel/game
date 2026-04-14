@@ -52,18 +52,45 @@
         select:disabled { opacity: 0.2; cursor: not-allowed; }
 
         .hidden { display: none; }
+
+
+        /* Estilos para a árvore colapsável */
+.tree-branch { display: none; margin-left: 15px; border-left: 1px dashed #475569; }
+.tree-branch.open { display: block; }
+.tree-node { position: relative; margin-bottom: 2px; }
+
+/* Indicador de expansão (setinha) */
+.toggle-icon { 
+    cursor: pointer; 
+    font-size: 0.7rem; 
+    margin-right: 5px; 
+    color: var(--accent);
+    display: inline-block;
+    width: 10px;
+}
+
     </style>
 </head>
 <body>
 
-    <aside class="sidebar">
-        <div class="side-btn-row" style="margin-bottom:20px">
-            <a href="index.html" class="btn btn-view btn-icon">👁</a>
-            <a href="add.html" class="btn btn-add btn-icon">＋</a>
-        </div>
-        <h3 style="font-size:0.8rem; color:var(--accent)">ESTRUTURA MANUAL</h3>
-        <div id="tree-container">Carregando...</div>
-    </aside>
+ <aside class="sidebar">
+    <div class="side-btn-row" style="margin-bottom:20px">
+        <a href="index.html" class="btn btn-view btn-icon">👁</a>
+        <a href="add.html" class="btn btn-add btn-icon">＋</a>
+    </div>
+
+    <!-- Cabeçalho com Ícone de Olho -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <h3 style="font-size:0.8rem; color:var(--accent); margin: 0;">ESTRUTURA MANUAL</h3>
+        <span id="btn-toggle-tree" style="cursor: pointer; font-size: 1.1rem;" title="Expandir/Recolher">👁️</span>
+    </div>
+
+    <!-- Barra de Pesquisa -->
+    <input type="text" id="search-manual" placeholder="Pesquisar tópico..." 
+           style="margin-bottom: 15px; height: 30px; font-size: 0.8rem; background: #0f172a; border: 1px solid var(--border); border-radius: 4px; color: white; padding: 0 10px;">
+    
+    <div id="tree-container">Carregando...</div>
+</aside>
 
     <main class="main-content" id="main-scroll">
         <div id="content-header">
@@ -83,29 +110,39 @@
         <div id="dynamic-list"></div>
     </main>
 
-    <aside class="sidebar sidebar-right">
-        <div class="side-group">
-            <h4>1. LEGISLAÇÕES</h4>
-            <div class="side-btn-row">
-                <button class="btn btn-add btn-icon" onclick="abrirModalGestao('legislacoes')">+</button>
-                <button class="btn btn-view btn-icon" onclick="listarItensGestao('legislacoes')">!</button>
-            </div>
+<aside class="sidebar sidebar-right">
+    <div class="side-group">
+        <h4>1. LEGISLAÇÕES</h4>
+        <div class="side-btn-row">
+            <button class="btn btn-add btn-icon" onclick="abrirModalGestao('legislacoes')">+</button>
+            <button class="btn btn-view btn-icon" onclick="listarItensGestao('legislacoes')">!</button>
         </div>
-        <div class="side-group">
-            <h4>2. CONSTRUÇÕES</h4>
-            <div class="side-btn-row">
-                <button class="btn btn-add btn-icon" onclick="abrirModalGestao('construcoes')">+</button>
-                <button class="btn btn-view btn-icon" onclick="listarItensGestao('construcoes')">!</button>
-            </div>
+    </div>
+    <div class="side-group">
+        <h4>2. CONSTRUÇÕES</h4>
+        <div class="side-btn-row">
+            <button class="btn btn-add btn-icon" onclick="abrirModalGestao('construcoes')">+</button>
+            <button class="btn btn-view btn-icon" onclick="listarItensGestao('construcoes')">!</button>
         </div>
-        <div class="side-group">
-            <h4>3. AÇÕES</h4>
-            <div class="side-btn-row">
-                <button class="btn btn-add btn-icon" onclick="abrirModalGestao('acoes')">+</button>
-                <button class="btn btn-view btn-icon" onclick="listarItensGestao('acoes')">!</button>
-            </div>
+    </div>
+    <div class="side-group">
+        <h4>3. AÇÕES</h4>
+        <div class="side-btn-row">
+            <button class="btn btn-add btn-icon" onclick="abrirModalGestao('acoes')">+</button>
+            <button class="btn btn-view btn-icon" onclick="listarItensGestao('acoes')">!</button>
         </div>
-    </aside>
+    </div>
+
+    <!-- NOVA SEÇÃO ADICIONADA AQUI -->
+    <div class="side-group">
+        <h4>4. MÍDIA</h4>
+        <div class="side-btn-row">
+            <button class="btn btn-add btn-icon" onclick="abrirModalGestao('midia')">+</button>
+            <button class="btn btn-view btn-icon" onclick="listarItensGestao('midia')">!</button>
+        </div>
+    </div>
+</aside>
+
 
     <div class="modal-overlay" id="modal">
         <div class="modal-content">
@@ -152,39 +189,185 @@
             renderizarArvore();
         }
 
-        function renderizarArvore() {
-            const container = document.getElementById('tree-container');
-            container.innerHTML = '';
-            const pais = [...new Set(allDocs.filter(d => d.categoria === 'pai').map(p => p.nome))];
-            pais.forEach(pName => {
-                const div = document.createElement('div');
-                div.className = 'tree-node';
-                div.innerHTML = `<span class="tree-label" onclick="selecionarTopico('${pName}')">📁 ${pName}</span>`;
-                const filhos = [...new Set(allDocs.filter(d => d.categoria === 'filho' && d.categoriaPai === pName).map(f => f.nome))];
-                filhos.forEach(fName => {
-                    const fDiv = document.createElement('div');
-                    fDiv.className = 'tree-node';
-                    fDiv.innerHTML = `<span class="tree-label" onclick="selecionarTopico('${fName}')">📄 ${fName}</span>`;
-                    div.appendChild(fDiv);
-                });
-                container.appendChild(div);
-            });
-        }
+        // --- LÓGICA DE PESQUISA ---
+document.getElementById('search-manual').addEventListener('input', (e) => {
+    const termo = e.target.value.toLowerCase();
+    if (termo.length > 0) {
+        renderizarArvore(termo); // Passa o termo para a função de renderização
+    } else {
+        renderizarArvore(); // Volta ao normal
+    }
+});
 
-        window.selecionarTopico = (nome) => {
-            const posts = allDocs.filter(d => d.nome === nome);
-            currentManualTopic = posts[0];
-            document.getElementById('editor-area').classList.remove('hidden');
-            const list = document.getElementById('dynamic-list');
-            list.innerHTML = `<h3>Tópico: ${nome}</h3>`;
-            posts.forEach(p => {
-                const card = document.createElement('div');
-                card.className = 'post-card';
-                card.innerHTML = `<div>${p.textoHtml}</div>
-                <button class="btn btn-edit" onclick="editarPostManual('${p.id}')">Editar</button>`;
-                list.appendChild(card);
+// --- LÓGICA DE COLAPSAR LISTA ---
+document.getElementById('btn-toggle-tree').addEventListener('click', () => {
+    const container = document.getElementById('tree-container');
+    const btn = document.getElementById('btn-toggle-tree');
+    
+    if (container.style.display === "none") {
+        container.style.display = "block";
+        btn.innerText = "👁️";
+        btn.style.opacity = "1";
+    } else {
+        container.style.display = "none";
+        btn.innerText = "🙈";
+        btn.style.opacity = "0.5";
+    }
+});
+
+
+function renderizarArvore(filtro = "") {
+    const container = document.getElementById('tree-container');
+    container.innerHTML = '';
+
+    if (filtro !== "") {
+        const resultados = allDocs.filter(d => d.nome.toLowerCase().includes(filtro));
+        resultados.forEach(res => {
+            const div = document.createElement('div');
+            div.className = 'tree-node';
+            div.innerHTML = `<span class="tree-label" onclick="selecionarTopico('${res.id}')">🔍 ${res.nome}</span>`;
+            container.appendChild(div);
+        });
+        return;
+    }
+
+    // Nível 1: PAIS
+    const pais = allDocs.filter(d => d.categoria === 'pai').sort((a, b) => a.ordem - b.ordem);
+    pais.forEach(p => {
+        const pDiv = document.createElement('div');
+        pDiv.className = 'tree-node';
+        
+        // Contêiner para os filhos do Pai
+        const pBranch = document.createElement('div');
+        pBranch.className = 'tree-branch open'; // PAI E FILHO ABERTOS POR PADRÃO
+        
+        pDiv.innerHTML = `<span class="toggle-icon" onclick="toggleBranch(this)">▼</span>
+                          <span class="tree-label" style="display:inline" onclick="selecionarTopico('${p.id}')">📁 ${p.nome}</span>`;
+        
+        // Nível 2: FILHOS
+        const filhos = allDocs.filter(d => d.categoria === 'filho' && d.categoriaPai === p.nome).sort((a, b) => a.ordem - b.ordem);
+        filhos.forEach(f => {
+            const fDiv = document.createElement('div');
+            fDiv.className = 'tree-node';
+            
+            // Contêiner para os netos do Filho
+            const fBranch = document.createElement('div');
+            fBranch.className = 'tree-branch'; // NETO FECHADO POR PADRÃO
+            
+            fDiv.innerHTML = `<span class="toggle-icon" onclick="toggleBranch(this)">▶</span>
+                              <span class="tree-label" style="display:inline" onclick="selecionarTopico('${f.id}')">📄 ${f.nome}</span>`;
+            
+            // Nível 3: NETOS
+            const netos = allDocs.filter(d => d.categoria === 'neto' && d.categoriaFilho === f.nome && d.categoriaPai === p.nome).sort((a, b) => a.ordem - b.ordem);
+            netos.forEach(n => {
+                const nDiv = document.createElement('div');
+                nDiv.className = 'tree-node';
+                
+                const nBranch = document.createElement('div');
+                nBranch.className = 'tree-branch'; // BISNETO FECHADO POR PADRÃO
+                
+                nDiv.innerHTML = `<span class="toggle-icon" onclick="toggleBranch(this)">▶</span>
+                                  <span class="tree-label" style="display:inline" onclick="selecionarTopico('${n.id}')">📜 ${n.nome}</span>`;
+                
+                // Nível 4: BISNETOS
+                const bisnetos = allDocs.filter(d => d.categoria === 'bisneto' && d.categoriaNeto === n.nome).sort((a, b) => a.ordem - b.ordem);
+                bisnetos.forEach(b => {
+                    const bDiv = document.createElement('div');
+                    bDiv.className = 'tree-node';
+                    bDiv.style.marginLeft = "15px";
+                    bDiv.innerHTML = `<span class="tree-label" onclick="selecionarTopico('${b.id}')">└ ${b.nome}</span>`;
+                    nBranch.appendChild(bDiv);
+                });
+
+                if(bisnetos.length > 0) nDiv.appendChild(nBranch);
+                else nDiv.querySelector('.toggle-icon').style.visibility = 'hidden';
+                
+                fBranch.appendChild(nDiv);
             });
-        };
+
+            if(netos.length > 0) fDiv.appendChild(fBranch);
+            else fDiv.querySelector('.toggle-icon').style.visibility = 'hidden';
+
+            pBranch.appendChild(fDiv);
+        });
+
+        pDiv.appendChild(pBranch);
+        container.appendChild(pDiv);
+    });
+}
+
+// Função para abrir/fechar ramos individualmente clicando na setinha
+window.toggleBranch = (el) => {
+    const node = el.parentElement;
+    const branch = node.querySelector('.tree-branch');
+    if (branch) {
+        const isOpen = branch.classList.contains('open');
+        branch.classList.toggle('open');
+        el.innerText = isOpen ? "▶" : "▼";
+    }
+};
+
+// BOTÃO DO OLHO: Fecha TUDO, deixando apenas os Pais visíveis
+document.getElementById('btn-toggle-tree').addEventListener('click', () => {
+    // Busca todos os ramos da árvore
+    const allBranches = document.querySelectorAll('.tree-branch');
+    const allIcons = document.querySelectorAll('.toggle-icon');
+    
+    allBranches.forEach(b => b.classList.remove('open')); // Fecha tudo
+    allIcons.forEach(i => i.innerText = "▶"); // Reseta setinhas para "fechado"
+    
+    // Opcional: Se quiser dar um feedback visual no botão
+    const btn = document.getElementById('btn-toggle-tree');
+    btn.classList.add('pulse'); // Exemplo de efeito
+    setTimeout(() => btn.classList.remove('pulse'), 500);
+});
+
+   window.selecionarTopico = (id) => {
+    const docEncontrado = allDocs.find(d => d.id === id);
+    if (!docEncontrado) return;
+
+    currentManualTopic = docEncontrado;
+    manualEditId = null; // Reseta o estado de edição
+
+    // Esconde o painel de edição inicialmente
+    document.getElementById('editor-area').classList.add('hidden');
+    document.getElementById('editor').innerHTML = "";
+
+    const list = document.getElementById('dynamic-list');
+    
+    // Header com o botão de Adicionar Post
+    list.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; background: #1e293b; padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+            <div>
+                <h3 style="margin:0; color:var(--accent)">Tópico: ${docEncontrado.nome}</h3>
+                <small style="color:gray">${docEncontrado.categoria.toUpperCase()}</small>
+            </div>
+            <button class="btn btn-add" onclick="abrirEditorNovoPost()" style="padding: 8px 20px; height: auto;">+ ADICIONAR POST</button>
+        </div>
+    `;
+
+    // Filtra todos os posts vinculados a esta linhagem exata
+    const postsRelacionados = allDocs.filter(d => {
+        return d.nome === docEncontrado.nome &&
+               d.categoria === docEncontrado.categoria &&
+               d.categoriaPai === docEncontrado.categoriaPai &&
+               d.categoriaFilho === docEncontrado.categoriaFilho &&
+               d.categoriaNeto === docEncontrado.categoriaNeto;
+    });
+
+    postsRelacionados.forEach(p => {
+        const card = document.createElement('div');
+        card.className = 'post-card';
+        card.innerHTML = `
+            <div style="margin-bottom:15px">${p.textoHtml || '<em>Sem conteúdo.</em>'}</div>
+            <div style="border-top: 1px solid var(--border); padding-top: 10px; display: flex; gap: 10px;">
+                <button class="btn btn-edit" onclick="editarPostManual('${p.id}')">EDITAR CONTEÚDO</button>
+                <button class="btn btn-delete" onclick="excluirPostManual('${p.id}')">EXCLUIR</button>
+            </div>
+        `;
+        list.appendChild(card);
+    });
+};
 
         window.editarPostManual = (id) => {
             const p = allDocs.find(x => x.id === id);
@@ -193,20 +376,31 @@
             document.getElementById('main-scroll').scrollTop = 0;
         };
 
-        window.salvarPost = async () => {
-            const html = document.getElementById('editor').innerHTML;
-            if(manualEditId) {
-                await updateDoc(doc(db, "docs", manualEditId), { textoHtml: html });
-            } else {
-                const d = {...currentManualTopic, textoHtml: html, createdAt: serverTimestamp()};
-                delete d.id;
-                await addDoc(collection(db, "docs"), d);
-            }
-            document.getElementById('editor').innerHTML = "";
-            manualEditId = null;
-            await carregarTudo();
-            selecionarTopico(currentManualTopic.nome);
-        };
+window.salvarPost = async () => {
+    const html = document.getElementById('editor').innerHTML;
+    if(!html.trim()) return alert("O conteúdo não pode estar vazio.");
+
+    try {
+        if(manualEditId) {
+            await updateDoc(doc(db, "docs", manualEditId), { textoHtml: html });
+        } else {
+            const d = {...currentManualTopic, textoHtml: html, createdAt: serverTimestamp()};
+            delete d.id;
+            await addDoc(collection(db, "docs"), d);
+        }
+        
+        // SUCESSO: Esconde editor e atualiza
+        document.getElementById('editor-area').classList.add('hidden');
+        document.getElementById('editor').innerHTML = "";
+        await carregarTudo();
+        selecionarTopico(currentManualTopic.id);
+        alert("Gravado com sucesso!");
+        
+    } catch (e) {
+        console.error(e);
+        alert("Erro ao salvar.");
+    }
+};
 
         // --- GESTÃO LEGISLAÇÕES (CORREÇÃO FILTROS) ---
         window.abrirModalGestao = (col, id = null) => {
@@ -344,6 +538,51 @@
 
         window.fecharModal = () => document.getElementById('modal').classList.remove('active');
         carregarTudo();
+
+
+
+        // Abre o editor para criar um NOVO post
+window.abrirEditorNovoPost = () => {
+    manualEditId = null; // Garante que é uma nova inserção
+    document.getElementById('editor').innerHTML = "";
+    document.getElementById('editor-title').innerText = "Novo Post para: " + currentManualTopic.nome;
+    document.getElementById('editor-area').classList.remove('hidden');
+    
+    // Scroll suave para o editor
+    document.getElementById('main-scroll').scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+// Abre o editor para EDITAR um post existente
+window.editarPostManual = (id) => {
+    const p = allDocs.find(x => x.id === id);
+    if(!p) return;
+
+    manualEditId = id; // Define qual documento estamos editando
+    document.getElementById('editor').innerHTML = p.textoHtml;
+    document.getElementById('editor-title').innerText = "Editando Conteúdo";
+    document.getElementById('editor-area').classList.remove('hidden');
+    
+    // Sobe a página para o usuário ver o editor
+    document.getElementById('main-scroll').scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+// Função para cancelar (fechar o editor)
+window.cancelarEdicaoManual = () => {
+    document.getElementById('editor-area').classList.add('hidden');
+    document.getElementById('editor').innerHTML = "";
+    manualEditId = null;
+};
+
+// Função para excluir post (opcional, mas recomendada)
+window.excluirPostManual = async (id) => {
+    if(confirm("Deseja excluir permanentemente este post do manual?")) {
+        await deleteDoc(doc(db, "docs", id));
+        await carregarTudo();
+        selecionarTopico(currentManualTopic.id);
+    }
+};
+
+
     </script>
 </body>
 </html>
