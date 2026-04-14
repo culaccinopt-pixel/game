@@ -36,8 +36,32 @@
         .tab-item.active { color: var(--primary); border-bottom-color: var(--primary); }
 
         /* Navegação por Cards Superior */
-        .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-bottom: 40px; }
-        .nav-card { background: #1e293b; border: 1px solid var(--border); padding: 18px 10px; border-radius: 8px; cursor: pointer; text-align: center; font-weight: 600; font-size: 0.85rem; transition: 0.3s; min-height: 50px; display: flex; align-items: center; justify-content: center; }
+.cards-grid { 
+    display: grid; 
+    /* Diminuído de 160px para 120px para caberem mais na mesma linha */
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); 
+    gap: 8px; 
+    margin-bottom: 20px; 
+}
+        .nav-card { 
+    background: #1e293b; 
+    border: 1px solid var(--border); 
+    /* Diminuído o padding de 18px para 8px */
+    padding: 8px 10px; 
+    border-radius: 6px; 
+    cursor: pointer; 
+    text-align: center; 
+    font-weight: 600; 
+    /* Diminuído levemente a fonte */
+    font-size: 0.75rem; 
+    transition: 0.3s; 
+    /* Diminuído a altura mínima de 50px para 35px */
+    min-height: 35px; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+}
+
         .nav-card:hover { border-color: var(--primary); transform: translateY(-2px); background: #334155; }
         
         /* Blocos de Conteúdo */
@@ -52,11 +76,52 @@
         
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+    
+    /* Ajuste para múltiplos níveis na árvore */
+.tree-children { margin-left: 15px; display: none; border-left: 1px solid #334155; }
+.tree-children.show { display: block; }
+.tree-child { padding: 4px 10px; cursor: pointer; color: var(--text-muted); font-size: 0.8rem; transition: 0.2s; }
+.tree-child:hover { color: var(--primary); background: rgba(99, 102, 241, 0.1); }
+.tree-child.active-text { color: var(--primary); font-weight: bold; }
+
+/* Estilo para o card selecionado no topo */
+.nav-card.active-card { border-color: var(--primary); background: var(--primary); color: white; }
+
+/* Cor de destaque para o item selecionado no menu */
+.tree-active { 
+    color: var(--primary) !important; 
+    font-weight: 700 !important;
+    background: rgba(99, 102, 241, 0.1); /* Um fundo leve para destacar */
+    border-radius: 4px;
+}
+.btn-back {
+    background: #1e293b;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 15px;
+    transition: 0.3s;
+}
+
+.btn-back:hover {
+    background: #334155;
+    color: var(--primary);
+    border-color: var(--primary);
+}
+
     </style>
 </head>
 <body>
     <main class="main-content">
         <div class="content-wrapper">
+             <div id="back-container"></div>
             <div id="cards-container" class="cards-grid"></div>
             <div id="main-display">
                 <div id="topic-header">
@@ -111,76 +176,177 @@
             renderSidebar();
         }
 
-        function renderSidebar() {
-            const menu = document.getElementById('tree-menu');
-            menu.innerHTML = '';
-            const pais = [...new Set(allDocs.filter(d => d.categoria === 'pai').map(p => p.nome))];
-            pais.forEach(pName => {
-                const firstId = allDocs.find(d => d.nome === pName).id;
-                const div = document.createElement('div');
-                div.innerHTML = `<div class="tree-parent" onclick="toggleFolder('${firstId}', '${pName}')">📁 ${pName}</div>
-                                 <div class="tree-children" id="child-of-${firstId}">
-                                    ${allDocs.filter(d => d.categoria === 'filho' && d.categoriaPai === pName)
-                                      .map(f => `<div class="tree-child" onclick="selectTopic('${f.nome}')">└ ${f.nome}</div>`).join('')}
-                                 </div>`;
-                menu.appendChild(div);
+   function renderSidebar() {
+    const menu = document.getElementById('tree-menu');
+    menu.innerHTML = '';
+    
+    const pais = allDocs.filter(d => d.categoria === 'pai').sort((a,b) => a.ordem - b.ordem);
+    
+    pais.forEach(p => {
+        const pDiv = document.createElement('div');
+        const hasFilhos = allDocs.some(d => d.categoria === 'filho' && d.categoriaPai === p.nome);
+        
+        pDiv.innerHTML = `
+            <div class="tree-parent menu-item" id="menu-${p.id}" onclick="toggleFolder('folder-${p.id}', '${p.id}')">
+                ${hasFilhos ? '📁' : '📄'} ${p.nome}
+            </div>
+            <div class="tree-children" id="folder-${p.id}"></div>
+        `;
+        menu.appendChild(pDiv);
+
+        const containerFilhos = pDiv.querySelector(`#folder-${p.id}`);
+        const filhos = allDocs.filter(d => d.categoria === 'filho' && d.categoriaPai === p.nome).sort((a,b) => a.ordem - b.ordem);
+        
+        filhos.forEach(f => {
+            const fDiv = document.createElement('div');
+            const hasNetos = allDocs.some(d => d.categoria === 'neto' && d.categoriaFilho === f.nome);
+            
+            fDiv.innerHTML = `
+                <div class="tree-child menu-item" id="menu-${f.id}" onclick="toggleFolder('folder-${f.id}', '${f.id}')">
+                    ${hasNetos ? '📂' : '└'} ${f.nome}
+                </div>
+                <div class="tree-children" id="folder-${f.id}" style="margin-left:15px"></div>
+            `;
+            containerFilhos.appendChild(fDiv);
+
+            const containerNetos = fDiv.querySelector(`#folder-${f.id}`);
+            const netos = allDocs.filter(d => d.categoria === 'neto' && d.categoriaFilho === f.nome).sort((a,b) => a.ordem - b.ordem);
+            
+            netos.forEach(n => {
+                const nDiv = document.createElement('div');
+                const hasBis = allDocs.some(d => d.categoria === 'bisneto' && d.categoriaNeto === n.nome);
+                
+                nDiv.innerHTML = `
+                    <div class="tree-child menu-item" id="menu-${n.id}" onclick="toggleFolder('folder-${n.id}', '${n.id}')">
+                        ${hasBis ? '📜' : '└'} ${n.nome}
+                    </div>
+                    <div class="tree-children" id="folder-${n.id}" style="margin-left:15px"></div>
+                `;
+                containerNetos.appendChild(nDiv);
+
+                const containerBis = nDiv.querySelector(`#folder-${n.id}`);
+                const bis = allDocs.filter(d => d.categoria === 'bisneto' && d.categoriaNeto === n.nome).sort((a,b) => a.ordem - b.ordem);
+                
+                bis.forEach(b => {
+                    const bDiv = document.createElement('div');
+                    bDiv.className = 'tree-child menu-item';
+                    bDiv.id = `menu-${b.id}`;
+                    bDiv.innerHTML = `└ ${b.nome}`;
+                    bDiv.onclick = (e) => { e.stopPropagation(); selectTopic(b.id); };
+                    containerBis.appendChild(bDiv);
+                });
             });
+        });
+    });
+}
+
+
+    // Função auxiliar para abrir/fechar pastas
+window.toggleFolder = (folderId, docId) => {
+    const target = document.getElementById(folderId);
+    if(target) target.classList.toggle('show');
+    selectTopic(docId);
+};
+
+
+// 2. Seleção de Tópico com persistência de Cards para Bisnetos
+window.selectTopic = async (docId) => {
+    const ref = allDocs.find(d => d.id === docId);
+    if(!ref) return;
+
+    // 1. Destaque Visual no Menu
+    document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('tree-active'));
+    const selectedMenu = document.getElementById(`menu-${docId}`);
+    if(selectedMenu) selectedMenu.classList.add('tree-active');
+
+    const backContainer = document.getElementById('back-container');
+    const cards = document.getElementById('cards-container');
+    const area = document.getElementById('content-area');
+    const tabsContainer = document.getElementById('sub-tabs');
+    const header = document.getElementById('topic-header');
+
+    area.innerHTML = "Carregando...";
+    tabsContainer.classList.add('hidden');
+    backContainer.innerHTML = ''; // Limpa o botão voltar
+
+    // --- LÓGICA DO BOTÃO VOLTAR ---
+    if (ref.categoria !== 'pai') {
+        let paiId = null;
+        
+        if (ref.categoria === 'filho') {
+            const p = allDocs.find(d => d.categoria === 'pai' && d.nome === ref.categoriaPai);
+            if(p) paiId = p.id;
+        } else if (ref.categoria === 'neto') {
+            const p = allDocs.find(d => d.categoria === 'filho' && d.nome === ref.categoriaFilho && d.categoriaPai === ref.categoriaPai);
+            if(p) paiId = p.id;
+        } else if (ref.categoria === 'bisneto') {
+            const p = allDocs.find(d => d.categoria === 'neto' && d.nome === ref.categoriaNeto && d.categoriaFilho === ref.categoriaFilho);
+            if(p) paiId = p.id;
         }
 
-        window.toggleFolder = (id, nome) => {
-            const target = document.getElementById(`child-of-${id}`);
-            if(target) {
-                const isVisible = target.classList.contains('show');
-                document.querySelectorAll('.tree-children').forEach(e => e.classList.remove('show'));
-                if(!isVisible) target.classList.add('show');
-            }
-            selectTopic(nome);
-        };
+        if (paiId) {
+            const btn = document.createElement('button');
+            btn.className = 'btn-back';
+            btn.innerHTML = `← Voltar`;
+            btn.onclick = () => selectTopic(paiId);
+            backContainer.appendChild(btn);
+        }
+    }
 
-        window.selectTopic = async (nome) => {
-            const cards = document.getElementById('cards-container');
-            const tabsContainer = document.getElementById('sub-tabs');
-            const area = document.getElementById('content-area');
-            const header = document.getElementById('topic-header');
-            
-            cards.innerHTML = ''; area.innerHTML = "Carregando..."; tabsContainer.classList.add('hidden');
-            const ref = allDocs.find(d => d.nome === nome);
-            if(!ref) return;
+    // 2. FILTRO DE POSTS
+    currentTopicData.posts = allDocs.filter(d => {
+        const mesmoNome = d.nome === ref.nome;
+        const mesmaCat = d.categoria === ref.categoria;
+        let linhagemCorreta = true;
+        if (ref.categoria === 'filho') linhagemCorreta = d.categoriaPai === ref.categoriaPai;
+        else if (ref.categoria === 'neto') linhagemCorreta = d.categoriaPai === ref.categoriaPai && d.categoriaFilho === ref.categoriaFilho;
+        else if (ref.categoria === 'bisneto') linhagemCorreta = d.categoriaPai === ref.categoriaPai && d.categoriaFilho === ref.categoriaFilho && d.categoriaNeto === ref.categoriaNeto;
+        return mesmoNome && mesmaCat && linhagemCorreta;
+    });
 
-            const collections = ['legislacoes', 'construcoes', 'acoes'];
-            for (const col of collections) {
-                const snap = await getDocs(collection(db, col));
-                currentTopicData[col] = snap.docs.map(d => ({id: d.id, ...d.data()})).filter(item => {
-                    return item.vinculos?.some(v => {
-                        if (ref.categoria === 'pai') return v.pai === nome && (!v.filho || v.filho === "");
-                        if (ref.categoria === 'filho') return v.pai === ref.categoriaPai && v.filho === nome && (!v.neto || v.neto === "");
-                        if (ref.categoria === 'neto') return v.pai === ref.categoriaPai && v.filho === ref.categoriaFilho && v.neto === nome && (!v.bisneto || v.bisneto === "");
-                        if (ref.categoria === 'bisneto') return v.pai === ref.categoriaPai && v.filho === ref.categoriaFilho && v.neto === ref.categoriaNeto && v.bisneto === nome;
-                        return false;
-                    });
-                });
-            }
-
-            currentTopicData.posts = allDocs.filter(d => d.nome === nome);
-            
-            // Navegação Próximo Nível
-            let subItems = [];
-            if(ref.categoria === 'pai') subItems = allDocs.filter(d => d.categoria === 'filho' && d.categoriaPai === nome);
-            if(ref.categoria === 'filho') subItems = allDocs.filter(d => d.categoria === 'neto' && d.categoriaFilho === nome);
-            if(ref.categoria === 'neto') subItems = allDocs.filter(d => d.categoria === 'bisneto' && d.categoriaNeto === nome);
-            
-            subItems.forEach(s => {
-                const c = document.createElement('div');
-                c.className = 'nav-card'; c.innerText = s.nome;
-                c.onclick = () => selectTopic(s.nome);
-                cards.appendChild(c);
+    // 3. FILTRO DE COLEÇÕES (Leis, Obras, etc)
+    const collections = ['legislacoes', 'construcoes', 'acoes'];
+    for (const col of collections) {
+        const snap = await getDocs(collection(db, col));
+        currentTopicData[col] = snap.docs.map(d => ({id: d.id, ...d.data()})).filter(item => {
+            return item.vinculos?.some(v => {
+                if (ref.categoria === 'pai') return v.pai === ref.nome && !v.filho;
+                if (ref.categoria === 'filho') return v.pai === ref.categoriaPai && v.filho === ref.nome && !v.neto;
+                if (ref.categoria === 'neto') return v.pai === ref.categoriaPai && v.filho === ref.categoriaFilho && v.neto === ref.nome && !v.bisneto;
+                if (ref.categoria === 'bisneto') return v.pai === ref.categoriaPai && v.filho === ref.categoriaFilho && v.neto === ref.categoriaNeto && v.bisneto === ref.nome;
+                return false;
             });
+        });
+    }
 
-            header.innerHTML = `<h1>${nome}</h1>${ref.tags ? `<div>${ref.tags.split(',').map(t => `<span class="tag">#${t.trim()}</span>`).join('')}</div>` : ''}`;
-            renderTabs();
-            renderTabContent('tudo');
-            document.querySelector('.main-content').scrollTop = 0;
-        };
+    // 4. CARDS DE NAVEGAÇÃO
+    let subItems = [];
+    if (ref.categoria === 'bisneto') {
+        subItems = allDocs.filter(d => d.categoria === 'bisneto' && d.categoriaNeto === ref.categoriaNeto);
+    } else {
+        if(ref.categoria === 'pai') subItems = allDocs.filter(d => d.categoria === 'filho' && d.categoriaPai === ref.nome);
+        if(ref.categoria === 'filho') subItems = allDocs.filter(d => d.categoria === 'neto' && d.categoriaFilho === ref.nome);
+        if(ref.categoria === 'neto') subItems = allDocs.filter(d => d.categoria === 'bisneto' && d.categoriaNeto === ref.nome);
+    }
+
+    cards.innerHTML = '';
+    subItems.sort((a,b) => a.ordem - b.ordem).forEach(s => {
+        const c = document.createElement('div');
+        c.className = `nav-card ${s.id === docId ? 'active-card' : ''}`; 
+        c.innerText = s.nome;
+        c.onclick = () => selectTopic(s.id);
+        cards.appendChild(c);
+    });
+
+    header.innerHTML = `<h1>${ref.nome}</h1>`;
+    renderTabs();
+    renderTabContent('tudo');
+    document.querySelector('.main-content').scrollTop = 0;
+};
+
+  
+
+   
 
         function renderTabs() {
             const tabsContainer = document.getElementById('sub-tabs');
