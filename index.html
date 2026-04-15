@@ -423,14 +423,15 @@ import { getFirestore, collection, getDocs, query, orderBy, limit, doc, getDoc, 
         const auth = getAuth(app);
         const db = getFirestore(app);
 
+let loggedInUserId = null;
+let loggedInUserName = "";
+
 
         // --- BLOCO DE SEGURANÇA ---
 onAuthStateChanged(auth, async (user) => {
     if (!user) {
-        // Se não estiver logado, manda para o login
         window.location.href = "login.html";
     } else {
-        // Se estiver logado, verifica o status no banco de dados
         const userRef = doc(db, "users", user.uid);
         const userSnap = await getDoc(userRef);
 
@@ -439,7 +440,10 @@ onAuthStateChanged(auth, async (user) => {
             await signOut(auth);
             window.location.href = "login.html";
         } else {
-            // Usuário autorizado, inicia o app
+            // --- CAPTURA OS DADOS DO USUÁRIO LOGADO ---
+            loggedInUserId = user.uid;
+            loggedInUserName = userSnap.data().nome; // Pega o nome vindo do Firestore
+            
             init();
         }
     }
@@ -881,23 +885,15 @@ window.openCheckModal = (col, docId, isAlreadyDone) => {
     currentTaskRef = { col, docId };
 
     if (isAlreadyDone) {
-        // Em vez de confirm(), mostra o modal de desfazer
+        // Se já está feito, continua mostrando o modal de "Desfazer" para evitar cliques acidentais
         document.getElementById('undo-modal').style.display = 'flex';
-        return;
+    } else {
+        // SE NÃO ESTÁ FEITO: Grava imediatamente com o nome do utilizador logado
+        processarCheck(loggedInUserName);
     }
-
-    // Lógica normal para abrir seleção de usuários
-    const list = document.getElementById('user-options-list');
-    list.innerHTML = '';
-    allUsers.forEach(u => {
-        const div = document.createElement('div');
-        div.className = 'user-option';
-        div.innerText = u.nome;
-        div.onclick = () => processarCheck(u.nome);
-        list.appendChild(div);
-    });
-    document.getElementById('user-modal').style.display = 'flex';
 };
+
+   
 
 // Função chamada pelo botão "Sim" do novo popup
 window.confirmarDesfazer = () => {
@@ -912,18 +908,31 @@ window.processarCheck = async (userName) => {
         const { col, docId } = currentTaskRef;
         const docRef = doc(db, col, docId); 
         
+        // Se userName existir, estamos marcando como feito
+        // Se for null, estamos desfazendo
         const novosDados = userName 
-            ? { concluidoPor: userName, status: 'done' } 
-            : { concluidoPor: "", status: "" };
+            ? { 
+                concluidoPor: userName, 
+                userIdConcluiu: loggedInUserId,
+                status: 'done',
+                concluido: "sim"  // <--- NOVO CAMPO ADICIONADO AQUI
+              } 
+            : { 
+                concluidoPor: "", 
+                userIdConcluiu: "",
+                status: "",
+                concluido: ""     // <--- LIMPA O CAMPO AO DESFAZER
+              };
 
         await updateDoc(docRef, novosDados);
 
-        // Atualiza localmente
+        // Atualiza a visualização local
         const atualizarListaLocal = (lista) => {
             const item = lista.find(d => d.id === docId);
             if (item) {
                 item.status = novosDados.status;
                 item.concluidoPor = novosDados.concluidoPor;
+                item.concluido = novosDados.concluido; // Atualiza no objeto local também
             }
         };
 
@@ -931,14 +940,18 @@ window.processarCheck = async (userName) => {
          currentTopicData.construcoes, currentTopicData.acoes, currentTopicData.midia]
         .forEach(atualizarListaLocal);
 
-        document.getElementById('user-modal').style.display = 'none';
-        refreshView(col); // Atualiza a tela
+        // Fecha qualquer modal aberto
+        if(document.getElementById('user-modal')) document.getElementById('user-modal').style.display = 'none';
+        if(document.getElementById('undo-modal')) document.getElementById('undo-modal').style.display = 'none';
+        
+        refreshView(col); 
 
     } catch (e) {
-        console.error(e);
-        alert("Erro ao processar.");
+        console.error("Erro ao processar:", e);
+        alert("Erro ao salvar alteração.");
     }
 };
+
 
 // Função auxiliar para re-renderizar a tela atual
 window.refreshView = (col) => {
