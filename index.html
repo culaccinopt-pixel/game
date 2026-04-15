@@ -319,6 +319,16 @@
     filter: brightness(1.2);
 }
 
+.date-footer {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 10px;
+    text-align: right;
+    font-style: italic;
+    opacity: 0.8;
+}
+
     </style>
 </head>
 <body>
@@ -671,19 +681,20 @@ window.selectTopic = async (docId) => {
     area.innerHTML = '';
 
     // Helper para renderizar cards de coleções (Leis, Obras, Ações, Mídia)
-    const renderItem = (i, color, colName) => {
-        const isDone = i.status === 'done';
-        return `
-            <div class="item-list-card ${isDone ? 'done-card' : ''}" style="border-left-color: ${color}">
-                <div class="card-check ${isDone ? 'checked' : ''}" 
-                     onclick="event.stopPropagation(); openCheckModal('${colName}', '${i.id}', ${isDone})">
-                    ${isDone ? '✅' : '⬜'}
-                </div>
-                <h3>${i.nome}</h3>
-                <p>${i.descricao || 'Sem descrição.'}</p>
-                ${isDone ? `<div style="font-size:0.7rem; color:#16a34a; margin-top:8px; font-weight:bold;">✅ Concluído por: ${i.concluidoPor}</div>` : ''}
-            </div>`;
-    };
+const renderItem = (i, color, colName) => {
+    const isDone = i.status === 'done';
+    const dataFormatada = formatarData(i.createdAt); // Seguro
+    return `
+        <div class="item-list-card ${isDone ? 'done-card' : ''}" style="border-left-color: ${color}">
+            <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('${colName}', '${i.id}', ${isDone})">
+                ${isDone ? '✅' : '⬜'}
+            </div>
+            <h3>${i.nome}</h3>
+            <p>${i.descricao || 'Sem descrição.'}</p>
+            ${isDone ? `<div style="font-size:0.7rem; color:#16a34a; margin-top:8px; font-weight:bold;">✅ Concluído por: ${i.concluidoPor}</div>` : ''}
+            <span class="date-footer"> ${dataFormatada}</span>
+        </div>`;
+};
 
     // Renderiza Posts do Manual (Coleção 'docs')
     if(tabId === 'tudo' || tabId === 'posts') {
@@ -737,15 +748,26 @@ window.viewLatest = async () => {
             combined.push({ id: d.id, ...d.data(), type: collectionsList[index] });
         });
     });
+
+    // --- FILTRO: Remove itens sem conteúdo ---
+    combined = combined.filter(item => {
+        if (item.type === 'docs') {
+            // Remove se não tiver textoHtml ou se for apenas espaços/tags vazias
+            return item.textoHtml && item.textoHtml.replace(/<[^>]*>?/gm, '').trim() !== '';
+        } else {
+            // Para as outras coleções, remove se não tiver nome
+            return item.nome && item.nome.trim() !== '';
+        }
+    });
     
     combined.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
     
-    // Limita o total exibido em "Últimas" para as 50 mais recentes de todas
     const toDisplay = combined.slice(0, 50);
 
     toDisplay.forEach(item => {
         const isDone = item.status === 'done';
         const labelMap = { 'docs': 'MANUAL', 'legislacoes': 'LEIS', 'construcoes': 'OBRAS', 'acoes': 'AÇÕES', 'midia': 'MÍDIA' };
+        const dataFormatada = formatarData(item.createdAt);
         
         area.innerHTML += `
             <div class="post-block ${isDone ? 'done-card' : ''}">
@@ -756,6 +778,7 @@ window.viewLatest = async () => {
                     <span class="tag">${labelMap[item.type]}</span>
                 </div>
                 ${item.type === 'docs' ? item.textoHtml : `<h3>${item.nome}</h3><p>${item.descricao}</p>`}
+                <span class="date-footer">Criado: ${dataFormatada}</span>
             </div>`;
     });
 
@@ -789,12 +812,17 @@ window.viewLatest = async () => {
         q = query(collection(db, col), orderBy("nome", "asc"), limit(50));
     }
 
-    const snap = await getDocs(q);
+const snap = await getDocs(q);
     lastVisibleDoc = snap.docs[snap.docs.length - 1];
 
     snap.forEach(d => {
         const data = d.data();
+        
+        // --- FILTRO: Ignora cards sem nome ---
+        if (!data.nome || data.nome.trim() === '') return;
+
         const isDone = data.status === 'done';
+        const dataFormatada = formatarData(data.createdAt);
         area.innerHTML += `
             <div class="item-list-card ${isDone ? 'done-card' : ''}">
                 <div class="card-check ${isDone ? 'checked' : ''}" 
@@ -804,6 +832,7 @@ window.viewLatest = async () => {
                 <h3>${data.nome}</h3>
                 <p>${data.descricao || 'Sem descrição.'}</p>
                 ${isDone ? `<div style="font-size:0.7rem; color:#16a34a; margin-top:8px; font-weight:bold;">✅ Concluído por: ${data.concluidoPor}</div>` : ''}
+                <span class="date-footer">Criado: ${dataFormatada}</span>
             </div>`;
     });
 
@@ -969,13 +998,14 @@ window.confirmCheck = async (userName) => {
             if (window.innerWidth <= 1024) toggleMenu();
         }
 
-        window.renderTabContent = (tabId, loadMore = false) => {
+window.renderTabContent = (tabId, loadMore = false) => {
     if (!loadMore) manualLimit = 50;
     const area = document.getElementById('content-area');
     area.innerHTML = '';
 
     const renderItem = (i, color, colName) => {
         const isDone = i.status === 'done';
+        const dataFormatada = formatarData(i.createdAt);
         return `
             <div class="item-list-card ${isDone ? 'done-card' : ''}" style="border-left-color: ${color}">
                 <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('${colName}', '${i.id}', ${isDone})">
@@ -983,21 +1013,41 @@ window.confirmCheck = async (userName) => {
                 </div>
                 <h3>${i.nome}</h3>
                 <p>${i.descricao || 'Sem descrição.'}</p>
+                ${isDone ? `<div style="font-size:0.7rem; color:#16a34a; margin-top:8px; font-weight:bold;">✅ Concluído por: ${i.concluidoPor}</div>` : ''}
+                <span class="date-footer">Criado: ${dataFormatada}</span>
             </div>`;
     };
 
-    let items = [];
-    if(tabId === 'tudo' || tabId === 'posts') currentTopicData.posts.forEach(p => items.push({data: p, type: 'docs', color: 'transparent'}));
-    if(tabId === 'tudo' || tabId === 'legislacoes') currentTopicData.legislacoes.forEach(i => items.push({data: i, type: 'legislacoes', color: '#6366f1'}));
-    if(tabId === 'tudo' || tabId === 'construcoes') currentTopicData.construcoes.forEach(i => items.push({data: i, type: 'construcoes', color: '#16a34a'}));
-    if(tabId === 'tudo' || tabId === 'acoes') currentTopicData.acoes.forEach(i => items.push({data: i, type: 'acoes', color: '#f59e0b'}));
-    if(tabId === 'tudo' || tabId === 'midia') currentTopicData.midia.forEach(i => items.push({data: i, type: 'midia', color: '#06b6d4'}));
+    let rawItems = [];
+    if(tabId === 'tudo' || tabId === 'posts') currentTopicData.posts.forEach(p => rawItems.push({data: p, type: 'docs', color: 'transparent'}));
+    if(tabId === 'tudo' || tabId === 'legislacoes') currentTopicData.legislacoes.forEach(i => rawItems.push({data: i, type: 'legislacoes', color: '#6366f1'}));
+    if(tabId === 'tudo' || tabId === 'construcoes') currentTopicData.construcoes.forEach(i => rawItems.push({data: i, type: 'construcoes', color: '#16a34a'}));
+    if(tabId === 'tudo' || tabId === 'acoes') currentTopicData.acoes.forEach(i => rawItems.push({data: i, type: 'acoes', color: '#f59e0b'}));
+    if(tabId === 'tudo' || tabId === 'midia') currentTopicData.midia.forEach(i => rawItems.push({data: i, type: 'midia', color: '#06b6d4'}));
+
+    // --- FILTRO: Só mantém o que tem conteúdo real ---
+    const items = rawItems.filter(item => {
+        if (item.type === 'docs') {
+            return item.data.textoHtml && item.data.textoHtml.replace(/<[^>]*>?/gm, '').trim() !== '';
+        } else {
+            return item.data.nome && item.data.nome.trim() !== '';
+        }
+    });
 
     const slice = items.slice(0, manualLimit);
     slice.forEach(item => {
+        const dataFormatada = formatarData(item.data.createdAt);
         if(item.type === 'docs') {
             const isDone = item.data.status === 'done';
-            area.innerHTML += `<div class="post-block ${isDone ? 'done-card' : ''}">${item.data.textoHtml}</div>`;
+            area.innerHTML += `
+                <div class="post-block ${isDone ? 'done-card' : ''}">
+                    <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('docs', '${item.data.id}', ${isDone})">
+                        ${isDone ? '✅' : '⬜'}
+                    </div>
+                    ${item.data.textoHtml}
+                    ${isDone ? `<div style="font-size:0.7rem; color:#16a34a; margin-top:12px; font-weight:bold;">✅ Concluído por: ${item.data.concluidoPor}</div>` : ''}
+                    <span class="date-footer">Criado: ${dataFormatada}</span>
+                </div>`;
         } else {
             area.innerHTML += renderItem(item.data, item.color, item.type);
         }
@@ -1006,12 +1056,48 @@ window.confirmCheck = async (userName) => {
     if (items.length > manualLimit) {
         const btn = document.createElement('button');
         btn.className = 'btn-load-more';
-        btn.innerText = 'Carregar mais 50';
+        btn.innerText = 'Carregar mais';
         btn.onclick = () => { manualLimit += 50; renderTabContent(tabId, true); };
         area.appendChild(btn);
     }
 };
+ 
+ 
 
+
+const formatarData = (ts) => {
+    if (!ts) return "Data não disponível";
+    
+    try {
+        let date;
+        // Se for o objeto Timestamp do Firestore (tem o método toDate)
+        if (ts && typeof ts.toDate === 'function') {
+            date = ts.toDate();
+        } 
+        // Se for um objeto com seconds (às vezes o Firebase retorna assim em cache)
+        else if (ts && ts.seconds) {
+            date = new Date(ts.seconds * 1000);
+        }
+        // Se já for uma instância de Date ou string/number
+        else {
+            date = new Date(ts);
+        }
+
+        // Verifica se a data é válida antes de formatar
+        if (isNaN(date.getTime())) return "Data não disponível";
+
+        return date.toLocaleDateString('pt-BR', { 
+            day: '2-digit', 
+            month: '2-digit', 
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    } catch (e) {
+        console.error("Erro ao formatar data:", e, ts);
+        return "Data não disponível";
+    }
+};
 
     </script>
 </body>
