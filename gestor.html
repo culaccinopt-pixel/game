@@ -606,8 +606,9 @@ body {
         const db = getFirestore(app);
 const auth = getAuth(app);
 
+let currentUserId = null;
 
-// --- BLOCO DE SEGURANÇA (Adicionar no início do script) ---
+// --- BLOCO DE SEGURANÇA ---
 onAuthStateChanged(auth, async (user) => {
     if (!user) {
         window.location.href = "login.html";
@@ -616,7 +617,7 @@ onAuthStateChanged(auth, async (user) => {
         const userSnap = await getDoc(userRef);
 
         if (userSnap.exists() && userSnap.data().status === true) {
-            // AQUI É O ÚNICO LUGAR ONDE O CARREGARTUDO DEVE SER CHAMADO
+            currentUserId = user.uid; // CAPTURA O ID AQUI
             carregarTudo(); 
         } else {
             alert("Acesso negado.");
@@ -878,8 +879,6 @@ document.getElementById('btn-toggle-tree').addEventListener('click', () => {
 
 window.salvarPost = async () => {
     const html = document.getElementById('editor').innerHTML;
-    
-    // 1. Validação básica: não permitir post sem conteúdo
     if (!html || html.trim() === "" || html === "<br>") {
         alert("O conteúdo não pode estar vazio.");
         return;
@@ -887,16 +886,13 @@ window.salvarPost = async () => {
 
     try {
         if (manualEditId) {
-            // --- CASO A: EDITANDO UM POST EXISTENTE ---
+            // EDITANDO
             await updateDoc(doc(db, "docs", manualEditId), { 
-                textoHtml: html 
+                textoHtml: html,
+                updatedBy: currentUserId // Registra quem editou por último
             });
-            console.log("Post atualizado com sucesso.");
         } else {
-            // --- CASO B: CRIANDO UM NOVO POST ---
-            
-            // Procuramos se já existe um documento "vazio" (placeholder) para esta categoria exata.
-            // Isso acontece quando você apaga o último post mas a categoria permanece na árvore.
+            // NOVO OU PLACEHOLDER
             const placeholder = allDocs.find(d =>
                 d.nome === currentManualTopic.nome &&
                 d.categoria === currentManualTopic.categoria &&
@@ -906,29 +902,21 @@ window.salvarPost = async () => {
                 (!d.textoHtml || d.textoHtml.trim() === "")
             );
 
-            if (placeholder) {
-                // Se encontramos um documento vazio, apenas preenchemos ele.
+    if (placeholder) {
                 await updateDoc(doc(db, "docs", placeholder.id), { 
                     textoHtml: html, 
                     createdAt: serverTimestamp(),
-                    status: '', // Reseta status se estiver salvando algo novo
-                    concluidoPor: ''
+                    userId: currentUserId // Registra o ID do criador
                 });
-                console.log("Documento existente preenchido.");
             } else {
-                // Se não existe nenhum documento para essa categoria, cria um novo do zero.
                 const novoPost = {
-                    ...currentManualTopic, // Copia a hierarquia (pai, filho, etc)
+                    ...currentManualTopic,
                     textoHtml: html,
                     createdAt: serverTimestamp(),
-                    status: '',
-                    concluidoPor: ''
+                    userId: currentUserId // Registra o ID do criador
                 };
-                // Remove o ID do objeto de origem para o Firebase gerar um novo ID único
                 delete novoPost.id; 
-                
                 await addDoc(collection(db, "docs"), novoPost);
-                console.log("Novo documento criado.");
             }
         }
 
@@ -1135,17 +1123,21 @@ window.abrirModalGestao = (col, id = null) => {
     const payload = { 
         nome: nomeInput, 
         descricao: descInput, 
-        vinculos 
+        vinculos,
+        userId: currentUserId
     };
 
     try {
         if(gestaoEditId) {
-            await updateDoc(doc(db, currentGestaoCol, gestaoEditId), payload);
+      await updateDoc(doc(db, currentGestaoCol, gestaoEditId), {
+                ...payload,
+                updatedBy: currentUserId // Opcional: saber quem editou
+            });
         } else {
             await addDoc(collection(db, currentGestaoCol), {
                 ...payload, 
                 createdAt: serverTimestamp(),
-                status: '' // Novo item começa sem status
+                status: ''
             });
         }
 
