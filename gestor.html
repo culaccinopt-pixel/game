@@ -348,6 +348,104 @@ body {
     font-size: 0.7rem;
 }
 
+/* RESPONSIVIDADE (MOBILE) */
+@media (max-width: 1024px) {
+    body { 
+        flex-direction: column; 
+    }
+
+    .mobile-nav { 
+        display: flex; 
+        position: fixed; /* Fixa no topo */
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 60px; /* Altura definida */
+        background: #1e293b;
+        border-bottom: 2px solid var(--accent);
+        padding: 0 15px;
+        justify-content: space-between;
+        align-items: center;
+        z-index: 1100; /* Garante que fique acima de tudo */
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+
+    /* Ajuste para o conteúdo não começar por baixo da barra fixa */
+    .main-content { 
+        margin-top: 60px; 
+        padding: 15px; 
+        padding-bottom: 100px; 
+        height: calc(100vh - 60px);
+    }
+
+    .sidebar {
+        z-index: 1200; /* Sidebar deve abrir por cima da barra */
+    }
+
+    /* Botões do topo mais parecidos com a imagem */
+    .mobile-nav .btn-view {
+        background: #334155;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        padding: 8px 12px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        line-height: 1;
+    }
+}
+
+@media (max-width: 1024px) {
+    body { flex-direction: column; }
+
+    /* Estilo base para ambas as sidebars no mobile */
+    .sidebar {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        width: 280px;
+        max-width: 85%;
+        z-index: 1200;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    }
+
+    /* Painel da Esquerda (Menu) */
+    .sidebar:not(.sidebar-right) {
+        left: 0;
+        transform: translateX(-100%); /* Esconde para a esquerda */
+    }
+
+    /* Painel da Direita (Ferramentas) - O FIX ESTÁ AQUI */
+    .sidebar-right {
+        left: auto !important; /* Anula o left original */
+        right: 0 !important;   /* Fixa na direita */
+        transform: translateX(100%) !important; /* Esconde para a direita */
+        border-left: 1px solid var(--border);
+        border-right: none;
+    }
+
+    /* Quando qualquer uma estiver ativa, volta para a posição 0 */
+    .sidebar.active {
+        transform: translateX(0) !important;
+    }
+
+    /* Ajuste da barra do topo mobile para não sobrepor */
+    .mobile-nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1100;
+        height: 60px;
+    }
+
+    .main-content {
+        margin-top: 60px;
+    }
+}
+
     </style>
 </head>
 <body>
@@ -472,9 +570,20 @@ body {
 
 
 <div class="mobile-nav">
-    <button class="btn btn-view" onclick="toggleSidebar('left')">☰ Menu</button>
-    <span style="font-weight: bold; color: var(--accent); font-size: 0.8rem;">GESTOR MASTER</span>
-    <button class="btn btn-view" onclick="toggleSidebar('right')">Ferramentas ⚙️</button>
+    <button class="btn btn-view" onclick="toggleSidebar('left')">
+        <span style="font-size: 1.2rem;">☰</span>
+        <span></span>
+    </button>
+    
+    <div style="text-align: center;">
+        <div style="font-weight: bold; color: var(--accent); font-size: 0.7rem; letter-spacing: 1px;">GESTOR</div>
+        <div style="font-weight: bold; color: #fff; font-size: 0.9rem;">MASTER</div>
+    </div>
+    
+    <button class="btn btn-view" onclick="toggleSidebar('right')">
+        <span></span>
+        <span style="font-size: 1rem;">⚙️</span>
+    </button>
 </div>
 
 
