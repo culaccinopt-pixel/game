@@ -24,7 +24,6 @@
             overflow: hidden; 
         }
         
-        /* Header */
         header { 
             background: var(--primary); 
             padding: 10px 15px; 
@@ -36,7 +35,6 @@
         }
         .nav-btns { display: flex; gap: 8px; }
         
-        /* Layout Mobile-First (Drill-down) */
         .world-container { 
             display: flex; 
             flex: 1; 
@@ -50,11 +48,12 @@
             position: absolute;
             top: 0;
             left: 0;
-            display: none; /* Escondido por padrão no mobile */
+            display: none; 
             flex-direction: column; 
             padding: 15px;
             background: var(--bg);
             z-index: 1;
+            overflow-y: auto; /* Permite scroll em cada coluna */
         }
 
         /* Desktop: 3 colunas fixas */
@@ -70,43 +69,58 @@
             .btn-mobile-back { display: none !important; }
         }
 
-        /* Mobile: Coluna ativa ganha destaque */
         @media (max-width: 1024px) {
             .column.active { display: flex; z-index: 10; }
-            .col-temas { background: var(--bg); }
-            .col-pages { background: var(--bg); }
         }
 
         /* UI Elements */
         .btn { border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; color: white; padding: 10px 12px; text-decoration: none; font-size: 0.85rem; display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
         .btn-accent { background: var(--accent); }
         .btn-gray { background: #334155; }
-        .btn-add { background: var(--success); width: 100%; margin-bottom: 15px; padding: 12px; }
+        .btn-add { background: var(--success); width: 100%; margin-bottom: 15px; padding: 12px; flex-shrink: 0; }
         .btn-mobile-back { background: transparent; border: 1px solid var(--border); width: fit-content; margin-bottom: 15px; }
 
-        .list-item { background: #1e293b; padding: 14px; border-radius: 10px; margin-bottom: 8px; border: 1px solid var(--border); cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
-        .list-item:active { background: var(--accent); }
-        .list-item.active { border-color: var(--accent); background: #334155; box-shadow: 0 0 10px rgba(99, 102, 241, 0.2); }
+        .list-item { 
+            background: #1e293b; padding: 12px; border-radius: 10px; margin-bottom: 8px; 
+            border: 1px solid var(--border); cursor: pointer; 
+            display: flex; align-items: center; justify-content: space-between; gap: 10px;
+        }
+        .list-item:hover { border-color: var(--accent); }
+        .list-item.active { border-color: var(--accent); background: #334155; }
+        
+        .item-name { flex: 1; font-size: 0.95rem; }
+        .btn-edit-small { 
+            background: rgba(255,255,255,0.05); border: none; color: var(--accent); 
+            padding: 6px; border-radius: 6px; cursor: pointer; font-size: 0.8rem;
+        }
+        .btn-edit-small:hover { background: var(--accent); color: white; }
 
-        /* Post Editor */
+        /* Post Content Area */
+        #lista-posts { 
+            padding-bottom: 150px; /* Gap no final para ver bem o último post */
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .post-card { background: #1e293b; border: 1px solid var(--border); padding: 15px; border-radius: 10px; }
+
+        /* Editor */
         .toolbar { background: #1e293b; padding: 8px; border-radius: 8px 8px 0 0; border: 1px solid var(--border); display: flex; gap: 4px; flex-wrap: wrap; }
-        .toolbar button { background: #0f172a; border: 1px solid var(--border); color: white; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
-        #post-editor { min-height: 200px; background: #0f172a; border: 1px solid var(--border); border-top: none; padding: 15px; border-radius: 0 0 8px 8px; outline: none; color: white; line-height: 1.5; overflow-y: auto; }
+        .toolbar button { background: #0f172a; border: 1px solid var(--border); color: white; padding: 6px 10px; border-radius: 4px; cursor: pointer; }
+        #post-editor { min-height: 150px; background: #0f172a; border: 1px solid var(--border); border-top: none; padding: 15px; border-radius: 0 0 8px 8px; outline: none; color: white; }
 
         /* Modal */
         .modal { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; z-index: 2000; padding: 20px; }
         .modal.active { display: flex; }
         .modal-content { background: var(--card-bg); padding: 20px; border-radius: 12px; width: 100%; max-width: 400px; border: 1px solid var(--accent); }
         input { width: 100%; background: #0f172a; border: 1px solid var(--border); color: white; padding: 12px; margin: 10px 0; border-radius: 8px; }
-
-        .post-card { background: #1e293b; border: 1px solid var(--border); padding: 15px; border-radius: 10px; margin-bottom: 15px; }
     </style>
 </head>
 <body>
 
     <header>
         <div class="nav-btns">
-            <a href="index.html" class="btn btn-gray" title="Home">🏠</a>
+            <a href="index.html" class="btn btn-gray">🏠</a>
             <a href="gestor.html" class="btn btn-gray">Gestor</a>
         </div>
         <span style="font-weight: bold; color: var(--accent); font-size: 0.9rem;">WORLD EDIT</span>
@@ -117,7 +131,7 @@
         <div class="column col-temas active" id="view-temas">
             <h3 style="margin-top:0">Temas</h3>
             <button class="btn btn-add" onclick="openModal('tema')">+ Novo Tema</button>
-            <div id="lista-temas" style="overflow-y:auto">Carregando...</div>
+            <div id="lista-temas"></div>
         </div>
 
         <!-- Coluna 2: Páginas -->
@@ -125,7 +139,7 @@
             <button class="btn btn-mobile-back" onclick="changeView('temas')">← Temas</button>
             <div id="pages-header" style="margin-bottom:10px"></div>
             <button class="btn btn-add" onclick="openModal('page')">+ Nova Página</button>
-            <div id="lista-paginas" style="overflow-y:auto"></div>
+            <div id="lista-paginas"></div>
         </div>
 
         <!-- Coluna 3: Conteúdo -->
@@ -138,8 +152,6 @@
                     <button onclick="format('bold')">B</button>
                     <button onclick="format('italic')">I</button>
                     <button onclick="execCommand('formatBlock', 'h3')">T</button>
-                    <button onclick="format('insertUnorderedList')">• Lista</button>
-                    <button onclick="insertCheckbox()">☑</button>
                 </div>
                 <div id="post-editor" contenteditable="true"></div>
                 <div style="margin-top:10px; display: flex; gap: 8px;">
@@ -149,11 +161,11 @@
             </div>
 
             <button id="btn-show-editor" class="btn btn-add" onclick="toggleEditor(true)">+ Novo Post</button>
-            <div id="lista-posts" style="padding-bottom: 50px;"></div>
+            <div id="lista-posts"></div>
         </div>
     </div>
 
-    <!-- Modal -->
+    <!-- Modal para Criar/Editar -->
     <div class="modal" id="modal">
         <div class="modal-content">
             <h3 id="modal-title" style="margin-top:0">Adicionar</h3>
@@ -167,7 +179,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, serverTimestamp, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, serverTimestamp, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDPLJ4Ln3Ton-DxsJ0tEKeioWHnV01Plo0",
@@ -182,10 +194,10 @@
         const db = getFirestore(app);
 
         let modalType = ''; 
+        let editingId = null;
         let currentTemaId = null;
         let currentPageId = null;
 
-        // Gerenciador de Visão Mobile
         window.changeView = (view) => {
             if(window.innerWidth > 1024) return;
             document.querySelectorAll('.column').forEach(c => c.classList.remove('active'));
@@ -203,17 +215,18 @@
                 const div = document.createElement('div');
                 div.className = 'list-item';
                 div.id = `tema-${d.id}`;
-                div.innerHTML = `<span>${tema.nome}</span> <span style="font-size:12px; opacity:0.5">❯</span>`;
-                div.onclick = () => selectTema(d.id, tema.nome);
+                div.innerHTML = `
+                    <span class="item-name" onclick="selectTema('${d.id}', '${tema.nome}')">${tema.nome}</span>
+                    <button class="btn-edit-small" onclick="openModal('tema', '${d.id}', '${tema.nome}')">✏️</button>
+                `;
                 container.appendChild(div);
             });
         }
 
-        window.selectTema = async (id, nome) => {
+        window.selectTema = (id, nome) => {
             currentTemaId = id;
             document.querySelectorAll('.col-temas .list-item').forEach(el => el.classList.remove('active'));
             document.getElementById(`tema-${id}`).classList.add('active');
-            
             document.getElementById('pages-header').innerHTML = `<h2 style="margin:0; font-size:1.1rem">${nome}</h2>`;
             loadPages();
             changeView('pages');
@@ -221,6 +234,7 @@
 
         // --- PÁGINAS ---
         async function loadPages() {
+            if(!currentTemaId) return;
             const q = query(collection(db, "world_pages"), where("temaId", "==", currentTemaId), orderBy("createdAt", "asc"));
             const snap = await getDocs(q);
             const container = document.getElementById('lista-paginas');
@@ -230,8 +244,10 @@
                 const div = document.createElement('div');
                 div.className = 'list-item';
                 div.id = `page-${d.id}`;
-                div.innerHTML = `<span>${page.titulo}</span> <span style="font-size:12px; opacity:0.5">❯</span>`;
-                div.onclick = () => selectPage(d.id, page.titulo);
+                div.innerHTML = `
+                    <span class="item-name" onclick="selectPage('${d.id}', '${page.titulo}')">${page.titulo}</span>
+                    <button class="btn-edit-small" onclick="openModal('page', '${d.id}', '${page.titulo}')">✏️</button>
+                `;
                 container.appendChild(div);
             });
         }
@@ -243,10 +259,12 @@
             document.getElementById('content-header').innerHTML = `<h2 style="margin:0; font-size:1.1rem">${titulo}</h2>`;
             loadPosts();
             changeView('content');
+            document.getElementById('view-content').scrollTo(0,0);
         };
 
         // --- POSTS ---
         async function loadPosts() {
+            if(!currentPageId) return;
             const q = query(collection(db, "world_posts"), where("pageId", "==", currentPageId), orderBy("createdAt", "desc"));
             const snap = await getDocs(q);
             const container = document.getElementById('lista-posts');
@@ -258,7 +276,7 @@
                 card.innerHTML = `
                     <div style="font-size:0.95rem">${post.contentHtml}</div>
                     <div style="margin-top:10px; text-align:right">
-                        <button style="background:none; border:none; color:var(--danger); font-size:12px" onclick="deletePost('${d.id}')">Excluir</button>
+                        <button style="background:none; border:none; color:var(--danger); font-size:12px; cursor:pointer" onclick="deletePost('${d.id}')">Excluir</button>
                     </div>`;
                 container.appendChild(card);
             });
@@ -280,35 +298,58 @@
             }
         };
 
-        // --- UTILS ---
+        // --- MODAL LOGIC (CRIAR E EDITAR) ---
+        window.openModal = (type, id = null, currentVal = '') => {
+            modalType = type;
+            editingId = id;
+            const input = document.getElementById('modal-input');
+            const title = document.getElementById('modal-title');
+            
+            if(id) {
+                title.innerText = type === 'tema' ? 'Editar Tema' : 'Editar Página';
+                input.value = currentVal;
+            } else {
+                title.innerText = type === 'tema' ? 'Novo Tema' : 'Nova Página';
+                input.value = '';
+            }
+            
+            document.getElementById('modal').classList.add('active');
+            input.focus();
+        };
+
         window.handleModalSave = async () => {
             const val = document.getElementById('modal-input').value;
             if(!val) return;
-            if(modalType === 'tema') {
-                await addDoc(collection(db, "temas"), { nome: val, createdAt: serverTimestamp() });
-                loadTemas();
+
+            if(editingId) {
+                // EDITAR
+                const docRef = doc(db, modalType === 'tema' ? "temas" : "world_pages", editingId);
+                await updateDoc(docRef, modalType === 'tema' ? { nome: val } : { titulo: val });
             } else {
-                await addDoc(collection(db, "world_pages"), { temaId: currentTemaId, titulo: val, createdAt: serverTimestamp() });
-                loadPages();
+                // CRIAR
+                if(modalType === 'tema') {
+                    await addDoc(collection(db, "temas"), { nome: val, createdAt: serverTimestamp() });
+                } else {
+                    await addDoc(collection(db, "world_pages"), { temaId: currentTemaId, titulo: val, createdAt: serverTimestamp() });
+                }
             }
+            
+            modalType === 'tema' ? loadTemas() : loadPages();
             closeModal();
         };
 
-        window.openModal = (type) => {
-            modalType = type;
-            document.getElementById('modal-title').innerText = type === 'tema' ? 'Novo Tema' : 'Nova Página';
-            document.getElementById('modal').classList.add('active');
+        window.closeModal = () => {
+            document.getElementById('modal').classList.remove('active');
+            editingId = null;
         };
-        window.closeModal = () => document.getElementById('modal').classList.remove('active');
+
+        // --- OUTROS ---
         window.toggleEditor = (show) => {
             document.getElementById('editor-area').style.display = show ? 'block' : 'none';
             document.getElementById('btn-show-editor').style.display = show ? 'none' : 'inline-flex';
         };
         window.format = (cmd) => document.execCommand(cmd, false, null);
         window.execCommand = (cmd, val) => document.execCommand(cmd, false, val);
-        window.insertCheckbox = () => {
-            document.execCommand('insertHTML', false, '<div style="display:flex; align-items:center; gap:8px;"><input type="checkbox" style="width:18px; height:18px;"><span>Texto</span></div>');
-        };
 
         loadTemas();
     </script>
