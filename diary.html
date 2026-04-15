@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diário - Gestor Master</title>
+    <style>
+        :root { 
+            --primary: #1e293b; --accent: #6366f1; --bg: #0f172a; 
+            --white: #f8fafc; --border: #334155; --card-bg: #1e293b;
+            --danger: #ef4444; --success: #16a34a; --warning: #f59e0b;
+        }
+        
+        * { box-sizing: border-box; }
+
+        body { 
+            font-family: 'Segoe UI', system-ui, sans-serif; 
+            margin: 0; background: var(--bg); color: var(--white); 
+            display: flex; flex-direction: column; height: 100vh; overflow: hidden; 
+        }
+        
+        header { 
+            background: var(--primary); padding: 10px 15px; border-bottom: 1px solid var(--border); 
+            display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
+        }
+        .nav-btns { display: flex; gap: 8px; }
+
+        .diary-container {
+            max-width: 800px; margin: 20px auto; width: 95%; flex: 1;
+            display: flex; flex-direction: column; overflow: hidden;
+            background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .tabs-main { display: flex; background: #161e2e; border-bottom: 1px solid var(--border); }
+        .tab-btn { 
+            flex: 1; padding: 15px; border: none; background: transparent; color: #94a3b8;
+            cursor: pointer; font-weight: bold; font-size: 0.9rem; transition: 0.3s;
+            border-bottom: 3px solid transparent;
+        }
+        .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); background: rgba(99, 102, 241, 0.05); }
+
+        .content-section { display: none; flex: 1; flex-direction: column; padding: 20px; overflow-y: auto; }
+        .content-section.active { display: flex; }
+
+        .toolbar { 
+            display: flex; gap: 8px; padding: 10px; background: #0f172a; 
+            border: 1px solid var(--border); border-radius: 8px 8px 0 0; flex-wrap: wrap; align-items: center;
+        }
+        .toolbar button { 
+            background: #1e293b; border: 1px solid var(--border); color: white; 
+            padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.8rem;
+        }
+        
+        .btn-status-feito { border: 2px solid var(--success) !important; color: var(--success) !important; background: transparent; }
+        .btn-status-feito.active { background: var(--success) !important; color: white !important; }
+        
+        .btn-status-ideia { border: 2px solid var(--warning) !important; color: var(--warning) !important; background: transparent; }
+        .btn-status-ideia.active { background: var(--warning) !important; color: white !important; }
+        
+        #editor { 
+            flex: 1; min-height: 250px; background: #0f172a; border: 1px solid var(--border); 
+            border-top: none; padding: 20px; border-radius: 0 0 8px 8px; outline: none; 
+            color: white; line-height: 1.6; overflow-y: auto;
+        }
+
+        /* Badges e Cards */
+        .badge-container { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+        .badge-container.editable { cursor: pointer; }
+        .badge-container.editable:hover { opacity: 0.8; transform: scale(1.02); }
+
+        .badge { 
+            padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: bold; 
+            text-transform: uppercase; display: inline-block; transition: 0.2s;
+        }
+        .badge-author { background: #334155; color: #cbd5e1; border: 1px solid var(--border); }
+        .badge-feito { background: rgba(22, 163, 74, 0.2); color: #4ade80; border: 1px solid var(--success); }
+        .badge-ideia { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid var(--warning); }
+        .badge-none { background: rgba(148, 163, 184, 0.1); color: #94a3b8; border: 1px solid #475569; }
+
+        .diary-card { background: #0f172a; border: 1px solid var(--border); padding: 15px; border-radius: 10px; margin-bottom: 15px; }
+        .diary-card .meta { margin-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-start; }
+        .diary-card .text { font-size: 0.9rem; line-height: 1.5; color: #cbd5e1; }
+
+        /* MODAL POPUP */
+        .modal { 
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center;
+        }
+        .modal-content { 
+            background: var(--card-bg); padding: 25px; border-radius: 15px; width: 90%; max-width: 350px; 
+            border: 1px solid var(--border); text-align: center;
+        }
+        .modal-btns { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+        .modal-btns button { padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; border: none; font-size: 1rem; }
+
+        .btn { border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; color: white; padding: 10px 15px; text-decoration: none; font-size: 0.8rem; }
+        .btn-accent { background: var(--accent); width: 100%; margin-top: 15px; padding: 15px; font-size: 1rem; }
+        .btn-gray { background: #334155; }
+
+        /* Container das Sub-abas */
+.sub-tabs { 
+    display: flex; 
+    gap: 12px; 
+    margin-bottom: 25px; 
+    padding: 10px 5px;
+    border-bottom: 1px solid rgba(51, 65, 85, 0.5); /* Linha sutil separando do feed */
+}
+
+/* Estilo Base dos Botões de Relatos */
+.sub-btn { 
+    padding: 10px 20px; 
+    border-radius: 50px; /* Formato pílula */
+    border: 1px solid var(--border);
+    background: #1e293b; 
+    color: #94a3b8; 
+    cursor: pointer; 
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Efeito ao passar o mouse */
+.sub-btn:hover { 
+    border-color: var(--accent);
+    color: var(--white);
+    background: rgba(99, 102, 241, 0.1);
+    transform: translateY(-1px);
+}
+
+/* Estado Ativo (Selecionado) */
+.sub-btn.active { 
+    background: var(--accent); 
+    color: white; 
+    border-color: var(--accent);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+/* Ajuste no card do diário para não ficar colado */
+#feed-lista {
+    padding-top: 10px;
+}
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="nav-btns">
+            <a href="index.html" class="btn btn-gray">🏠 Home</a>
+            <a href="gestor.html" class="btn btn-gray">⚙️ Gestor</a>
+        </div>
+        <span style="font-weight: bold; color: var(--accent);">DIÁRIO MASTER</span>
+    </header>
+
+    <div class="diary-container">
+        <div class="tabs-main">
+            <button class="tab-btn active" onclick="switchTab('escrever')">✎ ESCREVER</button>
+            <button class="tab-btn" onclick="switchTab('feed')">📖 FEED</button>
+        </div>
+
+        <div id="sec-escrever" class="content-section active">
+            <div class="toolbar">
+                <button onclick="format('bold')">B</button>
+                <button onclick="format('italic')">I</button>
+                <button onclick="format('insertUnorderedList')">Bullet</button>
+                <button onclick="addCheckbox()">[ ] Check</button>
+                <div style="width: 1px; height: 20px; background: var(--border); margin: 0 5px;"></div>
+                <button id="btn-feito" class="btn-status-feito" onclick="setStatus('feito')">✓ Feito</button>
+                <button id="btn-ideia" class="btn-status-ideia" onclick="setStatus('ideia')">💡 Ideia</button>
+            </div>
+            <div id="editor" contenteditable="true" placeholder="Comece a escrever seu dia..."></div>
+            <button class="btn btn-accent" onclick="saveDiary()">Gravar no Diário</button>
+        </div>
+
+      <div id="sec-feed" class="content-section">
+    <div class="sub-tabs">
+        <button class="sub-btn active" id="sub-meus" onclick="loadFeed('meus')">
+            👤 Meus Relatos
+        </button>
+        <button class="sub-btn" id="sub-outros" onclick="loadFeed('outros')">
+            🌎 Outros Usuários
+        </button>
+    </div>
+    <div id="feed-lista">
+        <!-- Posts aparecerão aqui -->
+    </div>
+</div>
+
+    <!-- Modal de Mudança de Estado -->
+    <div id="statusModal" class="modal" onclick="closeModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <h3 style="margin-top:0">Mudar Estado</h3>
+            <p style="font-size:0.8rem; color: #94a3b8">Selecione o novo status deste post:</p>
+            <div class="modal-btns">
+                <button class="badge-feito" onclick="updatePostStatus('feito')">✓ Marcar como Feito</button>
+                <button class="badge-ideia" onclick="updatePostStatus('ideia')">💡 Marcar como Ideia</button>
+                <button style="background:#334155; color:white" onclick="updatePostStatus(null)">Limpar Estado</button>
+                <button style="background:transparent; color: #94a3b8; border: 1px solid var(--border)" onclick="document.getElementById('statusModal').style.display='none'">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, serverTimestamp, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyDPLJ4Ln3Ton-DxsJ0tEKeioWHnV01Plo0",
+            authDomain: "politicalgame-30215.firebaseapp.com",
+            projectId: "politicalgame-30215",
+            storageBucket: "politicalgame-30215.firebasestorage.app",
+            messagingSenderId: "736655823319",
+            appId: "1:736655823319:web:60ebdc530e101784b9bb92"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        let currentUser = null;
+        let userData = null;
+        let selectedStatus = null;
+        let currentEditingPostId = null;
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                window.location.href = "login.html";
+            } else {
+                const userRef = doc(db, "users", user.uid);
+                const userSnap = await getDoc(userRef);
+                if (userSnap.exists() && userSnap.data().status === true) {
+                    currentUser = user;
+                    userData = userSnap.data();
+                } else {
+                    await signOut(auth);
+                    window.location.href = "login.html";
+                }
+            }
+        });
+
+        window.switchTab = (tab) => {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+            if(tab === 'escrever') {
+                document.querySelector('.tab-btn:nth-child(1)').classList.add('active');
+                document.getElementById('sec-escrever').classList.add('active');
+            } else {
+                document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
+                document.getElementById('sec-feed').classList.add('active');
+                loadFeed('meus');
+            }
+        };
+
+        window.setStatus = (status) => {
+            const btnFeito = document.getElementById('btn-feito');
+            const btnIdeia = document.getElementById('btn-ideia');
+            if (selectedStatus === status) {
+                selectedStatus = null;
+                btnFeito.classList.remove('active');
+                btnIdeia.classList.remove('active');
+            } else {
+                selectedStatus = status;
+                btnFeito.classList.toggle('active', status === 'feito');
+                btnIdeia.classList.toggle('active', status === 'ideia');
+            }
+        };
+
+        window.format = (cmd) => document.execCommand(cmd, false, null);
+        window.addCheckbox = () => {
+            const checkboxHtml = "<div><input type='checkbox'> </div>";
+            document.execCommand('insertHTML', false, checkboxHtml);
+        };
+
+        window.saveDiary = async () => {
+            const content = document.getElementById('editor').innerHTML;
+            if(!content || content.trim() === "" || content === "<br>") {
+                alert("Escreva algo antes de gravar!");
+                return;
+            }
+            try {
+                await addDoc(collection(db, "diario"), {
+                    userId: currentUser.uid,
+                    userName: userData.nome,
+                    contentHtml: content,
+                    status: selectedStatus,
+                    createdAt: serverTimestamp()
+                });
+                document.getElementById('editor').innerHTML = "";
+                selectedStatus = null;
+                document.querySelectorAll('.toolbar button').forEach(b => b.classList.remove('active'));
+                switchTab('feed');
+            } catch (e) { console.error(e); alert("Erro ao gravar."); }
+        };
+
+        // --- FUNÇÕES DO MODAL ---
+        window.openEditStatus = (postId) => {
+            currentEditingPostId = postId;
+            document.getElementById('statusModal').style.display = 'flex';
+        };
+
+        window.closeModal = (e) => {
+            document.getElementById('statusModal').style.display = 'none';
+        };
+
+        window.updatePostStatus = async (newStatus) => {
+            if(!currentEditingPostId) return;
+            try {
+                const postRef = doc(db, "diario", currentEditingPostId);
+                await updateDoc(postRef, {
+                    status: newStatus,
+                    dataEditado: serverTimestamp()
+                });
+                document.getElementById('statusModal').style.display = 'none';
+                loadFeed(document.getElementById('sub-meus').classList.contains('active') ? 'meus' : 'outros');
+            } catch (e) { console.error(e); alert("Erro ao atualizar status."); }
+        };
+
+        window.loadFeed = async (type) => {
+            const container = document.getElementById('feed-lista');
+            container.innerHTML = "<p style='text-align:center; color:gray'>Carregando...</p>";
+            document.getElementById('sub-meus').classList.toggle('active', type === 'meus');
+            document.getElementById('sub-outros').classList.toggle('active', type === 'outros');
+
+            try {
+                let q = query(collection(db, "diario"), orderBy("createdAt", "desc"));
+                const snap = await getDocs(q);
+                container.innerHTML = "";
+
+                if(snap.empty) {
+                    container.innerHTML = "<p style='text-align:center; color:gray; margin-top:20px'>Nada encontrado.</p>";
+                    return;
+                }
+
+                snap.forEach(d => {
+                    const post = d.data();
+                    const postId = d.id;
+                    if(type === 'meus' && post.userId !== currentUser.uid) return;
+                    if(type === 'outros' && post.userId === currentUser.uid) return;
+
+                    const date = post.createdAt ? post.createdAt.toDate().toLocaleDateString('pt-br') : "...";
+                    const editDate = post.dataEditado ? `<br><span style="font-size:0.6rem; opacity:0.6">Alt: ${post.dataEditado.toDate().toLocaleDateString('pt-br')}</span>` : "";
+                    
+                    let statusHtml = "";
+                    if (post.status === 'feito') statusHtml = `<span class="badge badge-feito">✓ Feito</span>`;
+                    else if (post.status === 'ideia') statusHtml = `<span class="badge badge-ideia">💡 Ideia</span>`;
+                    else if (post.userId === currentUser.uid) statusHtml = `<span class="badge badge-none">+ Status</span>`;
+
+                    const isMine = post.userId === currentUser.uid;
+
+                    const card = document.createElement('div');
+                    card.className = 'diary-card';
+                    card.innerHTML = `
+                        <div class="meta">
+                            <div class="badge-container ${isMine ? 'editable' : ''}" ${isMine ? `onclick="openEditStatus('${postId}')"` : ''}>
+                                <span class="badge badge-author">Por: ${post.userName}</span>
+                                ${statusHtml}
+                            </div>
+                            <span style="font-size: 0.7rem; color: #64748b; text-align:right">${date}${editDate}</span>
+                        </div>
+                        <div class="text">${post.contentHtml}</div>
+                    `;
+                    container.appendChild(card);
+                });
+            } catch (e) { console.error(e); container.innerHTML = "<p style='color:red'>Erro ao carregar o feed.</p>"; }
+        };
+    </script>
+</body>
+</html>
