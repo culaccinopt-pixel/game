@@ -177,203 +177,287 @@
         </div>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, serverTimestamp, doc, getDoc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+   <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, serverTimestamp, doc, getDoc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+    const firebaseConfig = {
+        apiKey: "AIzaSyDPLJ4Ln3Ton-DxsJ0tEKeioWHnV01Plo0",
+        authDomain: "politicalgame-30215.firebaseapp.com",
+        projectId: "politicalgame-30215",
+        storageBucket: "politicalgame-30215.firebasestorage.app",
+        messagingSenderId: "736655823319",
+        appId: "1:736655823319:web:60ebdc530e101784b9bb92"
+    };
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyDPLJ4Ln3Ton-DxsJ0tEKeioWHnV01Plo0",
-            authDomain: "politicalgame-30215.firebaseapp.com",
-            projectId: "politicalgame-30215",
-            storageBucket: "politicalgame-30215.firebasestorage.app",
-            messagingSenderId: "736655823319",
-            appId: "1:736655823319:web:60ebdc530e101784b9bb92"
-        };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
+    let currentUserId = null; // ARMAZENA O ID DO USER
+    let modalType = ''; 
+    let editingId = null;
+    let currentTemaId = null;
+    let currentPageId = null;
+    let editingPostId = null; // NOVO: Para saber se estamos a editar um post
 
-        // --- BLOCO DE SEGURANÇA OBRIGATÓRIO ---
-        onAuthStateChanged(auth, async (user) => {
-            if (!user) {
-                window.location.href = "login.html";
+    // --- BLOCO DE SEGURANÇA ---
+    onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+            window.location.href = "login.html";
+        } else {
+            const userRef = doc(db, "users", user.uid);
+            const userSnap = await getDoc(userRef);
+
+            if (userSnap.exists() && userSnap.data().status === true) {
+                currentUserId = user.uid; // CAPTURA O ID AQUI
+                loadTemas(); 
             } else {
-                const userRef = doc(db, "users", user.uid);
-                const userSnap = await getDoc(userRef);
-
-                if (userSnap.exists() && userSnap.data().status === true) {
-                    // SÓ INICIA O CARREGAMENTO SE TIVER PERMISSÃO
-                    loadTemas(); 
-                } else {
-                    alert("Acesso negado. Conta inativa.");
-                    await signOut(auth);
-                    window.location.href = "login.html";
-                }
+                alert("Acesso negado.");
+                await signOut(auth);
+                window.location.href = "login.html";
             }
+        }
+    });
+
+    window.changeView = (view) => {
+        if(window.innerWidth > 1024) return;
+        document.querySelectorAll('.column').forEach(c => c.classList.remove('active'));
+        document.getElementById(`view-${view}`).classList.add('active');
+    };
+
+    // --- TEMAS ---
+    async function loadTemas() {
+        const q = query(collection(db, "temas"), orderBy("createdAt", "desc"));
+        const snap = await getDocs(q);
+        const container = document.getElementById('lista-temas');
+        container.innerHTML = '';
+        snap.forEach(d => {
+            const tema = d.data();
+            const div = document.createElement('div');
+            div.className = 'list-item';
+            div.id = `tema-${d.id}`;
+            div.innerHTML = `
+                <span class="item-name" onclick="selectTema('${d.id}', '${tema.nome}')">${tema.nome}</span>
+                <button class="btn-edit-small" onclick="openModal('tema', '${d.id}', '${tema.nome}')">✏️</button>
+            `;
+            container.appendChild(div);
         });
+    }
 
-        let modalType = ''; 
-        let editingId = null;
-        let currentTemaId = null;
-        let currentPageId = null;
+    window.selectTema = (id, nome) => {
+        currentTemaId = id;
+        document.querySelectorAll('.col-temas .list-item').forEach(el => el.classList.remove('active'));
+        document.getElementById(`tema-${id}`).classList.add('active');
+        document.getElementById('pages-header').innerHTML = `<h2 style="margin:0; font-size:1.1rem">${nome}</h2>`;
+        loadPages();
+        changeView('pages');
+    };
 
-        window.changeView = (view) => {
-            if(window.innerWidth > 1024) return;
-            document.querySelectorAll('.column').forEach(c => c.classList.remove('active'));
-            document.getElementById(`view-${view}`).classList.add('active');
-        };
+    // --- PÁGINAS ---
+    async function loadPages() {
+        if(!currentTemaId) return;
+        const q = query(collection(db, "world_pages"), where("temaId", "==", currentTemaId), orderBy("createdAt", "asc"));
+        const snap = await getDocs(q);
+        const container = document.getElementById('lista-paginas');
+        container.innerHTML = '';
+        snap.forEach(d => {
+            const page = d.data();
+            const div = document.createElement('div');
+            div.className = 'list-item';
+            div.id = `page-${d.id}`;
+            div.innerHTML = `
+                <span class="item-name" onclick="selectPage('${d.id}', '${page.titulo}')">${page.titulo}</span>
+                <button class="btn-edit-small" onclick="openModal('page', '${d.id}', '${page.titulo}')">✏️</button>
+            `;
+            container.appendChild(div);
+        });
+    }
 
-        // --- TEMAS ---
-        async function loadTemas() {
-            const q = query(collection(db, "temas"), orderBy("createdAt", "desc"));
-            const snap = await getDocs(q);
-            const container = document.getElementById('lista-temas');
-            container.innerHTML = '';
-            snap.forEach(d => {
-                const tema = d.data();
-                const div = document.createElement('div');
-                div.className = 'list-item';
-                div.id = `tema-${d.id}`;
-                div.innerHTML = `
-                    <span class="item-name" onclick="selectTema('${d.id}', '${tema.nome}')">${tema.nome}</span>
-                    <button class="btn-edit-small" onclick="openModal('tema', '${d.id}', '${tema.nome}')">✏️</button>
-                `;
-                container.appendChild(div);
-            });
-        }
+    window.selectPage = (id, titulo) => {
+        currentPageId = id;
+        document.querySelectorAll('.col-pages .list-item').forEach(el => el.classList.remove('active'));
+        document.getElementById(`page-${id}`).classList.add('active');
+        document.getElementById('content-header').innerHTML = `<h2 style="margin:0; font-size:1.1rem">${titulo}</h2>`;
+        loadPosts();
+        changeView('content');
+        document.getElementById('view-content').scrollTo(0,0);
+    };
 
-        window.selectTema = (id, nome) => {
-            currentTemaId = id;
-            document.querySelectorAll('.col-temas .list-item').forEach(el => el.classList.remove('active'));
-            document.getElementById(`tema-${id}`).classList.add('active');
-            document.getElementById('pages-header').innerHTML = `<h2 style="margin:0; font-size:1.1rem">${nome}</h2>`;
-            loadPages();
-            changeView('pages');
-        };
+    // --- POSTS ---
+ async function loadPosts() {
+        if(!currentPageId) return;
+        const q = query(collection(db, "world_posts"), where("pageId", "==", currentPageId), orderBy("createdAt", "desc"));
+        const snap = await getDocs(q);
+        const container = document.getElementById('lista-posts');
+        container.innerHTML = '';
+        
+        snap.forEach(d => {
+            const post = d.data();
+            const card = document.createElement('div');
+            card.className = 'post-card';
+            
+            // Verifica se o utilizador logado é o autor
+            const isAuthor = post.userId === currentUserId;
 
-        // --- PÁGINAS ---
-        async function loadPages() {
-            if(!currentTemaId) return;
-            const q = query(collection(db, "world_pages"), where("temaId", "==", currentTemaId), orderBy("createdAt", "asc"));
-            const snap = await getDocs(q);
-            const container = document.getElementById('lista-paginas');
-            container.innerHTML = '';
-            snap.forEach(d => {
-                const page = d.data();
-                const div = document.createElement('div');
-                div.className = 'list-item';
-                div.id = `page-${d.id}`;
-                div.innerHTML = `
-                    <span class="item-name" onclick="selectPage('${d.id}', '${page.titulo}')">${page.titulo}</span>
-                    <button class="btn-edit-small" onclick="openModal('page', '${d.id}', '${page.titulo}')">✏️</button>
-                `;
-                container.appendChild(div);
-            });
-        }
-
-        window.selectPage = (id, titulo) => {
-            currentPageId = id;
-            document.querySelectorAll('.col-pages .list-item').forEach(el => el.classList.remove('active'));
-            document.getElementById(`page-${id}`).classList.add('active');
-            document.getElementById('content-header').innerHTML = `<h2 style="margin:0; font-size:1.1rem">${titulo}</h2>`;
-            loadPosts();
-            changeView('content');
-            document.getElementById('view-content').scrollTo(0,0);
-        };
-
-        // --- POSTS ---
-        async function loadPosts() {
-            if(!currentPageId) return;
-            const q = query(collection(db, "world_posts"), where("pageId", "==", currentPageId), orderBy("createdAt", "desc"));
-            const snap = await getDocs(q);
-            const container = document.getElementById('lista-posts');
-            container.innerHTML = '';
-            snap.forEach(d => {
-                const post = d.data();
-                const card = document.createElement('div');
-                card.className = 'post-card';
-                card.innerHTML = `
-                    <div style="font-size:0.95rem">${post.contentHtml}</div>
+            // Só cria o HTML dos botões se for o autor
+            let botoesAcao = '';
+            if (isAuthor) {
+                botoesAcao = `
                     <div style="margin-top:10px; text-align:right">
+                        <button style="background:none; border:none; color:var(--accent); font-size:12px; cursor:pointer; margin-right:10px" onclick="editPost('${d.id}')">Editar</button>
                         <button style="background:none; border:none; color:var(--danger); font-size:12px; cursor:pointer" onclick="deletePost('${d.id}')">Excluir</button>
-                    </div>`;
-                container.appendChild(card);
-            });
-        }
+                    </div>
+                `;
+            }
 
-        window.savePost = async () => {
-            const html = document.getElementById('post-editor').innerHTML;
-            if(!html || html === '<br>') return;
-            await addDoc(collection(db, "world_posts"), { pageId: currentPageId, contentHtml: html, createdAt: serverTimestamp() });
+            card.innerHTML = `
+                <div style="font-size:0.95rem">${post.contentHtml}</div>
+                ${botoesAcao}
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    // Função para carregar o post no editor
+    window.editPost = async (id) => {
+        const snap = await getDoc(doc(db, "world_posts", id));
+        if (snap.exists()) {
+            // Segurança extra: verificar se é mesmo o autor antes de abrir o editor
+            if (snap.data().userId !== currentUserId) {
+                alert("Não tens permissão para editar este post.");
+                return;
+            }
+            
+            editingPostId = id;
+            document.getElementById('post-editor').innerHTML = snap.data().contentHtml;
+            toggleEditor(true);
+            document.getElementById('view-content').scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    };
+
+    window.savePost = async () => {
+        const html = document.getElementById('post-editor').innerHTML;
+        if(!html || html === '<br>') return;
+
+        try {
+            if (editingPostId) {
+                // Ao editar, mantemos o userId original e adicionamos updatedBy
+                await updateDoc(doc(db, "world_posts", editingPostId), { 
+                    contentHtml: html, 
+                    updatedBy: currentUserId,
+                    updatedAt: serverTimestamp() 
+                });
+            } else {
+                // Ao criar novo
+                await addDoc(collection(db, "world_posts"), { 
+                    pageId: currentPageId, 
+                    contentHtml: html, 
+                    userId: currentUserId, // Registo do autor
+                    createdAt: serverTimestamp() 
+                });
+            }
+
             document.getElementById('post-editor').innerHTML = '';
+            editingPostId = null;
             toggleEditor(false);
             loadPosts();
-        };
+        } catch (e) {
+            console.error(e);
+            alert("Erro ao salvar post.");
+        }
+    };
 
-        window.deletePost = async (id) => {
-            if(confirm("Excluir post?")) {
+    window.deletePost = async (id) => {
+        // Busca o documento para validar o autor antes de apagar (segurança)
+        const snap = await getDoc(doc(db, "world_posts", id));
+        if (snap.exists() && snap.data().userId === currentUserId) {
+            if(confirm("Desejas excluir permanentemente este post?")) {
                 await deleteDoc(doc(db, "world_posts", id));
                 loadPosts();
             }
-        };
+        } else {
+            alert("Ação não permitida.");
+        }
+    };
 
-        // --- MODAL LOGIC (CRIAR E EDITAR) ---
-        window.openModal = (type, id = null, currentVal = '') => {
-            modalType = type;
-            editingId = id;
-            const input = document.getElementById('modal-input');
-            const title = document.getElementById('modal-title');
-            
-            if(id) {
-                title.innerText = type === 'tema' ? 'Editar Tema' : 'Editar Página';
-                input.value = currentVal;
-            } else {
-                title.innerText = type === 'tema' ? 'Novo Tema' : 'Nova Página';
-                input.value = '';
-            }
-            
-            document.getElementById('modal').classList.add('active');
-            input.focus();
-        };
+    // --- MODAL LOGIC (CRIAR E EDITAR TEMAS/PÁGINAS) ---
+    window.openModal = (type, id = null, currentVal = '') => {
+        modalType = type;
+        editingId = id;
+        const input = document.getElementById('modal-input');
+        const title = document.getElementById('modal-title');
+        
+        if(id) {
+            title.innerText = type === 'tema' ? 'Editar Tema' : 'Editar Página';
+            input.value = currentVal;
+        } else {
+            title.innerText = type === 'tema' ? 'Novo Tema' : 'Nova Página';
+            input.value = '';
+        }
+        
+        document.getElementById('modal').classList.add('active');
+        input.focus();
+    };
 
-        window.handleModalSave = async () => {
-            const val = document.getElementById('modal-input').value;
-            if(!val) return;
+    window.handleModalSave = async () => {
+        const val = document.getElementById('modal-input').value;
+        if(!val) return;
 
+        try {
             if(editingId) {
                 // EDITAR
                 const docRef = doc(db, modalType === 'tema' ? "temas" : "world_pages", editingId);
-                await updateDoc(docRef, modalType === 'tema' ? { nome: val } : { titulo: val });
+                await updateDoc(docRef, {
+                    ...(modalType === 'tema' ? { nome: val } : { titulo: val }),
+                    updatedBy: currentUserId // GRAVA QUEM EDITOU
+                });
             } else {
                 // CRIAR
                 if(modalType === 'tema') {
-                    await addDoc(collection(db, "temas"), { nome: val, createdAt: serverTimestamp() });
+                    await addDoc(collection(db, "temas"), { 
+                        nome: val, 
+                        userId: currentUserId, // GRAVA QUEM CRIOU
+                        createdAt: serverTimestamp() 
+                    });
                 } else {
-                    await addDoc(collection(db, "world_pages"), { temaId: currentTemaId, titulo: val, createdAt: serverTimestamp() });
+                    await addDoc(collection(db, "world_pages"), { 
+                        temaId: currentTemaId, 
+                        titulo: val, 
+                        userId: currentUserId, // GRAVA QUEM CRIOU
+                        createdAt: serverTimestamp() 
+                    });
                 }
             }
             
             modalType === 'tema' ? loadTemas() : loadPages();
             closeModal();
-        };
+        } catch (e) {
+            console.error(e);
+            alert("Erro ao gravar.");
+        }
+    };
 
-        window.closeModal = () => {
-            document.getElementById('modal').classList.remove('active');
-            editingId = null;
-        };
+    window.closeModal = () => {
+        document.getElementById('modal').classList.remove('active');
+        editingId = null;
+    };
 
-        // --- OUTROS ---
-        window.toggleEditor = (show) => {
-            document.getElementById('editor-area').style.display = show ? 'block' : 'none';
-            document.getElementById('btn-show-editor').style.display = show ? 'none' : 'inline-flex';
-        };
-        window.format = (cmd) => document.execCommand(cmd, false, null);
-        window.execCommand = (cmd, val) => document.execCommand(cmd, false, val);
+    // --- OUTROS ---
+    window.toggleEditor = (show) => {
+        if (!show) {
+            editingPostId = null;
+            document.getElementById('post-editor').innerHTML = '';
+        }
+        document.getElementById('editor-area').style.display = show ? 'block' : 'none';
+        document.getElementById('btn-show-editor').style.display = show ? 'none' : 'inline-flex';
+    };
+    
+    window.format = (cmd) => document.execCommand(cmd, false, null);
+    window.execCommand = (cmd, val) => document.execCommand(cmd, false, val);
 
+</script>
 
-    </script>
 </body>
 </html>
