@@ -446,6 +446,152 @@ body {
     }
 }
 
+
+/* Estilo para tabelas dentro do editor e dos cards */
+#editor table, .post-card table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+    background: #0f172a;
+    color: #f8fafc;
+    font-size: 0.85rem;
+}
+
+#editor th, .post-card th {
+    background: #334155;
+    color: #6366f1;
+    text-align: left;
+}
+
+#editor td, #editor th, .post-card td, .post-card th {
+    border: 1px solid #334155;
+    padding: 10px;
+}
+
+#editor td:focus {
+    background: #1e293b;
+    outline: none;
+}
+
+/* Posicionamento relativo para o container do editor */
+.editor-box {
+    position: relative;
+}
+
+/* Novo botão X para o editor */
+.btn-close-editor {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: none;
+    border: none;
+    color: #94a3b8;
+    font-size: 2rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: 0.2s;
+    z-index: 10;
+}
+
+.btn-close-editor:hover {
+    color: var(--danger);
+}
+
+/* Aumento da altura das linhas da tabela */
+#editor td, .post-card td {
+    padding: 18px 12px !important; /* Aumenta o respiro interno das células */
+    min-height: 50px;
+}
+
+#editor th, .post-card th {
+    padding: 15px 12px !important;
+}
+
+/* Estilo para a linha da tabela concluída */
+tr.row-done {
+    background-color: rgba(22, 163, 74, 0.15) !important; /* Verde suave */
+    text-decoration: line-through;
+    color: #94a3b8;
+}
+
+/* Célula de check na tabela */
+.td-check {
+    cursor: pointer;
+    text-align: center;
+    font-size: 1.2rem;
+    user-select: none;
+    transition: 0.2s;
+    width: 50px;
+}
+
+.td-check:hover {
+    transform: scale(1.2);
+    background: rgba(255,255,255,0.05);
+}
+
+/* Esconde botões de controle que foram salvos por erro dentro do conteúdo do post */
+.post-content-body #table-controls, 
+.post-content-body button[onclick*="LinhaTabela"] {
+    display: none !important;
+}
+
+/* Impede a seleção de texto no cabeçalho da tabela */
+table thead {
+    user-select: none;
+    -webkit-user-select: none;
+    pointer-events: none; /* Opcional: ignora cliques no header */
+}
+
+/* Garante que as células de dados sejam selecionáveis */
+table tbody td {
+    user-select: text;
+}
+
+/* Bloqueio total no cabeçalho */
+table thead {
+    user-select: none !important;
+    pointer-events: none;
+    background: #1e293b;
+}
+
+/* Impede selecionar a estrutura da tabela, mas permite o conteúdo */
+table {
+    user-select: none !important;
+}
+
+/* Reativa a seleção apenas nas células de texto */
+table td {
+    user-select: text !important;
+}
+
+/* Estilo para a coluna de Status (não deve ser selecionável) */
+.td-check {
+    user-select: none !important;
+    pointer-events: auto; /* Permite o clique, mas não a seleção de texto */
+}
+
+/* Bloqueia seleção em toda a estrutura */
+#editor table, 
+#editor table thead, 
+#editor table tr, 
+#editor table tbody {
+    user-select: none !important;
+    -webkit-user-select: none !important;
+}
+
+/* Libera seleção APENAS dentro da célula que está sendo editada */
+#editor table td[contenteditable="true"] {
+    user-select: text !important;
+    -webkit-user-select: text !important;
+    pointer-events: auto !important;
+}
+
+/* Bloqueia a célula de check */
+.td-check {
+    user-select: none !important;
+    pointer-events: auto !important;
+}
+
     </style>
 </head>
 <body>
@@ -479,14 +625,21 @@ body {
             <p style="color: #94a3b8;">Selecione um tópico ou use as ferramentas laterais.</p>
         </div>
 
-        <div id="editor-area" class="hidden">
-            <div class="editor-box">
-                <h3 id="editor-title">Nova Atualização</h3>
-                <div id="editor" contenteditable="true"></div>
-                <button onclick="salvarPost()" id="btnSalvar" class="btn btn-save">Publicar</button>
-                <button onclick="cancelarEdicaoManual()" class="btn btn-save" style="background:#475569; margin-top:5px">Cancelar</button>
-            </div>
+<div id="editor-area" class="hidden">
+    <div class="editor-box">
+        <button class="btn-close-editor" onclick="cancelarEdicaoManual()">&times;</button>
+        <h3 id="editor-title">Nova Atualização</h3>
+        
+        <!-- NOVA DIV PARA FERRAMENTAS (FICA FORA DO EDITOR DE TEXTO) -->
+        <div id="table-tools-container" style="margin-bottom: 10px; display: none; gap: 10px;">
+            <button class="btn" onclick="adicionarLinhaTabela()" style="background:#16a34a; font-size:0.7rem; padding:8px 12px;">+ Adicionar Linha</button>
+            <button class="btn" onclick="removerLinhaTabela()" style="background:#ef4444; font-size:0.7rem; padding:8px 12px;">- Remover Última Linha</button>
         </div>
+
+        <div id="editor" contenteditable="true"></div>
+        <button onclick="salvarPost()" id="btnSalvar" class="btn btn-save">Publicar</button>
+    </div>
+</div>
 
         <div id="dynamic-list"></div>
     </main>
@@ -548,14 +701,6 @@ body {
         </div>
     </div>
 
-    <!-- Modal Seleção de Usuário -->
-<div id="user-modal" class="modal-check">
-    <div class="check-content">
-        <h3 style="margin-top:0; color:var(--accent)">Concluir como:</h3>
-        <div id="user-options-list"></div>
-        <button onclick="fecharModaisCheck()" style="background:none; border:none; color:gray; cursor:pointer; margin-top:10px;">Cancelar</button>
-    </div>
-</div>
 
 <!-- Modal Desfazer -->
 <div id="undo-modal" class="modal-check">
@@ -648,8 +793,11 @@ async function carregarTudo() {
 let allUsers = [];
 let currentTaskRef = null;
 let currentViewData = { posts: [], legislacoes: [], construcoes: [], acoes: [], midia: [] };
-
-
+let currentTableCheckCell = null;
+let pendingTableUndo = null;
+let rowSelectionStarted = null;
+let isSelecting = false;
+let cellDeOrigem = null;
 
         // --- LÓGICA DE PESQUISA ---
 document.getElementById('search-manual').addEventListener('input', (e) => {
@@ -843,6 +991,34 @@ function renderizarConteudoAba(aba) {
     });
 }
 
+
+async function executarToggleFinal(cell, novoEstado) {
+    const userLogado = allUsers.find(u => u.id === currentUserId);
+    const userName = userLogado ? userLogado.nome : "Membro";
+    const row = cell.parentElement;
+
+    if (novoEstado === true) {
+        row.classList.add('row-done');
+        cell.innerHTML = `✅<br><small style="font-size:0.65rem; display:block; line-height:1; font-weight:bold;">${userName}</small>`;
+    } else {
+        row.classList.remove('row-done');
+        cell.innerHTML = "✔️";
+    }
+
+    // Salva no Firebase se estiver fora do editor
+    const editorArea = document.getElementById('editor-area');
+    if (editorArea.classList.contains('hidden')) {
+        const postCard = cell.closest('.post-card');
+        if (postCard) {
+            const docId = postCard.getAttribute('data-id');
+            const contentBody = postCard.querySelector('.post-content-body');
+            try {
+                await updateDoc(doc(db, "docs", docId), { textoHtml: contentBody.innerHTML });
+            } catch (e) { console.error(e); }
+        }
+    }
+}
+
 // Função para abrir/fechar ramos individualmente clicando na setinha
 window.toggleBranch = (el) => {
     const node = el.parentElement;
@@ -851,6 +1027,83 @@ window.toggleBranch = (el) => {
         const isOpen = branch.classList.contains('open');
         branch.classList.toggle('open');
         el.innerText = isOpen ? "▶" : "▼";
+    }
+};
+
+// Função para abrir o editor com uma tabela predefinida
+window.abrirEditorNovaTabela = () => {
+    manualEditId = null; 
+    document.getElementById('editor-title').innerText = "Nova Tabela para: " + currentManualTopic.nome;
+    
+    // 1. Exibe a barra de ferramentas de edição da tabela (fora do editor)
+    const tools = document.getElementById('table-tools-container');
+    if (tools) tools.style.display = 'flex';
+
+    // 2. Monta a estrutura da tabela
+    // table contenteditable="false" impede selecionar a estrutura toda de uma vez
+    let tableHtml = `
+    <table contenteditable="false" style="width:100%; border-collapse: collapse; margin-top:10px; border: 1px solid #334155; background: #0f172a;">
+        <thead>
+            <tr style="background: #1e293b; user-select: none;">
+                <th style="border: 1px solid #475569; color: #6366f1; padding: 15px 12px; text-align: left;">Tarefa</th>
+                <th style="border: 1px solid #475569; color: #6366f1; padding: 15px 12px; text-align: left;">Responsável</th>
+                <th style="border: 1px solid #475569; color: #6366f1; padding: 15px 12px; text-align: left;">Prazo</th>
+                <th style="border: 1px solid #475569; color: #6366f1; padding: 15px 12px; text-align: center; width: 80px;">Status</th>
+            </tr>
+        </thead>
+        <tbody>`;
+    
+    // Criar as 10 linhas iniciais
+    for (let i = 0; i < 10; i++) {
+        tableHtml += `
+        <tr>
+            <td contenteditable="true" style="border: 1px solid #334155; padding: 18px 12px; color: white; min-width: 50px;"></td>
+            <td contenteditable="true" style="border: 1px solid #334155; padding: 18px 12px; color: white; min-width: 50px;"></td>
+            <td contenteditable="true" style="border: 1px solid #334155; padding: 18px 12px; color: white; min-width: 50px;"></td>
+            <td class="td-check" onclick="toggleRowCheck(this)" contenteditable="false" 
+                style="border: 1px solid #334155; text-align: center; cursor: pointer; user-select: none;">✔️</td>
+        </tr>`;
+    }
+    
+    tableHtml += `</tbody></table><br>`;
+
+    // 3. Insere no editor e foca
+    document.getElementById('editor').innerHTML = tableHtml;
+    document.getElementById('editor-area').classList.remove('hidden');
+    document.getElementById('main-scroll').scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+window.adicionarLinhaTabela = () => {
+    // Busca o corpo da tabela dentro do editor
+    const tbody = document.querySelector("#editor table tbody");
+    
+    if (tbody) {
+        const row = document.createElement('tr');
+        
+        // Mantém as mesmas regras: células de texto editáveis e check bloqueado
+        row.innerHTML = `
+            <td contenteditable="true" style="border: 1px solid #334155; padding: 18px 12px; color: white; min-width: 50px;"></td>
+            <td contenteditable="true" style="border: 1px solid #334155; padding: 18px 12px; color: white; min-width: 50px;"></td>
+            <td contenteditable="true" style="border: 1px solid #334155; padding: 18px 12px; color: white; min-width: 50px;"></td>
+            <td class="td-check" onclick="toggleRowCheck(this)" contenteditable="false" 
+                style="border: 1px solid #334155; text-align: center; cursor: pointer; user-select: none;">✔️</td>
+        `;
+        
+        tbody.appendChild(row);
+        
+        // Opcional: Faz scroll para a nova linha
+        row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } else {
+        console.warn("Nenhuma tabela encontrada no editor para adicionar linha.");
+    }
+};
+
+
+// Função para remover a última linha
+window.removerLinhaTabela = () => {
+    const table = document.querySelector("#editor table tbody");
+    if (table && table.rows.length > 0) {
+        table.deleteRow(table.rows.length - 1);
     }
 };
 
@@ -936,7 +1189,6 @@ window.salvarPost = async () => {
             selecionarTopico(currentManualTopic.id);
         }
 
-        alert("Gravado com sucesso!");
 
     } catch (e) {
         console.error("Erro ao salvar post:", e);
@@ -1221,6 +1473,7 @@ window.editarPostManual = (id) => {
 window.cancelarEdicaoManual = () => {
     document.getElementById('editor-area').classList.add('hidden');
     document.getElementById('editor').innerHTML = "";
+    document.getElementById('table-tools-container').style.display = 'none'; // Esconde ferramentas
     manualEditId = null;
 };
 
@@ -1268,20 +1521,20 @@ window.excluirPostManual = async (id) => {
 
 window.openCheckModal = (col, docId, isAlreadyDone) => {
     currentTaskRef = { col, docId };
+    
+    // Se já estiver feito, abre o modal de desfazer (Undo)
     if (isAlreadyDone) {
         document.getElementById('undo-modal').style.display = 'flex';
         return;
     }
-    const list = document.getElementById('user-options-list');
-    list.innerHTML = '';
-    allUsers.forEach(u => {
-        const div = document.createElement('div');
-        div.className = 'user-opt';
-        div.innerText = u.nome;
-        div.onclick = () => processarCheck(u.nome);
-        list.appendChild(div);
-    });
-    document.getElementById('user-modal').style.display = 'flex';
+
+    // Se não estiver feito, em vez de abrir o popup de nomes,
+    // ele pega o seu nome atual e processa o check imediatamente.
+    const userLogado = allUsers.find(u => u.id === currentUserId);
+    const meuNome = userLogado ? userLogado.nome : "Membro";
+    
+    console.log("Check automático para:", meuNome);
+    processarCheck(meuNome); // Chama a função de gravar direto
 };
 
 window.processarCheck = async (userName) => {
@@ -1321,9 +1574,24 @@ window.processarCheck = async (userName) => {
     }
 };
 
-window.confirmarDesfazer = () => processarCheck(null);
+window.confirmarDesfazer = async () => {
+    // Caso seja uma tabela
+    if (pendingTableUndo) {
+        await executarToggleFinal(pendingTableUndo, false);
+        pendingTableUndo = null;
+    } 
+    // Caso seja um card normal
+    else if (currentTaskRef) {
+        await processarCheck(null);
+    }
+
+    fecharModaisCheck();
+};
+
 window.fecharModaisCheck = () => {
     document.querySelectorAll('.modal-check').forEach(m => m.style.display = 'none');
+    pendingTableUndo = null; // Limpa a referência da tabela
+    // currentTaskRef = null; // Opcional: limpa a referência do card
 };
 
 
@@ -1450,15 +1718,18 @@ window.selecionarTopico = async (id) => {
 window.renderizarPaginaTopico = (abaAtiva) => {
     const list = document.getElementById('dynamic-list');
     
-    let html = `
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: #1e293b; padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
-            <div>
-                <h3 style="margin:0; color:var(--accent)">${currentManualTopic.nome}</h3>
-                <small style="color:gray">${currentManualTopic.categoria.toUpperCase()}</small>
-            </div>
-            <button class="btn btn-add" onclick="abrirEditorNovoPost()" style="padding: 8px 20px; height: auto;">+ POST</button>
+   let html = `
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: #1e293b; padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+        <div>
+            <h3 style="margin:0; color:var(--accent)">${currentManualTopic.nome}</h3>
+            <small style="color:gray">${currentManualTopic.categoria.toUpperCase()}</small>
         </div>
-    `;
+        <div style="display:flex; gap:5px;">
+            <button class="btn btn-add" onclick="abrirEditorNovoPost()" style="padding: 8px 15px; height: auto;">+ POST</button>
+            <button class="btn" onclick="abrirEditorNovaTabela()" style="background: #0ea5e9; padding: 8px 15px; height: auto; font-weight:bold;">+ TABLE</button>
+        </div>
+    </div>
+`;
 
     // Submenu de Abas
     html += `<div class="tabs-container" style="display:flex; gap:10px; margin-bottom:20px; border-bottom:1px solid #334155; padding-bottom:10px; overflow-x:auto;">`;
@@ -1528,16 +1799,20 @@ window.renderizarConteudoAba = (aba) => {
         
         if (item.type === 'post') {
             // Se o post estiver vazio (placeholder para a árvore), não renderiza o card
-            if (!item.textoHtml || item.textoHtml.trim() === "") return;
+         if (!item.textoHtml || item.textoHtml.trim() === "") return;
 
-            card.className = `post-card ${isDone ? 'done-card' : ''}`;
-            card.innerHTML = `
-                <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('docs', '${item.id}', ${isDone})">${isDone ? '✅' : '✔️'}</div>
-                <div style="margin-bottom:15px">${item.textoHtml || ''}</div>
-                <div style="display: flex; gap: 10px; border-top:1px solid #334155; padding-top:10px;">
-                    <button class="btn btn-edit" onclick="editarPostManual('${item.id}')">EDITAR</button>
-                    <button class="btn btn-delete" onclick="excluirPostManual('${item.id}')">EXCLUIR</button>
-                </div>`;
+card.className = `post-card ${isDone ? 'done-card' : ''}`;
+    card.setAttribute('data-id', item.id); // Fundamental para salvar
+
+     card.innerHTML = `
+        <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('docs', '${item.id}', ${isDone})">${isDone ? '✅' : '✔️'}</div>
+        <!-- Note a classe post-content-body abaixo -->
+        <div class="post-content-body" style="margin-bottom:15px">${item.textoHtml || ''}</div>
+        <div style="display: flex; gap: 10px; border-top:1px solid #334155; padding-top:10px;">
+            <button class="btn btn-edit" onclick="editarPostManual('${item.id}')">EDITAR</button>
+            <button class="btn btn-delete" onclick="excluirPostManual('${item.id}')">EXCLUIR</button>
+        </div>`;
+
         } else {
             // CARD DE GESTÃO (Leis, Obras, etc)
             card.className = `item-row ${isDone ? 'done-card' : ''}`;
@@ -1566,7 +1841,259 @@ window.renderizarConteudoAba = (aba) => {
     });
 };
 
+// 1. Abre o modal de usuários ao clicar no check da tabela
+window.abrirCheckTabela = (cell) => {
+    currentTableCheckCell = cell;
+    const row = cell.parentElement;
 
+    // Se a linha já estiver concluída, abre o modal de desfazer
+    if (row.classList.contains('row-done')) {
+        document.getElementById('undo-modal').style.display = 'flex';
+        // Ajustamos o confirmarDesfazer para saber que é uma tabela
+        window.confirmarDesfazer = () => processarCheckTabela(null);
+    } else {
+        // Abre o modal de seleção de usuário padrão
+        const list = document.getElementById('user-options-list');
+        list.innerHTML = '';
+        allUsers.forEach(u => {
+            const div = document.createElement('div');
+            div.className = 'user-opt';
+            div.innerText = u.nome;
+            div.onclick = () => processarCheckTabela(u.nome);
+            list.appendChild(div);
+        });
+        document.getElementById('user-modal').style.display = 'flex';
+    }
+};
+
+// 2. Processa o resultado do modal na tabela
+window.processarCheckTabela = async (userName) => {
+    if (!currentTableCheckCell) return;
+    
+    const row = currentTableCheckCell.parentElement;
+
+    if (userName) {
+        // MARCAR COMO CONCLUÍDO
+        row.classList.add('row-done');
+        currentTableCheckCell.innerHTML = `✅<br><small style="font-size:0.6rem; display:block; line-height:1;">${userName}</small>`;
+    } else {
+        // DESFAZER
+        row.classList.remove('row-done');
+        currentTableCheckCell.innerHTML = `✔️`;
+    }
+
+    fecharModaisCheck();
+    
+    // IMPORTANTE: Como alteramos o HTML dentro do editor ou do card, 
+    // precisamos salvar essa alteração no Firebase.
+    
+    // Se estivermos com o editor aberto, o salvarPost() resolve.
+    // Se estivermos clicando direto no card visualizado, precisamos disparar um update.
+    if (document.getElementById('editor-area').classList.contains('hidden')) {
+        // Lógica para salvar quando clica direto no card (visualização)
+        const postCard = row.closest('.post-card');
+        // Aqui precisaríamos do ID do post, vamos assumir que o sistema de IDs de posts está acessível
+        // Para simplificar: recomendo clicar em "Editar" para fazer alterações em tabelas, 
+        // ou podemos automatizar o salvamento do post atual:
+        if(currentManualTopic) {
+            // Esta parte salva o estado atual do HTML do post no Firebase automaticamente
+            const containerHtml = row.closest('.post-card').querySelector('div[style*="margin-bottom:15px"]');
+            // Nota: Para automação total em tempo real, seria necessário mapear o ID do post ao card.
+        }
+    }
+};
+
+
+window.toggleRowCheck = async (cell) => {
+    const row = cell.parentElement;
+    const isDone = row.classList.contains('row-done');
+
+    // SE JÁ ESTIVER FEITO: Abre o modal de confirmação e para aqui.
+    if (isDone) {
+        pendingTableUndo = cell; // Salva qual célula clicamos
+        currentTaskRef = null;   // Limpa a referência de card para não confundir
+        document.getElementById('undo-modal').style.display = 'flex';
+        return; 
+    }
+
+    // SE NÃO ESTIVER FEITO: Segue o check automático que já tínhamos
+    executarToggleFinal(cell, true);
+};
+
+// Este código "escuta" cliques em qualquer lugar da lista dinâmica
+document.getElementById('dynamic-list').addEventListener('click', function(e) {
+    // Se o elemento clicado for uma célula de check da tabela (ou estiver dentro de uma)
+    const cell = e.target.closest('.td-check');
+    
+    if (cell) {
+        console.log("🎯 Clique detectado via Vigiador Global");
+        // Impede que o clique dispare outras funções antigas salvas no HTML
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Chama a nossa função robusta
+        window.toggleRowCheck(cell);
+    }
+});
+
+// Monitora a seleção de texto no documento
+document.addEventListener('selectionchange', () => {
+    const selection = window.getSelection();
+    
+    if (selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        
+        // Encontra o elemento onde a seleção começou e onde terminou
+        const startNode = range.startContainer.nodeType === 3 ? range.startContainer.parentElement : range.startContainer;
+        const endNode = range.endContainer.nodeType === 3 ? range.endContainer.parentElement : range.endContainer;
+
+        // Verifica se ambos estão dentro de uma tabela
+        const startRow = startNode.closest('tr');
+        const endRow = endNode.closest('tr');
+
+        // LÓGICA DE BLOQUEIO:
+        // Se a seleção começou em uma linha e terminou em outra (ou fora dela)
+        if (startRow) {
+            if (startRow !== endRow) {
+                // Cancela a seleção cruzada
+                selection.collapseToStart();
+                console.warn("⚠️ Seleção bloqueada: Não é permitido selecionar múltiplas linhas ou cabeçalhos.");
+            }
+        }
+    }
+});
+
+
+document.getElementById('dynamic-list').addEventListener('mousedown', (e) => {
+    // Salva em qual linha o usuário clicou para começar a selecionar
+    rowSelectionStarted = e.target.closest('tr');
+});
+
+document.addEventListener('mouseup', () => {
+    const selection = window.getSelection();
+    if (selection.isCollapsed) return; // Se for só um clique, não faz nada
+
+    const range = selection.getRangeAt(0);
+    const ancestor = range.commonAncestorContainer;
+    const ancestorElement = ancestor.nodeType === 3 ? ancestor.parentElement : ancestor;
+
+    // Se a seleção terminou englobando mais do que uma única célula ou linha
+    if (ancestorElement.tagName === 'TR' || ancestorElement.tagName === 'TBODY' || ancestorElement.tagName === 'TABLE') {
+        // Se a seleção for "suja" (pegou mais de uma célula), nós limpamos
+        if (range.startContainer.parentElement.closest('td') !== range.endContainer.parentElement.closest('td')) {
+            selection.removeAllRanges();
+            console.warn("Seleção multi-célula bloqueada para manter a estrutura.");
+        }
+    }
+    rowSelectionStarted = null;
+});
+
+// 1. Detecta onde começou o clique
+document.getElementById('editor').addEventListener('mousedown', (e) => {
+    const cell = e.target.closest('td[contenteditable="true"]');
+    if (cell) {
+        isSelecting = true;
+        cellDeOrigem = cell;
+    }
+});
+
+// 2. Monitora o rastro do mouse
+document.addEventListener('mousemove', (e) => {
+    if (!isSelecting) return;
+
+    const cellAtual = e.target.closest('td');
+    
+    // Se o mouse saiu da célula de origem e entrou em outra coisa (outra td ou fora da tabela)
+    if (cellAtual !== cellDeOrigem) {
+        const selection = window.getSelection();
+        if (!selection.isCollapsed) {
+            // removeAllRanges limpa a seleção sem dar o "pulo" de foco do collapseToStart
+            selection.removeAllRanges(); 
+        }
+    }
+});
+
+// 3. Reseta ao soltar o botão
+document.addEventListener('mouseup', () => {
+    isSelecting = false;
+    cellDeOrigem = null;
+});
+
+// BLOQUEIO DE DELEÇÃO DE LINHAS PELO TECLADO
+document.getElementById('editor').addEventListener('keydown', (e) => {
+    if (e.key === 'Backspace' || e.key === 'Delete') {
+        const selection = window.getSelection();
+        if (!selection.rangeCount) return;
+
+        const range = selection.getRangeAt(0);
+        
+        // 1. Verifica se a seleção cruza fronteiras de células (TD)
+        // Se o início da seleção está em uma célula e o fim em outra, bloqueia.
+        const startCell = range.startContainer.nodeType === 3 ? range.startContainer.parentElement.closest('td') : range.startContainer.closest('td');
+        const endCell = range.endContainer.nodeType === 3 ? range.endContainer.parentElement.closest('td') : range.endContainer.closest('td');
+
+        if (startCell && endCell && startCell !== endCell) {
+            console.log("%c🚫 BLOQUEADO: Seleção entre múltiplas células detectada!", "background: red; color: white; padding: 2px 5px;");
+            e.preventDefault();
+            return;
+        }
+
+        // 2. Verifica se a seleção contém a tabela inteira (Ctrl+A)
+        const fragment = range.cloneContents();
+        if (fragment.querySelector('table')) {
+            console.log("%c🚫 BLOQUEADO: Tentativa de deletar a tabela inteira!", "background: red; color: white; padding: 2px 5px;");
+            e.preventDefault();
+            return;
+        }
+
+        // 3. Proteção de Início/Fim de Célula (Cursor parado)
+        if (selection.isCollapsed && startCell) {
+            // No início da célula com Backspace
+            if (e.key === 'Backspace' && range.startOffset === 0) {
+                console.log("%c🚫 BLOQUEADO: Impedindo fusão de células (Backspace)", "color: orange;");
+                e.preventDefault();
+                return;
+            }
+            // No fim da célula com Delete
+            if (e.key === 'Delete') {
+                const textLength = selection.anchorNode.length || 0;
+                if (range.startOffset === textLength) {
+                    console.log("%c🚫 BLOQUEADO: Impedindo fusão de células (Delete)", "color: orange;");
+                    e.preventDefault();
+                    return;
+                }
+            }
+        }
+
+        // Se chegou aqui, é apenas texto comum
+        console.log("%c✅ PERMITIDO: Editando texto interno", "color: green;");
+    }
+});
+
+// Log especial para o botão oficial de remover
+const originalRemoverLinha = window.removerLinhaTabela;
+window.removerLinhaTabela = () => {
+    console.log("%c🗑️ AÇÃO OFICIAL: Removendo última linha via botão", "color: blue; font-weight: bold;");
+    
+    const table = document.querySelector("#editor table tbody");
+    if (table && table.rows.length > 0) {
+        table.deleteRow(table.rows.length - 1);
+    } else {
+        console.log("%c⚠️ AVISO: Não há mais linhas para remover.", "color: gray;");
+    }
+};
+
+// Reforço: Impede recortar (Ctrl+X) se a seleção envolver a estrutura da tabela
+document.getElementById('editor').addEventListener('cut', (e) => {
+    const selection = window.getSelection();
+    const container = selection.getRangeAt(0).commonAncestorContainer;
+    const element = container.nodeType === 3 ? container.parentElement : container;
+
+    if (element.closest('table') && (element.tagName === 'TR' || element.tagName === 'TBODY' || element.tagName === 'TABLE')) {
+        e.preventDefault();
+        alert("Para remover linhas, use o botão específico.");
+    }
+});
 
     </script>
 </body>
