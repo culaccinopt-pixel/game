@@ -592,6 +592,122 @@ table td {
     pointer-events: auto !important;
 }
 
+/* Impede que o cabeçalho seja selecionado ou editado visualmente */
+#editor thead, #editor th {
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    pointer-events: auto; /* Permite cliques, mas o JS acima bloqueia a digitação */
+    cursor: default;
+}
+
+/* Garante que o cursor de texto apareça apenas nas células editáveis */
+#editor td[contenteditable="true"] {
+    cursor: text;
+}
+
+/* Bloqueia seleção de texto nos controles do editor */
+#table-tools-container, 
+#table-tools-container button, 
+#editor-title {
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+}
+
+/* Garante que os botões não herdem comportamentos de edição */
+#table-tools-container [contenteditable="true"] {
+    contenteditable: false !important;
+}
+
+
+/* Remove qualquer contorno de edição ou foco dos botões e títulos */
+#table-tools-container, 
+#table-tools-container button, 
+#editor-title {
+    outline: none !important;
+    -webkit-user-modify: read-only !important; /* Trava específica para Chrome/Safari */
+}
+
+/* Garante que o cursor não vire aquela "barrinha de texto" nos botões */
+#table-tools-container button {
+    cursor: pointer !important;
+}
+
+/* Bloqueia seleção de texto e cursor de edição nos controles */
+#table-tools-container, 
+#table-tools-container button, 
+#editor-title {
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    -webkit-user-modify: read-only !important; /* Força somente leitura */
+    pointer-events: auto !important; /* Mantém o clique funcionando */
+    cursor: default;
+}
+
+#table-tools-container button {
+    cursor: pointer !important; /* Garante que o botão ainda pareça um botão */
+}
+
+/* Bloqueio total de edição e seleção na interface do editor */
+#table-tools-container, 
+#table-tools-container button, 
+#editor-title {
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    
+    /* Impede modificação de texto no Chrome/Safari */
+    -webkit-user-modify: read-only !important; 
+    
+    /* Remove o cursor de texto (I-beam) e força a seta */
+    cursor: pointer !important; 
+}
+
+/* Garante que o título não pareça editável */
+#editor-title {
+    cursor: default !important;
+}
+
+/* Remove o contorno de foco azul que alguns navegadores colocam */
+#table-tools-container button:focus, #editor-title:focus {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* BLINDAGEM TOTAL DA INTERFACE */
+#table-tools-container, 
+#table-tools-container button, 
+#editor-title {
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    
+    /* Impede que o navegador trate como área de texto */
+    -webkit-user-modify: read-only !important; 
+    
+    /* Força o cursor de seta, impedindo o cursor de "I" de digitação */
+    cursor: default !important;
+    pointer-events: auto !important;
+}
+
+#table-tools-container button {
+    cursor: pointer !important; /* Botões continuam com a mãozinha */
+}
+
+/* Remove qualquer contorno de foco ou corretor ortográfico */
+#table-tools-container button:focus, 
+#editor-title:focus {
+    outline: none !important;
+}
+
+/* Esconde o "pauzinho" do cursor caso ele tente entrar nessas áreas */
+#table-tools-container *, #editor-title {
+    caret-color: transparent !important;
+}
+
     </style>
 </head>
 <body>
@@ -628,18 +744,25 @@ table td {
 <div id="editor-area" class="hidden">
     <div class="editor-box">
         <button class="btn-close-editor" onclick="cancelarEdicaoManual()">&times;</button>
-        <h3 id="editor-title">Nova Atualização</h3>
         
-        <!-- NOVA DIV PARA FERRAMENTAS (FICA FORA DO EDITOR DE TEXTO) -->
-        <div id="table-tools-container" style="margin-bottom: 10px; display: none; gap: 10px;">
-            <button class="btn" onclick="adicionarLinhaTabela()" style="background:#16a34a; font-size:0.7rem; padding:8px 12px;">+ Adicionar Linha</button>
-            <button class="btn" onclick="removerLinhaTabela()" style="background:#ef4444; font-size:0.7rem; padding:8px 12px;">- Remover Última Linha</button>
+        <!-- Título Blindado -->
+        <h3 id="editor-title" contenteditable="false" spellcheck="false">Nova Atualização</h3>
+        
+        <!-- Ferramentas Blindadas -->
+        <div id="table-tools-container" contenteditable="false" spellcheck="false" style="margin-bottom: 10px; display: none; gap: 10px;">
+            <button class="btn" onclick="adicionarLinhaTabela()" contenteditable="false" spellcheck="false" tabindex="-1" style="background:#16a34a;">
+                + Adicionar Linha
+            </button>
+            <button class="btn" onclick="removerLinhaTabela()" contenteditable="false" spellcheck="false" tabindex="-1" style="background:#ef4444;">
+                - Remover Última Linha
+            </button>
         </div>
 
         <div id="editor" contenteditable="true"></div>
         <button onclick="salvarPost()" id="btnSalvar" class="btn btn-save">Publicar</button>
     </div>
 </div>
+
 
         <div id="dynamic-list"></div>
     </main>
@@ -732,8 +855,25 @@ table td {
     </button>
 </div>
 
-
-
+<!-- Procure esta parte no seu código e substitua por esta versão blindada -->
+<div id="table-tools-container" contenteditable="false" style="margin-bottom: 10px; display: none; gap: 10px; user-select: none;">
+    <button class="btn" onclick="adicionarLinhaTabela()" 
+            contenteditable="false" 
+            tabindex="-1"
+            onfocus="this.blur()"
+            spellcheck="false" 
+            style="background:#16a34a; font-size:0.7rem; padding:8px 12px; cursor: pointer; user-select: none;">
+        + Adicionar Linha
+    </button>
+    <button class="btn" onclick="removerLinhaTabela()" 
+            contenteditable="false" 
+            tabindex="-1"
+            onfocus="this.blur()"
+            spellcheck="false" 
+            style="background:#ef4444; font-size:0.7rem; padding:8px 12px; cursor: pointer; user-select: none;">
+        - Remover Última Linha
+    </button>
+</div>
 
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -825,6 +965,31 @@ document.getElementById('btn-toggle-tree').addEventListener('click', () => {
     }
 });
 
+
+// Função para bloquear qualquer tentativa de escrita nos controles
+const bloquearEdicaoInterface = (e) => {
+    const alvo = e.target.closest('#table-tools-container') || e.target.closest('#editor-title');
+    if (alvo) {
+        // Bloqueia teclas de digitação, Enter, Espaço e Apagar
+        // Mas permite cliques (que não disparam keydown de caracteres)
+        if (e.type === 'keydown' || e.type === 'keypress' || e.type === 'input') {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+        }
+    }
+};
+
+// Aplica o bloqueio em múltiplos eventos para garantir segurança total
+['keydown', 'keypress', 'input', 'paste', 'beforeinput'].forEach(event => {
+    document.addEventListener(event, bloquearEdicaoInterface, true);
+});
+
+// Adicional: Se o cursor de alguma forma entrar, ele "ejeta" o foco para fora
+document.addEventListener('focusin', (e) => {
+    if (e.target.closest('#editor-title')) {
+        e.target.blur();
+    }
+}, true);
 
 function renderizarArvore(filtro = "") {
     const container = document.getElementById('tree-container');
@@ -1035,42 +1200,48 @@ window.abrirEditorNovaTabela = () => {
     manualEditId = null; 
     document.getElementById('editor-title').innerText = "Nova Tabela para: " + currentManualTopic.nome;
     
-    // 1. Exibe a barra de ferramentas de edição da tabela (fora do editor)
+    // 1. Exibe a barra de ferramentas de edição da tabela (Botões de Adicionar/Remover Linha)
     const tools = document.getElementById('table-tools-container');
     if (tools) tools.style.display = 'flex';
 
     // 2. Monta a estrutura da tabela
-    // table contenteditable="false" impede selecionar a estrutura toda de uma vez
+    // table contenteditable="false" impede que a tabela seja tratada como um bloco de texto único
     let tableHtml = `
     <table contenteditable="false" style="width:100%; border-collapse: collapse; margin-top:10px; border: 1px solid #334155; background: #0f172a;">
-        <thead>
-            <tr style="background: #1e293b; user-select: none;">
-                <th style="border: 1px solid #475569; color: #6366f1; padding: 15px 12px; text-align: left;">Tarefa</th>
-                <th style="border: 1px solid #475569; color: #6366f1; padding: 15px 12px; text-align: left;">Responsável</th>
-                <th style="border: 1px solid #475569; color: #6366f1; padding: 15px 12px; text-align: left;">Prazo</th>
-                <th style="border: 1px solid #475569; color: #6366f1; padding: 15px 12px; text-align: center; width: 80px;">Status</th>
+        <thead contenteditable="false" style="user-select: none; -webkit-user-select: none; background: #1e293b;">
+            <tr contenteditable="false">
+                <th contenteditable="false" style="border: 1px solid #475569; color: #6366f1; padding: 15px 12px; text-align: left; cursor: default;">Tarefa</th>
+                <th contenteditable="false" style="border: 1px solid #475569; color: #6366f1; padding: 15px 12px; text-align: left; cursor: default;">Responsável</th>
+                <th contenteditable="false" style="border: 1px solid #475569; color: #6366f1; padding: 15px 12px; text-align: left; cursor: default;">Prazo</th>
+                <th contenteditable="false" style="border: 1px solid #475569; color: #6366f1; padding: 15px 12px; text-align: center; width: 80px; cursor: default;">Status</th>
             </tr>
         </thead>
-        <tbody>`;
+        <tbody contenteditable="false">`; 
     
     // Criar as 10 linhas iniciais
+    // Apenas as células de texto (TD) recebem contenteditable="true"
     for (let i = 0; i < 10; i++) {
         tableHtml += `
-        <tr>
+        <tr contenteditable="false">
             <td contenteditable="true" style="border: 1px solid #334155; padding: 18px 12px; color: white; min-width: 50px;"></td>
             <td contenteditable="true" style="border: 1px solid #334155; padding: 18px 12px; color: white; min-width: 50px;"></td>
             <td contenteditable="true" style="border: 1px solid #334155; padding: 18px 12px; color: white; min-width: 50px;"></td>
             <td class="td-check" onclick="toggleRowCheck(this)" contenteditable="false" 
-                style="border: 1px solid #334155; text-align: center; cursor: pointer; user-select: none;">✔️</td>
+                style="border: 1px solid #334155; text-align: center; cursor: pointer; user-select: none; -webkit-user-select: none;">✔️</td>
         </tr>`;
     }
     
     tableHtml += `</tbody></table><br>`;
 
-    // 3. Insere no editor e foca
-    document.getElementById('editor').innerHTML = tableHtml;
+    // 3. Insere no editor e limpa o estado anterior
+    const editor = document.getElementById('editor');
+    editor.innerHTML = tableHtml;
+    
+    // 4. Mostra a área do editor e faz scroll para o topo
     document.getElementById('editor-area').classList.remove('hidden');
     document.getElementById('main-scroll').scrollTo({ top: 0, behavior: 'smooth' });
+
+    console.log("%c📊 TABELA CRIADA: Cabeçalho blindado e células de dados editáveis.", "color: cyan; font-weight: bold;");
 };
 
 window.adicionarLinhaTabela = () => {
@@ -2021,54 +2192,24 @@ document.addEventListener('mouseup', () => {
 
 // BLOQUEIO DE DELEÇÃO DE LINHAS PELO TECLADO
 document.getElementById('editor').addEventListener('keydown', (e) => {
+    const selection = window.getSelection();
+    if (!selection.rangeCount) return;
+
+    const range = selection.getRangeAt(0);
+    const container = range.commonAncestorContainer;
+    const element = container.nodeType === 3 ? container.parentElement : container;
+
+    // PROTEÇÃO CONTRA DELETAR BOTÕES DE FERRAMENTAS
+    // Se a seleção tentar "subir" para a área de ferramentas, bloqueia o Delete/Backspace
     if (e.key === 'Backspace' || e.key === 'Delete') {
-        const selection = window.getSelection();
-        if (!selection.rangeCount) return;
-
-        const range = selection.getRangeAt(0);
-        
-        // 1. Verifica se a seleção cruza fronteiras de células (TD)
-        // Se o início da seleção está em uma célula e o fim em outra, bloqueia.
-        const startCell = range.startContainer.nodeType === 3 ? range.startContainer.parentElement.closest('td') : range.startContainer.closest('td');
-        const endCell = range.endContainer.nodeType === 3 ? range.endContainer.parentElement.closest('td') : range.endContainer.closest('td');
-
-        if (startCell && endCell && startCell !== endCell) {
-            console.log("%c🚫 BLOQUEADO: Seleção entre múltiplas células detectada!", "background: red; color: white; padding: 2px 5px;");
+        const checkTools = document.getElementById('table-tools-container');
+        if (range.intersectsNode(checkTools)) {
             e.preventDefault();
+            console.log("%c🚫 BLOQUEADO: Tentativa de apagar os botões de controle!", "color: red; font-weight: bold;");
             return;
         }
-
-        // 2. Verifica se a seleção contém a tabela inteira (Ctrl+A)
-        const fragment = range.cloneContents();
-        if (fragment.querySelector('table')) {
-            console.log("%c🚫 BLOQUEADO: Tentativa de deletar a tabela inteira!", "background: red; color: white; padding: 2px 5px;");
-            e.preventDefault();
-            return;
-        }
-
-        // 3. Proteção de Início/Fim de Célula (Cursor parado)
-        if (selection.isCollapsed && startCell) {
-            // No início da célula com Backspace
-            if (e.key === 'Backspace' && range.startOffset === 0) {
-                console.log("%c🚫 BLOQUEADO: Impedindo fusão de células (Backspace)", "color: orange;");
-                e.preventDefault();
-                return;
-            }
-            // No fim da célula com Delete
-            if (e.key === 'Delete') {
-                const textLength = selection.anchorNode.length || 0;
-                if (range.startOffset === textLength) {
-                    console.log("%c🚫 BLOQUEADO: Impedindo fusão de células (Delete)", "color: orange;");
-                    e.preventDefault();
-                    return;
-                }
-            }
-        }
-
-        // Se chegou aqui, é apenas texto comum
-        console.log("%c✅ PERMITIDO: Editando texto interno", "color: green;");
     }
-});
+}, true);
 
 // Log especial para o botão oficial de remover
 const originalRemoverLinha = window.removerLinhaTabela;
@@ -2094,6 +2235,114 @@ document.getElementById('editor').addEventListener('cut', (e) => {
         alert("Para remover linhas, use o botão específico.");
     }
 });
+
+
+// FORÇAR COLAGEM COMO TEXTO SIMPLES (REMOVE FORMATAÇÃO EXTERNA)
+document.getElementById('editor').addEventListener('paste', (e) => {
+    const selection = window.getSelection();
+    if (!selection.rangeCount) return;
+
+    const range = selection.getRangeAt(0);
+    
+    // Identifica as células de início e fim da seleção
+    const startCell = range.startContainer.nodeType === 3 ? range.startContainer.parentElement.closest('td') : range.startContainer.closest('td');
+    const endCell = range.endContainer.nodeType === 3 ? range.endContainer.parentElement.closest('td') : range.endContainer.closest('td');
+
+    // Se a seleção cruzar fronteiras de células, bloqueia a colagem
+    if (startCell !== endCell) {
+        e.preventDefault();
+        console.log("%c🚫 COLAGEM BLOQUEADA: Seleção cruzada detectada. Não é permitido sobrescrever a estrutura!", "background: red; color: white; padding: 2px 5px;");
+        alert("Ação Bloqueada: Você não pode colar sobre várias células ao mesmo tempo para não quebrar a tabela.");
+        return;
+    }
+
+    // Se estiver tudo ok (uma única célula), prossegue com o texto simples
+    e.preventDefault();
+    const text = (e.originalEvent || e).clipboardData.getData('text/plain');
+    document.execCommand('insertText', false, text);
+    console.log("%c✅ COLAGEM PERMITIDA: Texto simples inserido na célula.", "color: green;");
+});
+
+// BLOQUEIO TOTAL DE INPUT EM ÁREAS PROIBIDAS (BOTÕES E TÍTULOS)
+document.addEventListener('keydown', (e) => {
+    // 1. Verifica se o elemento que recebeu o clique/foco é um botão de ferramenta ou o título
+    const areaProibida = e.target.closest('#table-tools-container') || e.target.closest('#editor-title');
+    
+    if (areaProibida) {
+        // Se for uma tecla de comando (como F5, ou setas), permite. 
+        // Se for letra, número, Enter, Backspace ou Delete, BLOQUEIA.
+        const teclasDeEscrita = e.key.length === 1 || ['Enter', 'Backspace', 'Delete'].includes(e.key);
+        
+        if (teclasDeEscrita) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.warn("🛡️ Bloqueio de Segurança: Tentativa de editar interface protegida.");
+        }
+    }
+}, true); // O 'true' garante que o JS capture o evento antes do navegador agir
+
+// BLOQUEIO TOTAL DE EDIÇÃO EM ÁREAS DE INTERFACE (BOTÕES E TÍTULOS)
+['keydown', 'input', 'beforeinput'].forEach(eventType => {
+    document.addEventListener(eventType, (e) => {
+        // Verifica se o alvo do evento é a área dos botões ou o título
+        const areaProtegida = e.target.closest('#table-tools-container') || e.target.closest('#editor-title');
+        
+        if (areaProtegida) {
+            // Se o usuário tentar digitar, dar enter ou apagar (backspace/delete)
+            const teclasProibidas = e.key.length === 1 || ['Enter', 'Backspace', 'Delete'].includes(e.key);
+            
+            if (teclasProibidas) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+            }
+        }
+    }, true); // O 'true' captura o evento antes dele chegar ao editor
+});
+
+// Impede que o usuário "arraste" conteúdo para dentro dos botões
+document.addEventListener('drop', (e) => {
+    if (e.target.closest('#table-tools-container') || e.target.closest('#editor-title')) {
+        e.preventDefault();
+    }
+}, true);
+
+// --- SISTEMA DE PROTEÇÃO ANTI-EDIÇÃO DE INTERFACE ---
+
+const bloquearAcoesProibidas = (e) => {
+    const alvoProtegido = e.target.closest('#table-tools-container') || e.target.closest('#editor-title');
+    
+    if (alvoProtegido) {
+        // Se for tentativa de digitação, apagar ou colar
+        if (['keydown', 'keypress', 'input', 'paste', 'beforeinput'].includes(e.type)) {
+            // Permite apenas teclas de comando (F5, PrintScreen, etc), bloqueia escrita
+            if (e.key && e.key.length === 1 || ['Enter', 'Backspace', 'Delete'].includes(e.key)) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+            }
+        }
+    }
+};
+
+// Aplica o bloqueio na fase de captura (antes de qualquer outro script)
+['keydown', 'keypress', 'input', 'paste', 'beforeinput'].forEach(event => {
+    document.addEventListener(event, bloquearAcoesProibidas, true);
+});
+
+// "Ejetor" de Foco: Se o cursor de texto entrar no título ou botões, ele é expulso
+document.addEventListener('focusin', (e) => {
+    if (e.target.closest('#editor-title') || e.target.closest('#table-tools-container')) {
+        // Devolve o foco para o editor principal
+        const editor = document.getElementById('editor');
+        if (editor) editor.focus();
+    }
+}, true);
+
+// Impede que o usuário arraste texto para dentro dos botões
+document.addEventListener('drop', (e) => {
+    if (e.target.closest('#table-tools-container') || e.target.closest('#editor-title')) {
+        e.preventDefault();
+    }
+}, true);
 
     </script>
 </body>
