@@ -329,6 +329,100 @@
     opacity: 0.8;
 }
 
+
+/* --- ESTILOS PARA TABELAS DENTRO DOS POSTS --- */
+#content-area table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 15px 0;
+    background: #0f172a;
+    color: #f8fafc;
+    font-size: 0.85rem;
+    border: 1px solid var(--border);
+}
+
+#content-area th {
+    background: #1e293b;
+    color: var(--primary);
+    text-align: left;
+    padding: 12px;
+    border: 1px solid var(--border);
+}
+
+#content-area td {
+    border: 1px solid var(--border);
+    padding: 12px;
+    vertical-align: middle;
+}
+
+/* Coluna de Check na Tabela */
+.td-check {
+    cursor: pointer;
+    text-align: center;
+    font-size: 1.1rem;
+    user-select: none;
+    transition: 0.2s;
+    width: 60px;
+}
+
+.td-check:hover {
+    background: rgba(99, 102, 241, 0.1);
+}
+
+/* Linha Concluída na Tabela */
+tr.row-done {
+    background-color: rgba(22, 163, 74, 0.1) !important;
+    text-decoration: line-through;
+    color: var(--text-muted);
+}
+
+tr.row-done td {
+    border-color: rgba(22, 163, 74, 0.2);
+}
+
+/* Ajuste para o texto dentro do check na tabela */
+.td-check small {
+    display: block;
+    font-size: 0.6rem;
+    line-height: 1;
+    margin-top: 3px;
+    color: #16a34a;
+    font-weight: bold;
+    text-decoration: none !important; /* Não riscar o nome de quem fez */
+}
+
+/* Esconde botões de edição de tabela e títulos de edição no visualizador */
+#table-tools-container, 
+#editor-title,
+.btn-close-editor,
+button[onclick*="LinhaTabela"],
+button[onclick*="adicionarLinhaTabela"],
+button[onclick*="removerLinhaTabela"] {
+    display: none !important;
+}
+
+/* Garante que o conteúdo da tabela ocupe o espaço correto sem as ferramentas */
+.post-content-body table {
+    margin-top: 5px !important;
+}
+
+/* Quando a linha da tabela for concluída */
+tr.row-done {
+    background-color: rgba(22, 163, 74, 0.1) !important; /* Verde bem clarinho */
+}
+
+tr.row-done td {
+    text-decoration: line-through; /* Risca o texto */
+    color: #94a3b8; /* Cor de texto "apagada" */
+}
+
+/* Garante que o nome de quem fez não fique riscado e seja legível */
+.td-check small {
+    text-decoration: none !important;
+    display: block;
+    margin-top: 4px;
+}
+
     </style>
 </head>
 <body>
@@ -426,28 +520,42 @@ import { getFirestore, collection, getDocs, query, orderBy, limit, doc, getDoc, 
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-let loggedInUserId = null;
-let loggedInUserName = "";
+
 
 
         // --- BLOCO DE SEGURANÇA ---
 onAuthStateChanged(auth, async (user) => {
     if (!user) {
+        // Se não houver usuário logado, vai para o login
         window.location.href = "login.html";
     } else {
-        const userRef = doc(db, "users", user.uid);
-        const userSnap = await getDoc(userRef);
+        try {
+            // Busca os dados do usuário no Firestore para verificar o status
+            const userRef = doc(db, "users", user.uid);
+            const userSnap = await getDoc(userRef);
 
-        if (!userSnap.exists() || userSnap.data().status !== true) {
-            alert("Acesso negado. Sua conta não está ativa.");
-            await signOut(auth);
+            if (userSnap.exists() && userSnap.data().status === true) {
+                // --- USUÁRIO AUTORIZADO ---
+                
+                // 1. Armazena o ID e o Nome para uso nos Checks das Tabelas e Cards
+                loggedInUserId = user.uid;
+                loggedInUserName = userSnap.data().nome || "Membro";
+                
+                console.log("Usuário Autenticado:", loggedInUserName);
+
+                // 2. Inicia o carregamento dos dados do manual
+                init(); 
+                
+            } else {
+                // --- USUÁRIO BLOQUEADO OU INEXISTENTE ---
+                alert("Acesso negado. Sua conta não está ativa ou não foi encontrada.");
+                await signOut(auth);
+                window.location.href = "login.html";
+            }
+        } catch (error) {
+            console.error("Erro ao verificar permissões do usuário:", error);
+            alert("Erro de conexão ao verificar sua conta.");
             window.location.href = "login.html";
-        } else {
-            // --- CAPTURA OS DADOS DO USUÁRIO LOGADO ---
-            loggedInUserId = user.uid;
-            loggedInUserName = userSnap.data().nome; // Pega o nome vindo do Firestore
-            
-            init();
         }
     }
 });
@@ -462,7 +570,8 @@ let lastVisibleDoc = null; // Para controlar o último documento carregado
 let currentViewType = ''; // 'latest', 'collection' ou 'manual'
 let currentCollectionName = '';
 let manualLimit = 50;
-
+let loggedInUserId = null;
+let loggedInUserName = "";
 
 
 
@@ -567,52 +676,24 @@ window.toggleFolder = (folderId, docId) => {
 
 // 2. Seleção de Tópico com persistência de Cards para Bisnetos
 window.selectTopic = async (docId) => {
-    // 1. Inicia o carregamento (bloqueia a tela)
     if (typeof showLoading === 'function') showLoading();
 
     try {
         const ref = allDocs.find(d => d.id === docId);
         if (!ref) return;
 
-        // 2. Destaque Visual no Menu Lateral
         document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('tree-active'));
         const selectedMenu = document.getElementById(`menu-${docId}`);
         if (selectedMenu) selectedMenu.classList.add('tree-active');
 
-        const backContainer = document.getElementById('back-container');
-        const cards = document.getElementById('cards-container');
         const area = document.getElementById('content-area');
         const tabsContainer = document.getElementById('sub-tabs');
         const header = document.getElementById('topic-header');
 
-        area.innerHTML = "Processando informações...";
+        area.innerHTML = "";
         tabsContainer.classList.add('hidden');
-        backContainer.innerHTML = ''; 
 
-        // 3. Lógica do Botão Voltar (Navegação Hierárquica)
-        if (ref.categoria !== 'pai') {
-            let paiId = null;
-            if (ref.categoria === 'filho') {
-                const p = allDocs.find(d => d.categoria === 'pai' && d.nome === ref.categoriaPai);
-                if(p) paiId = p.id;
-            } else if (ref.categoria === 'neto') {
-                const p = allDocs.find(d => d.categoria === 'filho' && d.nome === ref.categoriaFilho && d.categoriaPai === ref.categoriaPai);
-                if(p) paiId = p.id;
-            } else if (ref.categoria === 'bisneto') {
-                const p = allDocs.find(d => d.categoria === 'neto' && d.nome === ref.categoriaNeto && d.categoriaFilho === ref.categoriaFilho);
-                if(p) paiId = p.id;
-            }
-
-            if (paiId) {
-                const btn = document.createElement('button');
-                btn.className = 'btn-back';
-                btn.innerHTML = `← Voltar`;
-                btn.onclick = () => selectTopic(paiId);
-                backContainer.appendChild(btn);
-            }
-        }
-
-        // 4. Filtro de Posts (Manual do Jogo)
+        // FILTRO DE POSTS
         currentTopicData.posts = allDocs.filter(d => {
             const mesmoNome = d.nome === ref.nome;
             const mesmaCat = d.categoria === ref.categoria;
@@ -623,7 +704,7 @@ window.selectTopic = async (docId) => {
             return mesmoNome && mesmaCat && linhagemCorreta;
         });
 
-        // 5. Busca Assíncrona nas Coleções Vinculadas (Firebase)
+        // BUSCA NAS COLEÇÕES (Isso já estava ok no seu código)
         const collectionsList = ['legislacoes', 'construcoes', 'acoes', 'midia'];
         for (const col of collectionsList) {
             const snap = await getDocs(collection(db, col));
@@ -638,44 +719,28 @@ window.selectTopic = async (docId) => {
             });
         }
 
-        // 6. Cards de Navegação Superior
-        let subItems = [];
-        if (ref.categoria === 'bisneto') {
-            subItems = allDocs.filter(d => d.categoria === 'bisneto' && d.categoriaNeto === ref.categoriaNeto);
-        } else {
-            if(ref.categoria === 'pai') subItems = allDocs.filter(d => d.categoria === 'filho' && d.categoriaPai === ref.nome);
-            if(ref.categoria === 'filho') subItems = allDocs.filter(d => d.categoria === 'neto' && d.categoriaFilho === ref.nome);
-            if(ref.categoria === 'neto') subItems = allDocs.filter(d => d.categoria === 'bisneto' && d.categoriaNeto === ref.nome);
-        }
-
-        cards.innerHTML = '';
-        subItems.sort((a,b) => a.ordem - b.ordem).forEach(s => {
-            const c = document.createElement('div');
-            c.className = `nav-card ${s.id === docId ? 'active-card' : ''}`; 
-            c.innerText = s.nome;
-            c.onclick = () => selectTopic(s.id);
-            cards.appendChild(c);
-        });
-
-        // 7. Renderização Final da UI
         header.innerHTML = `<h1>${ref.nome}</h1>`;
         renderTabs();
-        renderTabContent('tudo');
         
-        // Scroll para o topo
+        // AQUI É ONDE DESENHAMOS OS POSTS NA TELA - AGORA COM O DATA-ID
+        area.innerHTML = '';
+        currentTopicData.posts.forEach(p => {
+            const isDone = p.status === 'done';
+            area.innerHTML += `
+                <div class="post-block ${isDone ? 'done-card' : ''}" data-id="${p.id}">
+                    <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('docs', '${p.id}', ${isDone})">
+                        ${isDone ? '✅' : '⬜'}
+                    </div>
+                    <div class="post-content-body">
+                        ${p.textoHtml}
+                    </div>
+                </div>`;
+        });
+
         document.querySelector('.main-content').scrollTop = 0;
-
-        // Se estiver no mobile, fecha o menu lateral após selecionar
-        if (window.innerWidth <= 1024 && typeof toggleMenu === 'function') {
-            const sb = document.getElementById('sidebar');
-            if(sb.classList.contains('active')) toggleMenu();
-        }
-
     } catch (error) {
-        console.error("Erro ao carregar tópico:", error);
-        area.innerHTML = "<p style='color:red'>Erro ao carregar conteúdo. Tente novamente.</p>";
+        console.error("Erro:", error);
     } finally {
-        // 8. Esconde o carregamento (libera a tela)
         if (typeof hideLoading === 'function') hideLoading();
     }
 };
@@ -710,50 +775,43 @@ window.selectTopic = async (docId) => {
             }
         }
 
- function renderTabContent(tabId) {
+ window.renderTabContent = (tabId) => {
     const area = document.getElementById('content-area');
     area.innerHTML = '';
 
-    // Helper para renderizar cards de coleções (Leis, Obras, Ações, Mídia)
-const renderItem = (i, color, colName) => {
-    const isDone = i.status === 'done';
-    const dataFormatada = formatarData(i.createdAt); // Seguro
-    return `
-        <div class="item-list-card ${isDone ? 'done-card' : ''}" style="border-left-color: ${color}">
-            <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('${colName}', '${i.id}', ${isDone})">
-                ${isDone ? '✅' : '⬜'}
-            </div>
-            <h3>${i.nome}</h3>
-            <p>${i.descricao || 'Sem descrição.'}</p>
-            ${isDone ? `<div style="font-size:0.7rem; color:#16a34a; margin-top:8px; font-weight:bold;">✅ Concluído por: ${i.concluidoPor}</div>` : ''}
-            <span class="date-footer"> ${dataFormatada}</span>
-        </div>`;
-};
+    const items = [];
+    if(tabId === 'tudo' || tabId === 'posts') currentTopicData.posts.forEach(p => items.push({data: p, type: 'docs'}));
+    if(tabId === 'tudo' || tabId === 'legislacoes') currentTopicData.legislacoes.forEach(i => items.push({data: i, type: 'legislacoes', color: '#6366f1'}));
+    if(tabId === 'tudo' || tabId === 'construcoes') currentTopicData.construcoes.forEach(i => items.push({data: i, type: 'construcoes', color: '#16a34a'}));
+    if(tabId === 'tudo' || tabId === 'acoes') currentTopicData.acoes.forEach(i => items.push({data: i, type: 'acoes', color: '#f59e0b'}));
+    if(tabId === 'tudo' || tabId === 'midia') currentTopicData.midia.forEach(i => items.push({data: i, type: 'midia', color: '#06b6d4'}));
 
-    // Renderiza Posts do Manual (Coleção 'docs')
-    if(tabId === 'tudo' || tabId === 'posts') {
-        currentTopicData.posts.forEach(p => {
-            const isDone = p.status === 'done';
+    items.forEach(item => {
+        const isDone = item.data.status === 'done';
+        const docId = item.data.id; // PEGANDO O ID DO DOCUMENTO
+
+        if(item.type === 'docs') {
             area.innerHTML += `
-                <div class="post-block ${isDone ? 'done-card' : ''}">
-                    <div class="card-check ${isDone ? 'checked' : ''}" 
-                         onclick="event.stopPropagation(); openCheckModal('docs', '${p.id}', ${isDone})">
+                <div class="post-block ${isDone ? 'done-card' : ''}" data-id="${docId}">
+                    <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('docs', '${docId}', ${isDone})">
                         ${isDone ? '✅' : '⬜'}
                     </div>
-                    ${p.textoHtml}
-                    ${isDone ? `<div style="font-size:0.7rem; color:#16a34a; margin-top:12px; font-weight:bold;">✅ Concluído por: ${p.concluidoPor}</div>` : ''}
+                    <div class="post-content-body">
+                        ${item.data.textoHtml}
+                    </div>
                 </div>`;
-        });
-    }
-
-    // Renderiza itens das outras coleções vinculadas
-    if(tabId === 'tudo' || tabId === 'legislacoes') currentTopicData.legislacoes.forEach(i => area.innerHTML += renderItem(i, '#6366f1', 'legislacoes'));
-    if(tabId === 'tudo' || tabId === 'construcoes') currentTopicData.construcoes.forEach(i => area.innerHTML += renderItem(i, '#16a34a', 'construcoes'));
-    if(tabId === 'tudo' || tabId === 'acoes') currentTopicData.acoes.forEach(i => area.innerHTML += renderItem(i, '#f59e0b', 'acoes'));
-    if(tabId === 'tudo' || tabId === 'midia') currentTopicData.midia.forEach(i => area.innerHTML += renderItem(i, '#06b6d4', 'midia'));
-    
-    if(!area.innerHTML) area.innerHTML = "<p style='color:var(--text-muted)'>Nenhum conteúdo específico para este nível.</p>";
-}
+        } else {
+            area.innerHTML += `
+                <div class="item-list-card ${isDone ? 'done-card' : ''}" data-id="${docId}" style="border-left-color: ${item.color}">
+                    <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('${item.type}', '${docId}', ${isDone})">
+                        ${isDone ? '✅' : '⬜'}
+                    </div>
+                    <h3>${item.data.nome}</h3>
+                    <p>${item.data.descricao || ''}</p>
+                </div>`;
+        }
+    });
+};
 
 
         // --- LÓGICA DE ÚLTIMAS E COLEÇÕES GLOBAIS ---
@@ -761,67 +819,39 @@ const renderItem = (i, color, colName) => {
 window.viewLatest = async () => {
     showLoading();
     const area = document.getElementById('content-area');
-    const header = document.getElementById('topic-header');
-    const cards = document.getElementById('cards-container');
-    const tabsContainer = document.getElementById('sub-tabs');
-    
-    tabsContainer.classList.add('hidden');
-    cards.innerHTML = '';
-    header.innerHTML = "<h1>Últimas Atualizações</h1>";
+    document.getElementById('topic-header').innerHTML = "<h1>Últimas Atualizações</h1>";
+    document.getElementById('cards-container').innerHTML = '';
+    document.getElementById('sub-tabs').classList.add('hidden');
     area.innerHTML = '';
 
     const collectionsList = ['docs', 'legislacoes', 'construcoes', 'acoes', 'midia'];
-    const promises = collectionsList.map(col => 
-        getDocs(query(collection(db, col), orderBy("createdAt", "desc"), limit(50)))
-    );
-
+    const promises = collectionsList.map(col => getDocs(query(collection(db, col), orderBy("createdAt", "desc"), limit(30))));
     const snapshots = await Promise.all(promises);
+    
     let combined = [];
-    snapshots.forEach((snap, index) => {
-        snap.forEach(d => {
-            combined.push({ id: d.id, ...d.data(), type: collectionsList[index] });
-        });
-    });
-
-    // --- FILTRO: Remove itens sem conteúdo ---
-    combined = combined.filter(item => {
-        if (item.type === 'docs') {
-            // Remove se não tiver textoHtml ou se for apenas espaços/tags vazias
-            return item.textoHtml && item.textoHtml.replace(/<[^>]*>?/gm, '').trim() !== '';
-        } else {
-            // Para as outras coleções, remove se não tiver nome
-            return item.nome && item.nome.trim() !== '';
-        }
-    });
-    
+    snapshots.forEach((snap, idx) => snap.forEach(d => combined.push({ id: d.id, ...d.data(), type: collectionsList[idx] })));
     combined.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
-    
-    const toDisplay = combined.slice(0, 50);
 
-    toDisplay.forEach(item => {
+    combined.forEach(item => {
         const isDone = item.status === 'done';
-        const labelMap = { 'docs': 'MANUAL', 'legislacoes': 'LEIS', 'construcoes': 'OBRAS', 'acoes': 'AÇÕES', 'midia': 'MÍDIA' };
-        const dataFormatada = formatarData(item.createdAt);
-        
+        const docId = item.id; // <--- CAPTURA O ID AQUI
+
         area.innerHTML += `
-            <div class="post-block ${isDone ? 'done-card' : ''}">
-                <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('${item.type}', '${item.id}', ${isDone})">
+            <div class="post-block ${isDone ? 'done-card' : ''}" data-id="${docId}">
+                <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('${item.type}', '${docId}', ${isDone})">
                     ${isDone ? '✅' : '⬜'}
                 </div>
-                <div style="margin-bottom:12px;">
-                    <span class="tag">${labelMap[item.type]}</span>
+                <div class="post-content-body">
+                    ${item.type === 'docs' ? item.textoHtml : `<h3>${item.nome}</h3><p>${item.descricao}</p>`}
                 </div>
-                ${item.type === 'docs' ? item.textoHtml : `<h3>${item.nome}</h3><p>${item.descricao}</p>`}
-                <span class="date-footer">Criado: ${dataFormatada}</span>
             </div>`;
     });
-
     hideLoading();
 };
 
 
 
-    window.viewCollection = async (col, title, loadMore = false) => {
+   window.viewCollection = async (col, title, loadMore = false) => {
     if (!loadMore) {
         showLoading();
         document.getElementById('sub-tabs').classList.add('hidden');
@@ -830,78 +860,61 @@ window.viewLatest = async () => {
         document.getElementById('content-area').innerHTML = '';
         lastVisibleDoc = null;
     }
-
-    currentViewType = 'collection';
-    currentCollectionName = col;
     const area = document.getElementById('content-area');
-    
-    // Remove o botão anterior se existir
-    const existingBtn = document.getElementById('btn-more');
-    if (existingBtn) existingBtn.remove();
-
-    let q;
-    if (lastVisibleDoc) {
-        q = query(collection(db, col), orderBy("nome", "asc"), startAfter(lastVisibleDoc), limit(50));
-    } else {
-        q = query(collection(db, col), orderBy("nome", "asc"), limit(50));
-    }
-
-const snap = await getDocs(q);
+    let q = lastVisibleDoc ? query(collection(db, col), orderBy("nome", "asc"), startAfter(lastVisibleDoc), limit(50)) : query(collection(db, col), orderBy("nome", "asc"), limit(50));
+    const snap = await getDocs(q);
     lastVisibleDoc = snap.docs[snap.docs.length - 1];
 
     snap.forEach(d => {
         const data = d.data();
-        
-        // --- FILTRO: Ignora cards sem nome ---
-        if (!data.nome || data.nome.trim() === '') return;
-
+        const docId = d.id; // <--- CAPTURA O ID AQUI
+        if (!data.nome) return;
         const isDone = data.status === 'done';
-        const dataFormatada = formatarData(data.createdAt);
+        
         area.innerHTML += `
-            <div class="item-list-card ${isDone ? 'done-card' : ''}">
-                <div class="card-check ${isDone ? 'checked' : ''}" 
-                     onclick="event.stopPropagation(); openCheckModal('${col}', '${d.id}', ${isDone})">
+            <div class="item-list-card ${isDone ? 'done-card' : ''}" data-id="${docId}">
+                <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('${col}', '${docId}', ${isDone})">
                     ${isDone ? '✅' : '⬜'}
                 </div>
                 <h3>${data.nome}</h3>
                 <p>${data.descricao || 'Sem descrição.'}</p>
-                ${isDone ? `<div style="font-size:0.7rem; color:#16a34a; margin-top:8px; font-weight:bold;">✅ Concluído por: ${data.concluidoPor}</div>` : ''}
-                <span class="date-footer">Criado: ${dataFormatada}</span>
+                <span class="date-footer">Criado: ${formatarData(data.createdAt)}</span>
             </div>`;
     });
-
-    if (snap.docs.length === 50) {
-        const btn = document.createElement('button');
-        btn.id = 'btn-more';
-        btn.className = 'btn-load-more';
-        btn.innerText = 'Carregar mais 50';
-        btn.onclick = () => viewCollection(col, title, true);
-        area.appendChild(btn);
-    }
-    
-    if (!loadMore) hideLoading();
+    hideLoading();
 };
 
         init();
 
-window.openCheckModal = (col, docId, isAlreadyDone) => {
+// 1. AJUSTE NA FUNÇÃO DE ABERTURA (Verifica o estado atual da tela)
+window.openCheckModal = (col, docId, isAlreadyDoneOld) => {
     currentTaskRef = { col, docId };
 
-    if (isAlreadyDone) {
-        // Se já está feito, continua mostrando o modal de "Desfazer" para evitar cliques acidentais
+    // Procura o elemento que foi clicado na tela
+    const elementoClicado = document.querySelector(`[onclick*="'${docId}'"]`);
+    
+    // Verifica se ele tem a classe 'checked' ou se o ícone é ✅
+    const estaRealmenteConcluido = elementoClicado && (elementoClicado.classList.contains('checked') || elementoClicado.innerText.includes('✅'));
+
+    if (estaRealmenteConcluido) {
+        // Se já está feito, abre o modal de "Desfazer"
         document.getElementById('undo-modal').style.display = 'flex';
     } else {
-        // SE NÃO ESTÁ FEITO: Grava imediatamente com o nome do utilizador logado
+        // Se não está feito, marca como concluído
         processarCheck(loggedInUserName);
     }
 };
 
+
    
 
-// Função chamada pelo botão "Sim" do novo popup
+// 2. AJUSTE NA FUNÇÃO CONFIRMAR DESFAZER (Garante que ela chame o processarCheck corretamente)
 window.confirmarDesfazer = () => {
+    console.log("Desfazendo item...");
     document.getElementById('undo-modal').style.display = 'none';
-    processarCheck(null); // Chama a função enviando null para limpar os dados
+    
+    // Passamos null para a função processarCheck para limpar os dados no Firebase
+    processarCheck(null);
 };
 
 
@@ -911,65 +924,85 @@ window.processarCheck = async (userName) => {
         const { col, docId } = currentTaskRef;
         const docRef = doc(db, col, docId); 
         
-        // Se userName existir, estamos marcando como feito
-        // Se for null, estamos desfazendo
-        const novosDados = userName 
+        const marcarComoFeito = userName !== null;
+
+        const novosDados = marcarComoFeito 
             ? { 
                 concluidoPor: userName, 
                 userIdConcluiu: loggedInUserId,
                 status: 'done',
-                concluido: "sim"  // <--- NOVO CAMPO ADICIONADO AQUI
+                concluido: "sim"
               } 
             : { 
                 concluidoPor: "", 
                 userIdConcluiu: "",
                 status: "",
-                concluido: ""     // <--- LIMPA O CAMPO AO DESFAZER
+                concluido: ""
               };
 
+        // 1. Grava no Firebase
         await updateDoc(docRef, novosDados);
 
-        // Atualiza a visualização local
-        const atualizarListaLocal = (lista) => {
-            const item = lista.find(d => d.id === docId);
-            if (item) {
-                item.status = novosDados.status;
-                item.concluidoPor = novosDados.concluidoPor;
-                item.concluido = novosDados.concluido; // Atualiza no objeto local também
+        // 2. Atualiza os dados no cache local (allDocs)
+        const itemLocal = allDocs.find(d => d.id === docId);
+        if (itemLocal) {
+            itemLocal.status = novosDados.status;
+            itemLocal.concluidoPor = novosDados.concluidoPor;
+        }
+
+        // 3. ATUALIZAÇÃO VISUAL "SILENCIOSA" (Sem recarregar a página)
+        // Procura o card na tela pelo ID ou pela função de clique
+        const cardsNaTela = document.querySelectorAll(`[onclick*="'${docId}'"]`);
+        
+        cardsNaTela.forEach(elementoClicavel => {
+            // Acha o container principal do card (post-block ou item-list-card)
+            const cardContainer = elementoClicavel.closest('.post-block') || elementoClicavel.closest('.item-list-card');
+            
+            if (cardContainer) {
+                if (marcarComoFeito) {
+                    cardContainer.classList.add('done-card');
+                    elementoClicavel.classList.add('checked');
+                    elementoClicavel.innerHTML = '✅';
+                    
+                    // Adiciona a nota de rodapé "Concluído por..." se não existir
+                    if (!cardContainer.querySelector('.done-by-note')) {
+                        const note = document.createElement('div');
+                        note.className = 'done-by-note';
+                        note.style.cssText = "font-size:0.7rem; color:#16a34a; margin-top:12px; font-weight:bold;";
+                        note.innerHTML = `✅ Concluído por: ${userName}`;
+                        cardContainer.appendChild(note);
+                    }
+                } else {
+                    // Se estiver desfazendo
+                    cardContainer.classList.remove('done-card');
+                    elementoClicavel.classList.remove('checked');
+                    elementoClicavel.innerHTML = '⬜';
+                    const note = cardContainer.querySelector('.done-by-note');
+                    if (note) note.remove();
+                }
             }
-        };
+        });
 
-        [allDocs, currentTopicData.posts, currentTopicData.legislacoes, 
-         currentTopicData.construcoes, currentTopicData.acoes, currentTopicData.midia]
-        .forEach(atualizarListaLocal);
-
-        // Fecha qualquer modal aberto
+        // 4. Fecha os modais
         if(document.getElementById('user-modal')) document.getElementById('user-modal').style.display = 'none';
         if(document.getElementById('undo-modal')) document.getElementById('undo-modal').style.display = 'none';
         
-        refreshView(col); 
+        console.log("Check processado silenciosamente.");
 
     } catch (e) {
-        console.error("Erro ao processar:", e);
+        console.error("Erro ao processar check:", e);
         alert("Erro ao salvar alteração.");
     }
 };
 
-
-// Função auxiliar para re-renderizar a tela atual
+// --- REDUZIMOS O REFRESH VIEW PARA NÃO FAZER NADA SE NÃO FOR NECESSÁRIO ---
 window.refreshView = (col) => {
-    const header = document.getElementById('topic-header').innerText;
-    if (header.includes("Últimas")) {
-        viewLatest();
-    } else if (document.getElementById('sub-tabs').classList.contains('hidden') && header !== "Manual do Jogo") {
-        viewCollection(col, header);
-    } else {
-        const abaAtiva = document.querySelector('.tab-item.active');
-        const tabId = abaAtiva ? abaAtiva.innerText.split(' ')[0].toLowerCase() : 'tudo';
-        const mapTabs = { 'leis': 'legislacoes', 'obras': 'construcoes', 'ações': 'acoes', 'mídia': 'midia', 'tudo': 'tudo' };
-        renderTabContent(mapTabs[tabId] || tabId);
-    }
+    // Agora que o processarCheck já atualiza o visual individualmente,
+    // não precisamos mais limpar a tela inteira aqui.
+    // Isso evita o "pulo" da página.
+    console.log("Visualização atualizada.");
 };
+
 
 window.confirmCheck = async (userName) => {
     try {
@@ -1046,63 +1079,41 @@ window.renderTabContent = (tabId, loadMore = false) => {
     const area = document.getElementById('content-area');
     area.innerHTML = '';
 
-    const renderItem = (i, color, colName) => {
-        const isDone = i.status === 'done';
-        const dataFormatada = formatarData(i.createdAt);
-        return `
-            <div class="item-list-card ${isDone ? 'done-card' : ''}" style="border-left-color: ${color}">
-                <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('${colName}', '${i.id}', ${isDone})">
-                    ${isDone ? '✅' : '⬜'}
-                </div>
-                <h3>${i.nome}</h3>
-                <p>${i.descricao || 'Sem descrição.'}</p>
-                ${isDone ? `<div style="font-size:0.7rem; color:#16a34a; margin-top:8px; font-weight:bold;">✅ Concluído por: ${i.concluidoPor}</div>` : ''}
-                <span class="date-footer">Criado: ${dataFormatada}</span>
-            </div>`;
-    };
+    const items = [];
+    if(tabId === 'tudo' || tabId === 'posts') currentTopicData.posts.forEach(p => items.push({data: p, type: 'docs'}));
+    if(tabId === 'tudo' || tabId === 'legislacoes') currentTopicData.legislacoes.forEach(i => items.push({data: i, type: 'legislacoes', color: '#6366f1'}));
+    if(tabId === 'tudo' || tabId === 'construcoes') currentTopicData.construcoes.forEach(i => items.push({data: i, type: 'construcoes', color: '#16a34a'}));
+    if(tabId === 'tudo' || tabId === 'acoes') currentTopicData.acoes.forEach(i => items.push({data: i, type: 'acoes', color: '#f59e0b'}));
+    if(tabId === 'tudo' || tabId === 'midia') currentTopicData.midia.forEach(i => items.push({data: i, type: 'midia', color: '#06b6d4'}));
 
-    let rawItems = [];
-    if(tabId === 'tudo' || tabId === 'posts') currentTopicData.posts.forEach(p => rawItems.push({data: p, type: 'docs', color: 'transparent'}));
-    if(tabId === 'tudo' || tabId === 'legislacoes') currentTopicData.legislacoes.forEach(i => rawItems.push({data: i, type: 'legislacoes', color: '#6366f1'}));
-    if(tabId === 'tudo' || tabId === 'construcoes') currentTopicData.construcoes.forEach(i => rawItems.push({data: i, type: 'construcoes', color: '#16a34a'}));
-    if(tabId === 'tudo' || tabId === 'acoes') currentTopicData.acoes.forEach(i => rawItems.push({data: i, type: 'acoes', color: '#f59e0b'}));
-    if(tabId === 'tudo' || tabId === 'midia') currentTopicData.midia.forEach(i => rawItems.push({data: i, type: 'midia', color: '#06b6d4'}));
+    const filtered = items.filter(item => item.type === 'docs' ? (item.data.textoHtml && item.data.textoHtml.length > 5) : true);
+    
+    filtered.slice(0, manualLimit).forEach(item => {
+        const isDone = item.data.status === 'done';
+        const docId = item.data.id; // <--- CAPTURA O ID AQUI
 
-    // --- FILTRO: Só mantém o que tem conteúdo real ---
-    const items = rawItems.filter(item => {
-        if (item.type === 'docs') {
-            return item.data.textoHtml && item.data.textoHtml.replace(/<[^>]*>?/gm, '').trim() !== '';
-        } else {
-            return item.data.nome && item.data.nome.trim() !== '';
-        }
-    });
-
-    const slice = items.slice(0, manualLimit);
-    slice.forEach(item => {
-        const dataFormatada = formatarData(item.data.createdAt);
         if(item.type === 'docs') {
-            const isDone = item.data.status === 'done';
             area.innerHTML += `
-                <div class="post-block ${isDone ? 'done-card' : ''}">
-                    <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('docs', '${item.data.id}', ${isDone})">
+                <div class="post-block ${isDone ? 'done-card' : ''}" data-id="${docId}">
+                    <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('docs', '${docId}', ${isDone})">
                         ${isDone ? '✅' : '⬜'}
                     </div>
-                    ${item.data.textoHtml}
-                    ${isDone ? `<div style="font-size:0.7rem; color:#16a34a; margin-top:12px; font-weight:bold;">✅ Concluído por: ${item.data.concluidoPor}</div>` : ''}
-                    <span class="date-footer">Criado: ${dataFormatada}</span>
+                    <div class="post-content-body">
+                        ${item.data.textoHtml}
+                    </div>
+                    <span class="date-footer">Atualizado: ${formatarData(item.data.createdAt)}</span>
                 </div>`;
         } else {
-            area.innerHTML += renderItem(item.data, item.color, item.type);
+            area.innerHTML += `
+                <div class="item-list-card ${isDone ? 'done-card' : ''}" data-id="${docId}" style="border-left-color: ${item.color}">
+                    <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('${item.type}', '${docId}', ${isDone})">
+                        ${isDone ? '✅' : '⬜'}
+                    </div>
+                    <h3>${item.data.nome}</h3>
+                    <p>${item.data.descricao || ''}</p>
+                </div>`;
         }
     });
-
-    if (items.length > manualLimit) {
-        const btn = document.createElement('button');
-        btn.className = 'btn-load-more';
-        btn.innerText = 'Carregar mais';
-        btn.onclick = () => { manualLimit += 50; renderTabContent(tabId, true); };
-        area.appendChild(btn);
-    }
 };
  
  
@@ -1141,6 +1152,151 @@ const formatarData = (ts) => {
         return "Data não disponível";
     }
 };
+
+
+// --- LÓGICA DE CHECK PARA TABELAS DENTRO DO VISUALIZADOR ---
+
+document.getElementById('content-area').addEventListener('click', async (e) => {
+    const cell = e.target.closest('.td-check');
+    if (!cell) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    // BUSCA O ID: Tenta primeiro no post-block, depois em qualquer pai que tenha data-id
+    let container = cell.closest('.post-block') || cell.closest('.item-list-card') || cell.closest('[data-id]');
+    let docId = container ? container.getAttribute('data-id') : null;
+
+    if (!docId) {
+        console.error("Erro: Não foi possível encontrar o atributo data-id no container:", container);
+        alert("Erro técnico: O ID deste documento não foi carregado corretamente. Por favor, atualize a página.");
+        return;
+    }
+
+    const row = cell.parentElement;
+
+    // 2. Se a linha já estiver concluída, abre o modal de Desfazer
+    if (row.classList.contains('row-done')) {
+        // Configuramos a função de desfazer específica para esta célula/linha
+        window.confirmarDesfazer = async () => {
+            document.getElementById('undo-modal').style.display = 'none';
+            await executarToggleTabela(docId, cell, row, false);
+        };
+        document.getElementById('undo-modal').style.display = 'flex';
+    } else {
+        // 3. Se não estiver concluída, marca agora
+        await executarToggleTabela(docId, cell, row, true);
+    }
+});
+
+// Função que altera o HTML e salva no Firebase
+async function executarToggleTabela(docId, cell, row, marcarComoFeito) {
+    // Referência ao corpo do conteúdo que será salvo
+    const postBlock = cell.closest('.post-block');
+    const contentBody = postBlock.querySelector('.post-content-body');
+
+    if (marcarComoFeito) {
+        row.classList.add('row-done');
+        // Usa o nome do usuário capturado no onAuthStateChanged da página
+        cell.innerHTML = `✅<br><small style="font-size:0.6rem; display:block; line-height:1; color:#16a34a; font-weight:bold; text-decoration:none !important;">${loggedInUserName}</small>`;
+    } else {
+        row.classList.remove('row-done');
+        cell.innerHTML = `✔️`;
+    }
+
+    // 4. Salva o HTML modificado no Firebase
+    try {
+        const docRef = doc(db, "docs", docId);
+        
+        // Pegamos o HTML exatamente como está agora (com as novas classes e nomes)
+        const novoTextoHtml = contentBody.innerHTML.trim();
+
+        await updateDoc(docRef, {
+            textoHtml: novoTextoHtml
+        });
+
+        console.log("Progresso da tabela salvo com sucesso!");
+    } catch (error) {
+        console.error("Erro ao salvar progresso da tabela:", error);
+        alert("Houve um erro ao salvar o check na tabela. Verifique sua conexão.");
+    }
+}
+
+// Função que realmente faz a mudança visual e salva no Firebase
+async function executarAcaoTabela(docId, cell, row, marcarComoFeito) {
+    if (marcarComoFeito) {
+        row.classList.add('row-done');
+        // Adiciona o ✅ e o nome do usuário logado embaixo
+        cell.innerHTML = `✅<br><small style="font-size:0.6rem; display:block; line-height:1; color:#16a34a; font-weight:bold; text-decoration:none !important;">${loggedInUserName}</small>`;
+    } else {
+        row.classList.remove('row-done');
+        cell.innerHTML = `✔️`;
+    }
+
+    // Identifica o bloco de conteúdo para salvar
+    const postBlock = cell.closest('.post-block');
+    const contentBody = postBlock.querySelector('.post-content-body');
+    
+    if (!contentBody) {
+        console.error("Erro: Não foi possível encontrar o corpo do conteúdo para salvar.");
+        return;
+    }
+
+    const novoHtmlParaSalvar = contentBody.innerHTML.trim();
+
+    try {
+        // Importação dinâmica para garantir que as funções do Firebase estejam disponíveis
+        const { doc, updateDoc, getFirestore } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+        const db = getFirestore();
+        
+        await updateDoc(doc(db, "docs", docId), { 
+            textoHtml: novoHtmlParaSalvar 
+        });
+        
+        console.log("Tabela salva com sucesso no Firebase!");
+    } catch (error) {
+        console.error("Erro ao salvar tabela:", error);
+    }
+}
+
+async function atualizarTabelaNoFirebase(docId, cell, row, marcarComoFeito) {
+    if (marcarComoFeito) {
+        row.classList.add('row-done');
+        cell.innerHTML = `✅<br><small>${loggedInUserName}</small>`;
+    } else {
+        row.classList.remove('row-done');
+        cell.innerHTML = `✔️`;
+    }
+
+    // Pega o HTML atualizado do bloco (com as novas classes e símbolos)
+    const postBlock = cell.closest('.post-block');
+    // Removemos os elementos que não devem ser salvos no HTML (como o ícone de check flutuante do card)
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = postBlock.innerHTML;
+    
+    // Limpa elementos de interface antes de salvar a string HTML
+    const checkCard = tempDiv.querySelector('.card-check');
+    if (checkCard) checkCard.remove();
+    const footer = tempDiv.querySelector('.date-footer');
+    if (footer) footer.remove();
+    const userNote = tempDiv.querySelector('div[style*="color:#16a34a"]');
+    if (userNote) userNote.remove();
+
+    const novoHtml = tempDiv.innerHTML.trim();
+
+    try {
+        const { doc, updateDoc, getFirestore } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+        const db = getFirestore();
+        await updateDoc(doc(db, "docs", docId), { textoHtml: novoHtml });
+        console.log("Tabela atualizada no Firebase!");
+    } catch (error) {
+        console.error("Erro ao salvar tabela:", error);
+        alert("Erro ao salvar progresso da tabela.");
+    }
+}
+
+window.abrirCheckTabela = () => {}; 
+window.toggleRowCheck = () => {};
 
     </script>
 </body>
