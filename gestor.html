@@ -1865,28 +1865,27 @@ window.editarPostManual = (id) => {
 
     manualEditId = id;
     const editor = document.getElementById('editor');
-    editor.innerHTML = p.textoHtml;
-
-    // Lógica para detectar se o conteúdo é uma tabela ou texto livre
-    if (p.textoHtml.includes('<table')) {
-        // Se for TABELA: Tranca o editor principal e mostra botões (Topo e Fundo)
-        editor.contentEditable = "false";
+    
+    // Prepara o HTML para edição
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = p.textoHtml;
+    
+    // Se houver tabela, ativa o modo de edição apenas nas células de texto (pula o status)
+    const temTabela = p.textoHtml.includes('<table');
+    if (temTabela) {
+        tempDiv.querySelectorAll('td:not(.td-check)').forEach(td => td.setAttribute('contenteditable', 'true'));
+        editor.innerHTML = tempDiv.innerHTML;
+        editor.contentEditable = "false"; // Bloqueia digitação fora da tabela
         document.getElementById('table-tools-container').style.display = 'flex';
-        if (document.getElementById('table-bottom-tools-container')) {
-            document.getElementById('table-bottom-tools-container').style.display = 'flex';
-        }
+        document.getElementById('table-bottom-tools-container').style.display = 'flex';
     } else {
-        // Se for TEXTO: Libera o editor para escrita livre e esconde botões
-        editor.contentEditable = "true";
+        editor.innerHTML = p.textoHtml;
+        editor.contentEditable = "true"; // Libera edição de texto livre
         document.getElementById('table-tools-container').style.display = 'none';
-        if (document.getElementById('table-bottom-tools-container')) {
-            document.getElementById('table-bottom-tools-container').style.display = 'none';
-        }
+        document.getElementById('table-bottom-tools-container').style.display = 'none';
     }
 
     document.getElementById('editor-title').innerText = "Editando Conteúdo";
-    
-    // Mostra o editor e rola para o topo
     document.getElementById('editor-area').classList.remove('hidden');
     document.getElementById('main-scroll').scrollTo({ top: 0, behavior: 'smooth' });
 };
@@ -2196,15 +2195,11 @@ window.renderizarPaginaTopico = (abaAtiva) => {
 window.renderizarConteudoAba = (aba) => {
     const container = document.getElementById('tab-content');
     container.innerHTML = "";
-
     let itensParaExibir = [];
 
-    // 1. Coleta os Posts do Manual
     if (aba === 'tudo') {
         currentViewData.posts.forEach(p => itensParaExibir.push({ ...p, type: 'post' }));
     }
-
-    // 2. Coleta os itens das outras coleções (Leis, Obras, etc)
     const colecoes = ['legislacoes', 'construcoes', 'acoes', 'midia'];
     colecoes.forEach(col => {
         if (aba === 'tudo' || aba === col) {
@@ -2212,50 +2207,42 @@ window.renderizarConteudoAba = (aba) => {
         }
     });
 
-    // --- LOGICA DE ORDENAÇÃO: MAIS ANTIGO PARA O MAIS NOVO ---
-    itensParaExibir.sort((a, b) => {
-        // Pega o tempo em segundos ou usa 0 se não houver data definida
-        const timeA = a.createdAt?.seconds || 0;
-        const timeB = b.createdAt?.seconds || 0;
-        
-        // Ordem crescente (Antigo -> Novo)
-        return timeA - timeB;
-    });
+    itensParaExibir.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
 
     if (itensParaExibir.length === 0) {
-        container.innerHTML = "<p style='color:gray; padding:20px;'>Nenhum item encontrado nesta categoria.</p>";
+        container.innerHTML = "<p style='color:gray; padding:20px;'>Nenhum item encontrado.</p>";
         return;
     }
 
-    // 3. Renderização dos Cards (agora ordenados)
     itensParaExibir.forEach(item => {
         const isDone = item.status === 'done';
         const card = document.createElement('div');
         
         if (item.type === 'post') {
-            // Se o post estiver vazio (placeholder para a árvore), não renderiza o card
-         if (!item.textoHtml || item.textoHtml.trim() === "") return;
+            if (!item.textoHtml || item.textoHtml.trim() === "") return;
 
-card.className = `post-card ${isDone ? 'done-card' : ''}`;
-    card.setAttribute('data-id', item.id); // Fundamental para salvar
+            // --- TRAVA DE EDIÇÃO NA VISUALIZAÇÃO ---
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = item.textoHtml;
+            // Desativa a edição de todas as células da tabela nesta visualização
+            tempDiv.querySelectorAll('td').forEach(td => td.setAttribute('contenteditable', 'false'));
+            const htmlTrancado = tempDiv.innerHTML;
 
-     card.innerHTML = `
-        <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('docs', '${item.id}', ${isDone})">${isDone ? '✅' : '⬜'}</div>
-        <!-- Note a classe post-content-body abaixo -->
-        <div class="post-content-body" style="margin-bottom:15px">${item.textoHtml || ''}</div>
-        <div style="display: flex; gap: 10px; border-top:1px solid #334155; padding-top:10px;">
-            <button class="btn btn-edit" onclick="editarPostManual('${item.id}')">EDITAR</button>
-            <button class="btn btn-delete" onclick="excluirPostManual('${item.id}')">EXCLUIR</button>
-        </div>`;
-
+            card.className = `post-card ${isDone ? 'done-card' : ''}`;
+            card.setAttribute('data-id', item.id);
+            card.innerHTML = `
+                <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('docs', '${item.id}', ${isDone})">${isDone ? '✅' : '⬜'}</div>
+                <div class="post-content-body" style="margin-bottom:15px">${htmlTrancado}</div>
+                <div style="display: flex; gap: 10px; border-top:1px solid #334155; padding-top:10px;">
+                    <button class="btn btn-edit" onclick="editarPostManual('${item.id}')">EDITAR</button>
+                    <button class="btn btn-delete" onclick="excluirPostManual('${item.id}')">EXCLUIR</button>
+                </div>`;
         } else {
-            // CARD DE GESTÃO (Leis, Obras, etc)
+            // ... (Card de gestão - mantém igual ao seu código anterior)
             card.className = `item-row ${isDone ? 'done-card' : ''}`;
             card.style.display = "block";
-            
             const cores = { legislacoes: '#6366f1', construcoes: '#f59e0b', acoes: '#16a34a', midia: '#ec4899' };
             const corBadge = cores[item.colOrigem] || 'var(--accent)';
-
             card.innerHTML = `
                 <div style="display:flex; justify-content:space-between; align-items:center">
                     <div style="display:flex; align-items:center">
@@ -2269,8 +2256,7 @@ card.className = `post-card ${isDone ? 'done-card' : ''}`;
                 </div>
                 <div style="margin: 8px 0 0 45px; color:#94a3b8; font-size:0.8rem; font-style: italic;">
                     ${item.descricao || 'Sem descrição definida.'}
-                </div>
-            `;
+                </div>`;
         }
         container.appendChild(card);
     });
