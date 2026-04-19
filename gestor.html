@@ -1145,7 +1145,7 @@ function renderizarConteudoAba(aba) {
         if (item.type === 'post') {
             card.className = `post-card ${isDone ? 'done-card' : ''}`;
             card.innerHTML = `
-                <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('docs', '${item.id}', ${isDone})">${isDone ? '✅' : '✔️'}</div>
+                <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('docs', '${item.id}', ${isDone})">${isDone ? '✅' : '⬜'}</div>
                 <div style="margin-bottom:15px">${item.textoHtml || ''}</div>
                 <div style="display: flex; gap: 10px;">
                     <button class="btn btn-edit" onclick="editarPostManual('${item.id}')">EDITAR</button>
@@ -1157,7 +1157,7 @@ function renderizarConteudoAba(aba) {
             card.innerHTML = `
                 <div style="display:flex; width:100%; justify-content:space-between; align-items:center">
                     <div style="display:flex; align-items:center">
-                        <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('${item.colOrigem}', '${item.id}', ${isDone})">${isDone ? '✅' : '✔️'}</div>
+                        <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('${item.colOrigem}', '${item.id}', ${isDone})">${isDone ? '✅' : '⬜'}</div>
                         <strong style="color:var(--accent)">[${item.colOrigem.toUpperCase()}] ${item.nome}</strong>
                     </div>
                     <button class="btn btn-edit" onclick="abrirModalGestao('${item.colOrigem}', '${item.id}')">Ver Detalhes</button>
@@ -1180,7 +1180,7 @@ async function executarToggleFinal(cell, novoEstado) {
         cell.innerHTML = `✅<br><small style="font-size:0.65rem; display:block; line-height:1; font-weight:bold;">${userName}</small>`;
     } else {
         row.classList.remove('row-done');
-        cell.innerHTML = "✔️";
+        cell.innerHTML = "⬜";
     }
 
     // Salva no Firebase se estiver fora do editor
@@ -1240,7 +1240,7 @@ window.abrirEditorNovaTabela = () => {
             <td contenteditable="true" style="border: 1px solid #334155; padding: 18px 12px; color: white; min-width: 50px;"></td>
             <td contenteditable="true" style="border: 1px solid #334155; padding: 18px 12px; color: white; min-width: 50px;"></td>
             <td class="td-check" onclick="toggleRowCheck(this)" contenteditable="false" 
-                style="border: 1px solid #334155; text-align: center; cursor: pointer; user-select: none; -webkit-user-select: none;">✔️</td>
+                style="border: 1px solid #334155; text-align: center; cursor: pointer; user-select: none; -webkit-user-select: none;">⬜</td>
         </tr>`;
     }
     
@@ -1272,7 +1272,7 @@ window.adicionarLinhaTabela = () => {
             <td contenteditable="true" style="border: 1px solid #334155; padding: 18px 12px; color: white; min-width: 50px;"></td>
             <td contenteditable="true" style="border: 1px solid #334155; padding: 18px 12px; color: white; min-width: 50px;"></td>
             <td class="td-check" onclick="toggleRowCheck(this)" contenteditable="false" 
-                style="border: 1px solid #334155; text-align: center; cursor: pointer; user-select: none;">✔️</td>
+                style="border: 1px solid #334155; text-align: center; cursor: pointer; user-select: none;">⬜</td>
         `;
         
         tbody.appendChild(row);
@@ -1610,7 +1610,7 @@ window.abrirModalGestao = (col, id = null) => {
     div.innerHTML = `
         <div class="card-check ${isDone ? 'checked' : ''}" style="position:relative; top:0; right:0; margin-right:10px" 
              onclick="openCheckModal('${col}', '${d.id}', ${isDone})">
-            ${isDone ? '✅' : '✔️'}
+            ${isDone ? '✅' : '⬜'}
         </div>
         <div style="flex:1">${item.nome}</div>
         <button class="btn btn-edit" onclick="abrirModalGestao('${col}', '${d.id}')">Editar</button>
@@ -1991,7 +1991,7 @@ card.className = `post-card ${isDone ? 'done-card' : ''}`;
     card.setAttribute('data-id', item.id); // Fundamental para salvar
 
      card.innerHTML = `
-        <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('docs', '${item.id}', ${isDone})">${isDone ? '✅' : '✔️'}</div>
+        <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('docs', '${item.id}', ${isDone})">${isDone ? '✅' : '⬜'}</div>
         <!-- Note a classe post-content-body abaixo -->
         <div class="post-content-body" style="margin-bottom:15px">${item.textoHtml || ''}</div>
         <div style="display: flex; gap: 10px; border-top:1px solid #334155; padding-top:10px;">
@@ -2010,7 +2010,7 @@ card.className = `post-card ${isDone ? 'done-card' : ''}`;
             card.innerHTML = `
                 <div style="display:flex; justify-content:space-between; align-items:center">
                     <div style="display:flex; align-items:center">
-                        <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('${item.colOrigem}', '${item.id}', ${isDone})">${isDone ? '✅' : '✔️'}</div>
+                        <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('${item.colOrigem}', '${item.id}', ${isDone})">${isDone ? '✅' : '⬜'}</div>
                         <span style="background: ${corBadge}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; margin: 0 12px; text-transform: uppercase;">
                             ${item.colOrigem === 'legislacoes' ? 'LEI' : item.colOrigem === 'construcoes' ? 'OBRA' : item.colOrigem.toUpperCase()}
                         </span>
@@ -2065,7 +2065,7 @@ window.processarCheckTabela = async (userName) => {
     } else {
         // DESFAZER
         row.classList.remove('row-done');
-        currentTableCheckCell.innerHTML = `✔️`;
+        currentTableCheckCell.innerHTML = `⬜`;
     }
 
     fecharModaisCheck();
