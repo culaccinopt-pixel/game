@@ -811,35 +811,54 @@ function atualizarNavegacao() {
 }
 
 
-    window.filtrarPorNeto = (netoNome) => {
+  window.filtrarPorNeto = (netoNome) => {
     state.neto = netoNome;
-    state.bisneto = null; // Reseta o bisneto ao trocar de neto
     
-    atualizarNavegacao();
-
-    document.querySelectorAll('.neto-btn').forEach(b => {
-        b.classList.toggle('active', b.innerText === netoNome);
-    });
-
-    const bisArea = document.getElementById('bisneto-area');
+    // 1. Busca todos os bisnetos deste neto e ordena pelo campo 'ordem'
     const bisnetos = allDocs
         .filter(d => d.categoria === 'bisneto' && d.categoriaNeto === netoNome)
         .sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
     
-    if(bisnetos.length > 0) {
+    // 2. Se existirem bisnetos, seleciona automaticamente o primeiro (menor ordem)
+    if (bisnetos.length > 0) {
+        state.bisneto = bisnetos[0].nome;
+    } else {
+        state.bisneto = null;
+    }
+    
+    // 3. Atualiza a navegação (Breadcrumb)
+    atualizarNavegacao();
+
+    // 4. Atualiza o destaque visual nos botões de Netos
+    document.querySelectorAll('.neto-btn').forEach(b => {
+        b.classList.toggle('active', b.innerText.trim() === netoNome);
+    });
+
+    // 5. Renderiza a área de Bisnetos
+    const bisArea = document.getElementById('bisneto-area');
+    if (bisnetos.length > 0) {
         bisArea.classList.remove('hidden');
-        // ADICIONADO O ONCLICK ABAIXO
-        bisArea.innerHTML = bisnetos.map(b => `
-            <div onclick="filtrarPorBisneto('${b.nome}')" 
-                 class="bisneto-tag"
-                 style="background: #1e293b; padding: 5px 12px; border-radius: 4px; font-size: 0.6rem; border: 1px solid var(--border); cursor: pointer; transition: 0.2s;">
-                ${b.nome}
-            </div>
-        `).join('');
+        bisArea.innerHTML = bisnetos.map(b => {
+            // Verifica se este é o bisneto selecionado para aplicar a cor
+            const isActive = state.bisneto === b.nome;
+            const style = isActive 
+                ? `background: var(--accent); color: #000; border-color: var(--accent);` 
+                : `background: #1e293b; color: var(--text-dim); border-color: var(--border);`;
+
+            return `
+                <div onclick="filtrarPorBisneto('${b.nome}')" 
+                     class="bisneto-tag"
+                     style="${style} padding: 5px 12px; border-radius: 4px; font-size: 0.65rem; border: 1px solid; cursor: pointer; transition: 0.2s; font-weight: bold; text-transform: uppercase;">
+                    ${b.nome}
+                </div>
+            `;
+        }).join('');
     } else {
         bisArea.innerHTML = '';
+        bisArea.classList.add('hidden');
     }
 
+    // 6. Carrega os posts (filtrando pelo bisneto selecionado automaticamente)
     renderPosts();
 };
 
@@ -847,16 +866,18 @@ function atualizarNavegacao() {
 window.filtrarPorBisneto = (bisnetoNome) => {
     state.bisneto = bisnetoNome;
     
-    atualizarNavegacao(); // <--- Adicione esta linha aqui!
+    atualizarNavegacao();
 
-    // Restante do seu código de destaque visual...
+    // Atualiza o visual de todos os botões de bisneto
     document.querySelectorAll('.bisneto-tag').forEach(tag => {
-        if(tag.innerText.trim() === bisnetoNome) {
+        if (tag.innerText.trim() === bisnetoNome) {
+            tag.style.background = 'var(--accent)';
+            tag.style.color = '#000';
             tag.style.borderColor = 'var(--accent)';
-            tag.style.color = 'var(--accent)';
         } else {
-            tag.style.borderColor = 'var(--border)';
+            tag.style.background = '#1e293b';
             tag.style.color = 'var(--text-dim)';
+            tag.style.borderColor = 'var(--border)';
         }
     });
 
