@@ -1,511 +1,550 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manual - Visualizador Completo</title>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap">
+    <title>Gestor Master - Sistema de Comando</title>
     <style>
-        :root { 
-            --primary: #6366f1; --bg: #0f172a; --sidebar-bg: #1e293b;
-            --white: #f8fafc; --border: #334155; --text-muted: #94a3b8;
+        :root {
+            --bg-deep: #05080f;
+            --bg-panel: #0a111d;
+            --bg-card: #111a27;
+            --accent: #00d4ff;
+            --accent-glow: rgba(0, 212, 255, 0.3);
+            --text-main: #e2e8f0;
+            --text-dim: #94a3b8;
+            --border: #1e293b;
+            --success: #10b981;
+            --danger: #ef4444;
         }
-        body { font-family: 'Inter', sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; background: var(--bg); color: var(--white); }
-        
-        .sidebar { width: 300px; background: var(--sidebar-bg); border-left: 1px solid var(--border); padding: 20px; order: 2; overflow-y: auto; display: flex; flex-direction: column; }
-        .main-content { flex: 1; padding: 40px; overflow-y: auto; order: 1; scroll-behavior: smooth; }
-        .content-wrapper { max-width: 1000px; margin: 0 auto; }
 
-        /* Navegação Sidebar (4 Botões) */
-        .sidebar-nav-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 25px; }
-        .nav-filter-btn { background: #0f172a; border: 1px solid var(--border); color: var(--text-muted); padding: 10px 5px; border-radius: 8px; cursor: pointer; font-size: 0.75rem; font-weight: 600; transition: 0.3s; }
-        .nav-filter-btn:hover { border-color: var(--primary); color: var(--white); }
-        .nav-filter-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg-deep);
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            flex-direction: column;
+        }
 
-        /* Menu de Árvore */
-        .tree-parent { padding: 8px; cursor: pointer; font-weight: bold; border-radius: 6px; color: #e2e8f0; font-size: 0.9rem; margin-top: 5px; }
-        .tree-parent:hover { background: #334155; color: var(--primary); }
-        .tree-children { margin-left: 20px; display: none; border-left: 1px solid #475569; }
-        .tree-children.show { display: block; }
-        .tree-child { padding: 4px 15px; cursor: pointer; color: var(--text-muted); font-size: 0.8rem; }
-        .tree-child:hover { color: var(--white); }
+        /* --- LAYOUT PRINCIPAL --- */
+        .app-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            border-bottom: 2px solid var(--border);
+        }
 
-        /* Sub-Abas Dinâmicas */
-        .sub-tabs-container { display: flex; gap: 15px; border-bottom: 1px solid var(--border); margin: 20px 0 30px 0; }
-        .tab-item { padding: 10px 5px; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); border-bottom: 3px solid transparent; transition: 0.3s; }
-        .tab-item.active { color: var(--primary); border-bottom-color: var(--primary); }
+        /* COLUNA ESQUERDA: DEPARTAMENTOS (PAI) */
+        .sidebar-pai {
+            width: 110px;
+            background: var(--bg-panel);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 20px;
+            gap: 15px;
+        }
 
-        /* Navegação por Cards Superior */
-.cards-grid { 
-    display: grid; 
-    /* Diminuído de 160px para 120px para caberem mais na mesma linha */
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); 
-    gap: 8px; 
-    margin-bottom: 20px; 
+        .dept-btn {
+            width: 80px;
+            height: 80px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: 0.3s;
+            color: var(--text-dim);
+            text-decoration: none;
+        }
+
+        .dept-btn i { font-size: 1.5rem; margin-bottom: 5px; }
+        .dept-btn span { font-size: 0.65rem; text-transform: uppercase; font-weight: bold; text-align: center; }
+
+        .dept-btn:hover, .dept-btn.active {
+            border-color: var(--accent);
+            color: var(--accent);
+            box-shadow: 0 0 15px var(--accent-glow);
+            background: #16243a;
+        }
+
+        /* COLUNA CENTRAL: ÁREA DINÂMICA */
+        .main-workspace {
+            flex: 1;
+            background: radial-gradient(circle at top left, #0f172a, #05080f);
+            overflow-y: auto;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .workspace-header {
+            margin-bottom: 30px;
+            border-left: 4px solid var(--accent);
+            padding-left: 20px;
+        }
+
+        .workspace-header h1 {
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 1.8rem;
+        }
+
+        /* GRID DE CARDS (FILHOS) */
+        .filho-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 20px;
+        }
+
+        .filho-card {
+            background: var(--bg-card);
+            aspect-ratio: 1/1;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: 0.3s;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .filho-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent);
+            background: #1a2536;
+        }
+
+        .filho-card .icon-box {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            color: var(--accent);
+        }
+
+        /* SUBMENU SUPERIOR (NETOS) */
+        .neto-nav {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            background: rgba(255,255,255,0.03);
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .neto-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            padding: 8px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .neto-btn.active {
+            background: var(--accent);
+            color: black;
+            font-weight: bold;
+        }
+
+        /* COLUNA DIREITA (AGREGAÇÃO) */
+        .sidebar-right {
+            width: 320px;
+            background: var(--bg-panel);
+            border-left: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .right-tabs {
+            display: flex;
+            background: #000;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            color: var(--text-dim);
+        }
+
+        .tab-btn.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+            background: var(--bg-panel);
+        }
+
+        .tab-content { padding: 20px; overflow-y: auto; flex: 1; }
+
+        /* BARRA INFERIOR */
+        .bottom-nav {
+            height: 60px;
+            background: var(--bg-panel);
+            border-top: 1px solid var(--accent);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            gap: 10px;
+        }
+
+        .nav-item {
+            padding: 8px 20px;
+            border-radius: 6px;
+            background: #111a27;
+            color: var(--text-main);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            cursor: pointer;
+            border: 1px solid var(--border);
+        }
+
+        .nav-item.active {
+            background: var(--accent);
+            color: #000;
+            font-weight: bold;
+        }
+
+        /* AJUSTES DE TABELA E POSTS */
+        .post-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { text-align: left; color: var(--accent); font-size: 0.8rem; padding: 10px; border-bottom: 1px solid var(--border); }
+        td { padding: 12px 10px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+
+        .hidden { display: none !important; }
+
+        /* 1. Coluna mais larga */
+.sidebar-pai {
+    width: 120px; /* Aumentei a largura da coluna */
+    background: var(--bg-panel);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px 0;
+    gap: 4px; /* Espaço mínimo entre os botões */
+    overflow-y: auto;
+    scrollbar-width: none;
 }
-        .nav-card { 
-    background: #1e293b; 
-    border: 1px solid var(--border); 
-    /* Diminuído o padding de 18px para 8px */
-    padding: 8px 10px; 
-    border-radius: 6px; 
-    cursor: pointer; 
-    text-align: center; 
-    font-weight: 600; 
-    /* Diminuído levemente a fonte */
-    font-size: 0.75rem; 
-    transition: 0.3s; 
-    /* Diminuído a altura mínima de 50px para 35px */
-    min-height: 35px; 
-    display: flex; 
-    align-items: center; 
-    justify-content: center; 
-}
 
-        .nav-card:hover { border-color: var(--primary); transform: translateY(-2px); background: #334155; }
-        
-        /* Blocos de Conteúdo */
-        .post-block { background: #1e293b; padding: 25px; border-radius: 12px; margin-bottom: 25px; border: 1px solid var(--border); line-height: 1.6; }
-        .item-list-card { background: #1e293b; padding: 20px; border-radius: 10px; border: 1px solid var(--border); border-left: 4px solid var(--primary); margin-bottom: 15px; }
-        .item-list-card h3 { margin: 0 0 8px 0; font-size: 1.1rem; color: var(--white); }
-        .item-list-card p { margin: 0; color: var(--text-muted); font-size: 0.9rem; line-height: 1.5; }
-
-        .tag { background: #312e81; color: #c7d2fe; padding: 3px 10px; border-radius: 20px; font-size: 0.7rem; margin-right: 8px; font-weight: 600; }
-        h1 { color: var(--primary); font-size: 2.5rem; margin-bottom: 10px; margin-top: 0; }
-        .hidden { display: none; }
-        
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
-    
-    /* Ajuste para múltiplos níveis na árvore */
-.tree-children { margin-left: 15px; display: none; border-left: 1px solid #334155; }
-.tree-children.show { display: block; }
-.tree-child { padding: 4px 10px; cursor: pointer; color: var(--text-muted); font-size: 0.8rem; transition: 0.2s; }
-.tree-child:hover { color: var(--primary); background: rgba(99, 102, 241, 0.1); }
-.tree-child.active-text { color: var(--primary); font-weight: bold; }
-
-/* Estilo para o card selecionado no topo */
-.nav-card.active-card { border-color: var(--primary); background: var(--primary); color: white; }
-
-/* Cor de destaque para o item selecionado no menu */
-.tree-active { 
-    color: var(--primary) !important; 
-    font-weight: 700 !important;
-    background: rgba(99, 102, 241, 0.1); /* Um fundo leve para destacar */
-    border-radius: 4px;
-}
-.btn-back {
-    background: #1e293b;
+/* 2. Botões Retangulares (mais largos e mais baixos) */
+.dept-btn {
+    width: 100px;  /* Botão largo para preencher a coluna */
+    height: 52px;  /* Botão bem mais baixo para caberem muitos */
+    background: var(--bg-card);
     border: 1px solid var(--border);
-    color: var(--text-muted);
-    padding: 6px 12px;
     border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
     cursor: pointer;
-    font-size: 0.75rem;
-    font-weight: 600;
-    display: inline-flex;
+    transition: 0.2s;
+    color: var(--text-dim);
+    flex-shrink: 0;
+    padding: 2px 0;
+}
+
+/* 3. Ajuste de Ícones e Texto para o formato achatado */
+.dept-btn i { 
+    font-size: 1rem; /* Ícone um pouco menor */
+    margin-bottom: 1px; 
+}
+
+.dept-btn span { 
+    font-size: 0.52rem; /* Fonte pequena e nítida */
+    text-transform: uppercase; 
+    font-weight: bold; 
+    text-align: center;
+    line-height: 1;
+    width: 90%; /* Garante que o texto não bata nas bordas */
+    white-space: nowrap; /* Evita quebra de linha */
+    overflow: hidden;
+    text-overflow: ellipsis; /* Se o nome for gigante, coloca "..." */
+}
+
+/* Efeito de destaque */
+.dept-btn.active, .dept-btn:hover {
+    border-color: var(--accent);
+    background: #111e31;
+    color: var(--accent);
+}
+
+/* 1. Ajuste do Grid (mais colunas, menores) */
+.filho-grid {
+    display: grid;
+    /* Reduzi de 180px para 130px, assim cabem muito mais por linha */
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 15px;
+}
+
+/* 2. Redução do Card da Pasta */
+.filho-card {
+    background: var(--bg-card);
+    aspect-ratio: 1/1; /* Mantém o formato quadrado */
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: 0.3s;
+    text-align: center;
+    padding: 10px; /* Reduzi o padding de 20px para 10px */
+}
+
+/* 3. Ícone da Pasta menor */
+.filho-card .icon-box {
+    font-size: 1.8rem; /* Reduzi de 2.5rem para 1.8rem */
+    margin-bottom: 8px;
+    filter: drop-shadow(0 0 5px rgba(255, 200, 0, 0.2)); /* Leve brilho no ícone */
+}
+
+/* 4. Texto do Card menor */
+.filho-card div[style*="font-size: 0.8rem"] {
+    font-size: 0.65rem !important; /* Texto menor para caber em uma linha */
+    letter-spacing: 0.5px;
+}
+
+/* Nova barra de navegação (Breadcrumb) */
+.workspace-header {
+    margin-bottom: 15px;
+    padding: 5px 0;
+    border-left: none; /* Remove a linha grossa azul */
+    border-bottom: 1px solid var(--border); /* Linha fina embaixo */
+}
+
+.breadcrumb {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 15px;
-    transition: 0.3s;
+    color: var(--text-dim);
 }
 
-.btn-back:hover {
-    background: #334155;
-    color: var(--primary);
-    border-color: var(--primary);
-}
-
-/* Estilo para o ícone de Check */
-.card-check { position: absolute; top: 15px; right: 15px; cursor: pointer; color: #475569; font-size: 1.2rem; transition: 0.3s; z-index: 10; }
-.card-check:hover { color: var(--primary); transform: scale(1.2); }
-.card-check.checked { color: #16a34a; }
-
-/* Estado Concluído */
-.done-card { border: 2px solid #16a34a !important; background: rgba(22, 163, 74, 0.05) !important; }
-.post-block, .item-list-card { position: relative; transition: 0.3s; }
-
-/* Modal de Usuários */
-#user-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 9999; }
-.user-modal-content { background: #1e293b; padding: 25px; border-radius: 12px; border: 1px solid var(--primary); width: 320px; max-height: 80vh; overflow-y: auto; }
-.user-option { padding: 12px; margin-bottom: 8px; background: #0f172a; border-radius: 6px; cursor: pointer; transition: 0.2s; border: 1px solid var(--border); text-align: center; }
-.user-option:hover { background: var(--primary); border-color: white; }
-
-
-   :root { 
-            --primary: #6366f1; --bg: #0f172a; --sidebar-bg: #1e293b;
-            --white: #f8fafc; --border: #334155; --text-muted: #94a3b8;
-        }
-
-        * { box-sizing: border-box; }
-
-        body { 
-            font-family: 'Inter', sans-serif; 
-            margin: 0; 
-            display: flex; 
-            height: 100vh; 
-            overflow: hidden; 
-            background: var(--bg); 
-            color: var(--white); 
-        }
-        
-        /* Nav Mobile */
-        .mobile-header {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; right: 0;
-            height: 60px;
-            background: var(--sidebar-bg);
-            border-bottom: 1px solid var(--border);
-            padding: 0 20px;
-            align-items: center;
-            justify-content: space-between;
-            z-index: 1000;
-        }
-
-        /* Sidebar (Gaveta no Mobile) */
-        .sidebar { 
-            width: 300px; 
-            background: var(--sidebar-bg); 
-            border-left: 1px solid var(--border); 
-            padding: 20px; 
-            order: 2; 
-            overflow-y: auto; 
-            display: flex; 
-            flex-direction: column;
-            transition: transform 0.3s ease;
-        }
-
-        .main-content { 
-            flex: 1; 
-            padding: 40px; 
-            overflow-y: auto; 
-            order: 1; 
-            scroll-behavior: smooth; 
-        }
-
-        .content-wrapper { max-width: 1000px; margin: 0 auto; }
-
-        /* Navegação Sidebar */
-        .sidebar-nav-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 25px; }
-        .nav-filter-btn { background: #0f172a; border: 1px solid var(--border); color: var(--text-muted); padding: 10px 5px; border-radius: 8px; cursor: pointer; font-size: 0.75rem; font-weight: 600; transition: 0.3s; }
-        .nav-filter-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
-
-        /* Menu de Árvore */
-        .tree-parent { padding: 10px; cursor: pointer; font-weight: bold; border-radius: 6px; color: #e2e8f0; font-size: 0.9rem; margin-top: 5px; }
-        .tree-child { padding: 8px 15px; cursor: pointer; color: var(--text-muted); font-size: 0.85rem; }
-        .tree-active { color: var(--primary) !important; font-weight: 700 !important; background: rgba(99, 102, 241, 0.1); }
-
-        /* Sub-Abas (Scrollable no Mobile) */
-        .sub-tabs-container { 
-            display: flex; 
-            gap: 15px; 
-            border-bottom: 1px solid var(--border); 
-            margin: 20px 0 30px 0; 
-            overflow-x: auto;
-            white-space: nowrap;
-            scrollbar-width: none; /* Firefox */
-        }
-        .sub-tabs-container::-webkit-scrollbar { display: none; } /* Chrome/Safari */
-
-        .tab-item { padding: 10px 5px; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); border-bottom: 3px solid transparent; }
-        .tab-item.active { color: var(--primary); border-bottom-color: var(--primary); }
-
-        /* Cards Superior */
-        .cards-grid { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); 
-            gap: 10px; 
-            margin-bottom: 20px; 
-        }
-
-        .nav-card { 
-            background: #1e293b; 
-            border: 1px solid var(--border); 
-            padding: 12px; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            text-align: center; 
-            font-weight: 600; 
-            font-size: 0.8rem; 
-            min-height: 45px;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .nav-card.active-card { border-color: var(--primary); background: var(--primary); color: white; }
-
-        /* Blocos de Conteúdo */
-        .post-block { background: #1e293b; padding: 25px; border-radius: 12px; margin-bottom: 25px; border: 1px solid var(--border); line-height: 1.6; position: relative; }
-        .item-list-card { background: #1e293b; padding: 20px; border-radius: 10px; border: 1px solid var(--border); border-left: 4px solid var(--primary); margin-bottom: 15px; position: relative; }
-
-        /* Check e Modais */
-        .card-check { position: absolute; top: 15px; right: 15px; cursor: pointer; color: #475569; font-size: 1.3rem; }
-        .card-check.checked { color: #16a34a; }
-        .done-card { border: 2px solid #16a34a !important; background: rgba(22, 163, 74, 0.05) !important; }
-
-        /* Overlay Mobile */
-        .overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 999; backdrop-filter: blur(3px); }
-
-        /* RESPONSIVIDADE */
-        @media (max-width: 1024px) {
-            .mobile-header { display: flex; }
-            
-            .sidebar {
-                position: fixed;
-                top: 0; right: 0; bottom: 0;
-                z-index: 1001;
-                transform: translateX(100%); /* Escondido */
-                width: 280px;
-                order: unset;
-            }
-            .sidebar.active { transform: translateX(0); }
-            .overlay.active { display: block; }
-
-            .main-content { 
-                padding: 80px 15px 40px 15px; 
-                order: unset; 
-                width: 100%;
-            }
-
-            h1 { font-size: 1.8rem; }
-            
-            .cards-grid {
-                display: flex;
-                overflow-x: auto;
-                padding-bottom: 10px;
-                scrollbar-width: none;
-            }
-            .nav-card { min-width: 130px; }
-            
-            .post-block { padding: 15px; }
-        }
-
-/* Estilo do Spinner */
-.spinner {
-    width: 50px;
-    height: 50px;
-    border: 4px solid rgba(99, 102, 241, 0.1);
-    border-top: 4px solid var(--primary);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-/* Classe para esconder com transição */
-.loader-hidden {
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.4s ease;
-}
-
-.btn-load-more {
-    display: block;
-    width: 200px;
-    margin: 20px auto;
-    padding: 12px;
-    background: var(--primary);
-    color: white;
-    border: none;
-    border-radius: 8px;
+.breadcrumb .path-item {
     cursor: pointer;
+    transition: 0.2s;
+}
+
+.breadcrumb .path-item:hover {
+    color: var(--accent);
+}
+
+.breadcrumb .separator {
+    color: var(--border);
     font-weight: bold;
+}
+
+.breadcrumb .current {
+    color: var(--accent);
+    font-weight: bold;
+}
+
+.back-container {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 10px;
+}
+
+.back-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border);
+    color: var(--accent);
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.6rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    transition: 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.back-btn:hover {
+    background: var(--accent);
+    color: #000;
+}
+
+/* Ajuste na barra para separar os dois lados */
+.bottom-nav {
+    height: 60px;
+    background: var(--bg-panel);
+    border-top: 1px solid var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* ISSO EMPURRA OS ITENS PARA OS LADOS */
+    padding: 0 20px;
+}
+
+/* Container para agrupar os botões de cada lado */
+.nav-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Estilo para os ícones da direita */
+.nav-icon-link {
+    padding: 8px 15px;
+    border-radius: 6px;
+    background: #111a27;
+    color: var(--text-main);
+    text-decoration: none;
+    font-size: 1.1rem;
+    border: 1px solid var(--border);
     transition: 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
-.btn-load-more:hover {
+
+.nav-icon-link:hover {
+    border-color: var(--accent);
+    background: var(--accent-glow);
     transform: translateY(-2px);
-    filter: brightness(1.2);
 }
 
-.date-footer {
-    display: block;
-    font-size: 0.7rem;
-    color: var(--text-muted);
-    margin-top: 10px;
-    text-align: right;
-    font-style: italic;
-    opacity: 0.8;
+/* Destaque especial para o botão de Adicionar (+) */
+.btn-add {
+    color: var(--accent);
+    font-weight: bold;
+    font-size: 1.3rem;
 }
 
-
-/* --- ESTILOS PARA TABELAS DENTRO DOS POSTS --- */
-#content-area table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 15px 0;
-    background: #0f172a;
-    color: #f8fafc;
-    font-size: 0.85rem;
-    border: 1px solid var(--border);
-}
-
-#content-area th {
-    background: #1e293b;
-    color: var(--primary);
-    text-align: left;
-    padding: 12px;
-    border: 1px solid var(--border);
-}
-
-#content-area td {
-    border: 1px solid var(--border);
-    padding: 12px;
-    vertical-align: middle;
-}
-
-/* Coluna de Check na Tabela */
+/* Estilo para a célula de check */
 .td-check {
     cursor: pointer;
     text-align: center;
-    font-size: 1.1rem;
-    user-select: none;
     transition: 0.2s;
-    width: 60px;
+    user-select: none;
 }
 
 .td-check:hover {
-    background: rgba(99, 102, 241, 0.1);
+    background: rgba(16, 185, 129, 0.1);
 }
 
-/* Linha Concluída na Tabela */
-tr.row-done {
-    background-color: rgba(22, 163, 74, 0.1) !important;
+/* Estilo para a linha concluída */
+.row-done {
+    background: rgba(16, 185, 129, 0.05) !important;
+    color: #94a3b8 !important;
     text-decoration: line-through;
-    color: var(--text-muted);
 }
 
-tr.row-done td {
-    border-color: rgba(22, 163, 74, 0.2);
+.row-done td {
+    border-bottom: 1px solid #064e3b !important;
 }
 
-/* Ajuste para o texto dentro do check na tabela */
-.td-check small {
-    display: block;
-    font-size: 0.6rem;
-    line-height: 1;
-    margin-top: 3px;
-    color: #16a34a;
-    font-weight: bold;
-    text-decoration: none !important; /* Não riscar o nome de quem fez */
-}
-
-/* Esconde botões de edição de tabela e títulos de edição no visualizador */
+/* Esconde botões de controle que possam ter sido salvos por erro */
+.post-content-body button, 
 #table-tools-container, 
-#editor-title,
-.btn-close-editor,
-button[onclick*="LinhaTabela"],
-button[onclick*="adicionarLinhaTabela"],
-button[onclick*="removerLinhaTabela"] {
+.btn-save, 
+.btn-close-editor {
     display: none !important;
 }
 
-/* Garante que o conteúdo da tabela ocupe o espaço correto sem as ferramentas */
+/* Garante que a tabela ocupe o espaço correto sem os botões */
 .post-content-body table {
-    margin-top: 5px !important;
+    margin-top: 0 !important;
 }
 
-/* Quando a linha da tabela for concluída */
-tr.row-done {
-    background-color: rgba(22, 163, 74, 0.1) !important; /* Verde bem clarinho */
-}
-
-tr.row-done td {
-    text-decoration: line-through; /* Risca o texto */
-    color: #94a3b8; /* Cor de texto "apagada" */
-}
-
-/* Garante que o nome de quem fez não fique riscado e seja legível */
-.td-check small {
-    text-decoration: none !important;
-    display: block;
-    margin-top: 4px;
+.td-check {
+    font-size: 1.1rem; /* Aumenta um pouco o quadrado para ficar visível */
 }
 
     </style>
 </head>
 <body>
 
+    <div class="app-container">
+        <!-- COLUNA 1: CATEGORIA PAI -->
+        <aside class="sidebar-pai" id="sidebar-pais">
+            <!-- Gerado dinamicamente -->
+        </aside>
 
-    <!-- Tela de Carregamento -->
-<div id="loading-screen" style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.9); z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-    <div class="spinner"></div>
-    <p style="margin-top: 15px; color: var(--primary); font-weight: 600; font-size: 1rem; letter-spacing: 1px;">CARREGANDO DADOS...</p>
-</div>
-    
-    <!-- Overlay e Header Mobile -->
-    <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
-    <header class="mobile-header">
-        <span style="font-weight: bold; color: var(--primary);">GESTOR MASTER</span>
-        <button onclick="toggleMenu()" style="background: var(--primary); color: white; border: none; padding: 8px 15px; border-radius: 6px; font-weight: bold;">MENU ☰</button>
-    </header>
+        <!-- COLUNA 2: WORKSPACE PRINCIPAL -->
+        <main class="main-workspace">
+            <header class="workspace-header">
+                <h1 id="title-context">System Terminal</h1>
+                <p id="subtitle-context" style="color: var(--text-dim); margin: 5px 0 0 0;">Select a department to start.</p>
+            </header>
 
-    <main class="main-content">
-        <div class="content-wrapper">
-             <div id="back-container"></div>
-            <div id="cards-container" class="cards-grid"></div>
-            <div id="main-display">
-                <div id="topic-header">
-                    <h1>Manual do Jogo</h1>
-                    <p style="color: var(--text-muted);">Explore a documentação navegando pelas categorias.</p>
+            <div id="dynamic-area">
+                <!-- ONDE APARECEM OS CARDS FILHOS OU O CONTEÚDO -->
+                <div class="filho-grid" id="filho-grid"></div>
+                
+                <div id="content-view" class="hidden">
+                    <nav class="neto-nav" id="neto-nav"></nav>
+                    <div id="bisneto-area" style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;"></div>
+                    <div id="posts-container"></div>
                 </div>
-                <div id="sub-tabs" class="sub-tabs-container hidden"></div>
-                <div id="content-area"></div>
             </div>
-        </div>
-    </main>
+        </main>
 
-     <aside class="sidebar" id="sidebar">
-        <div class="sidebar-nav-grid">
-            <button class="nav-filter-btn" onclick="viewLatest()">Últimas</button>
-            <button class="nav-filter-btn" onclick="viewCollection('legislacoes', 'Leis')">Leis</button>
-            <button class="nav-filter-btn" onclick="viewCollection('construcoes', 'Obras')">Obras</button>
-            <button class="nav-filter-btn" onclick="viewCollection('acoes', 'Ações')">Ações</button>
-            <button class="nav-filter-btn" onclick="viewCollection('midia', 'Mídia')">Mídia</button>
-        </div>
-
-       <div style="margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
-    <span style="font-weight: bold; color: var(--primary); font-size: 0.8rem;">MENU</span>
-    <div style="display: flex; gap: 12px; align-items: center;">
-        <a href="diary.html" style="text-decoration: none; font-size: 1.1rem;" title="Diário">📖</a>
-        <a href="gestor.html" style="text-decoration: none; font-size: 1.1rem;" title="Configurações">⚙️</a>
+        <!-- COLUNA 3: INFO & AGENDA -->
+        <aside class="sidebar-right">
+            <div class="right-tabs">
+                <div class="tab-btn active">Agenda</div>
+                <div class="tab-btn">Notícias</div>
+                <div class="tab-btn">País</div>
+            </div>
+            <div class="tab-content" id="sidebar-info">
+                <p style="font-size: 0.85rem; color: var(--text-dim);">No pending agenda items.</p>
+            </div>
+        </aside>
     </div>
-</div>
-        
-        <div id="tree-menu">Carregando categorias...</div>
-    </aside>
 
-
-    <div id="user-modal">
-    <div class="user-modal-content">
-        <h3 style="margin-top:0; color:var(--primary); text-align:center;">Quem concluiu?</h3>
-        <div id="user-options-list"></div>
-        <button onclick="document.getElementById('user-modal').style.display='none'" style="width:100%; background:transparent; color:gray; border:none; margin-top:10px; cursor:pointer;">Cancelar</button>
+    <!-- BARRA INFERIOR -->
+ <nav class="bottom-nav">
+    <!-- LADO ESQUERDO: NAVEGAÇÃO PRINCIPAL -->
+    <div class="nav-group">
+        <div class="nav-item active">Escritório</div>
+        <div class="nav-item">Agenda</div>
+        <div class="nav-item">Imprensa</div>
+        <div class="nav-item">Classificado</div>
+        <div class="nav-item">Vida Pessoal</div>
     </div>
-</div>
 
-
-<!-- Modal de Confirmação para Desfazer -->
-<div id="undo-modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 10000;">
-    <div class="user-modal-content" style="text-align: center;">
-        <h3 style="color: var(--primary); margin-top: 0;">Desfazer Ação?</h3>
-        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 25px;">Tem a certeza que quer remover a marcação de concluído deste item?</p>
-        
-        <div style="display: flex; gap: 10px;">
-            <button onclick="confirmarDesfazer()" style="flex: 1; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">Sim, Desfazer</button>
-            <button onclick="document.getElementById('undo-modal').style.display='none'" style="flex: 1; padding: 12px; background: #334155; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">Cancelar</button>
-        </div>
+    <!-- LADO DIREITO: ATALHOS RÁPIDOS -->
+    <div class="nav-group">
+        <a href="diary.html" class="nav-icon-link" title="Diário">📖</a>
+        <a href="worldedit.html" class="nav-icon-link" title="Editor de Mundo">🌐</a>
+        <a href="gestor.html" class="nav-icon-link btn-add" title="Gestor">+</a>
     </div>
-</div>
-
-
-
+</nav>
     <script type="module">
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"; // Adicione getAuth e onAuthStateChanged
-import { getFirestore, collection, getDocs, query, orderBy, limit, doc, getDoc, updateDoc, startAfter } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"; // Adicione getDoc
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { doc, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 
         const firebaseConfig = {
@@ -516,788 +555,342 @@ import { getFirestore, collection, getDocs, query, orderBy, limit, doc, getDoc, 
             messagingSenderId: "736655823319",
             appId: "1:736655823319:web:60ebdc530e101784b9bb92"
         };
+
         const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
         const db = getFirestore(app);
 
 
 
+const auth = getAuth(app);
+let currentUserName = "Membro";
 
-        // --- BLOCO DE SEGURANÇA ---
+// 1. Pegar o nome do usuário logado
 onAuthStateChanged(auth, async (user) => {
-    if (!user) {
-        // Se não houver usuário logado, vai para o login
-        window.location.href = "login.html";
-    } else {
-        try {
-            // Busca os dados do usuário no Firestore para verificar o status
-            const userRef = doc(db, "users", user.uid);
-            const userSnap = await getDoc(userRef);
+    if (user) {
+        const userRef = doc(db, "users", user.uid);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) currentUserName = userSnap.data().nome;
+    }
+});
 
-            if (userSnap.exists() && userSnap.data().status === true) {
-                // --- USUÁRIO AUTORIZADO ---
-                
-                // 1. Armazena o ID e o Nome para uso nos Checks das Tabelas e Cards
-                loggedInUserId = user.uid;
-                loggedInUserName = userSnap.data().nome || "Membro";
-                
-                console.log("Usuário Autenticado:", loggedInUserName);
+// 2. Ouvinte Global para os cliques na tabela
+document.getElementById('posts-container').addEventListener('click', async (e) => {
+    // Agora ele procura por ⬜ ou pelo ícone antigo ✔️ para manter compatibilidade
+    const cell = e.target.closest('.td-check') || 
+                 (e.target.tagName === 'TD' && (e.target.innerText.includes('⬜') || e.target.innerText.includes('✔️')));
+    
+    const isDone = e.target.innerText.includes('✅');
 
-                // 2. Inicia o carregamento dos dados do manual
-                init(); 
-                
-            } else {
-                // --- USUÁRIO BLOQUEADO OU INEXISTENTE ---
-                alert("Acesso negado. Sua conta não está ativa ou não foi encontrada.");
-                await signOut(auth);
-                window.location.href = "login.html";
-            }
-        } catch (error) {
-            console.error("Erro ao verificar permissões do usuário:", error);
-            alert("Erro de conexão ao verificar sua conta.");
-            window.location.href = "login.html";
+    if (cell || isDone) {
+        const targetCell = cell || e.target;
+        const row = targetCell.parentElement;
+        const postCard = targetCell.closest('.post-card');
+        const docId = postCard.getAttribute('data-id');
+        const contentBody = postCard.querySelector('.post-content-body');
+
+        if (!targetCell.innerText.includes('✅')) {
+            // MARCAR COMO FEITO
+            row.classList.add('row-done');
+            targetCell.innerHTML = `✅<br><small style="font-size:0.6rem; display:block; line-height:1;">${currentUserName}</small>`;
+        } else {
+            // DESMARCAR (VOLTA PARA O QUADRADO ⬜)
+            row.classList.remove('row-done');
+            targetCell.innerHTML = `⬜`; // MUDEI AQUI
         }
+
+        // Salva no Firebase...
+        try {
+            await updateDoc(doc(db, "docs", docId), { textoHtml: contentBody.innerHTML });
+        } catch (error) { console.error(error); }
     }
 });
 
 
 
         let allDocs = [];
-        let currentTopicData = { posts: [], legislacoes: [], construcoes: [], acoes: [], midia: [], name: "" };
-let allUsers = []; // Variável global para usuários
-let currentTaskRef = null; // Para saber qual card estamos marcando
-let lastVisibleDoc = null; // Para controlar o último documento carregado
-let currentViewType = ''; // 'latest', 'collection' ou 'manual'
-let currentCollectionName = '';
-let manualLimit = 50;
-let loggedInUserId = null;
-let loggedInUserName = "";
+        let state = {
+            pai: null,
+            filho: null,
+            neto: null
+        };
 
+        async function init() {
+            const snap = await getDocs(query(collection(db, "docs"), orderBy("createdAt", "asc")));
+            allDocs = snap.docs.map(d => ({id: d.id, ...d.data()}));
+            renderPais();
+        }
 
+        // 1. RENDERIZA OS BOTÕES DA ESQUERDA (PAI)
+     function renderPais() {
+    const container = document.getElementById('sidebar-pais');
+    // Adicionamos o .sort() para ordenar pelo campo 'ordem'
+    const pais = allDocs
+        .filter(d => d.categoria === 'pai')
+        .sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+    
+    container.innerHTML = pais.map(p => `
+        <div class="dept-btn" onclick="selecionarPai('${p.nome}')">
+            <i>${getIcon(p.nome)}</i>
+            <span>${p.nome}</span>
+        </div>
+    `).join('');
+}
 
-async function init() {
-    showLoading(); // Começa mostrando
-    try {
-        const uSnap = await getDocs(collection(db, "users"));
-        allUsers = uSnap.docs.map(d => ({ id: d.id, nome: d.data().nome }));
-        
-        const snap = await getDocs(query(collection(db, "docs"), orderBy("createdAt", "asc")));
-        allDocs = snap.docs.map(d => ({id: d.id, ...d.data()}));
-        renderSidebar();
-    } catch (e) {
-        console.error(e);
-    } finally {
-        hideLoading(); // Esconde quando terminar (mesmo se der erro)
+        // 2. CLIQUE NO PAI -> MOSTRA GRID DE FILHOS NO CENTRO
+window.selecionarPai = (paiNome) => {
+    state.pai = paiNome;
+    state.filho = null;
+    state.neto = null;
+    
+    // Atualiza a linha de navegação compacta
+    atualizarNavegacao();
+    
+    // Filtra e ordena os FILHOS pelo campo 'ordem'
+    const filhos = allDocs
+        .filter(d => d.categoria === 'filho' && d.categoriaPai === paiNome)
+        .sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+    
+    const grid = document.getElementById('filho-grid');
+    const content = document.getElementById('content-view');
+    
+    grid.classList.remove('hidden');
+    content.classList.add('hidden');
+
+    grid.innerHTML = filhos.map(f => `
+        <div class="filho-card" onclick="selecionarFilho('${f.nome}')">
+            <div class="icon-box">📂</div>
+            <div style="font-weight: bold; text-transform: uppercase; font-size: 0.65rem;">${f.nome}</div>
+        </div>
+    `).join('');
+};
+
+        // 3. CLIQUE NO FILHO -> MOSTRA NETOS NO TOPO E CONTEÚDO
+window.selecionarFilho = (filhoNome) => {
+    state.filho = filhoNome;
+    
+    const grid = document.getElementById('filho-grid');
+    const content = document.getElementById('content-view');
+    grid.classList.add('hidden');
+    content.classList.remove('hidden');
+
+    // Busca o primeiro Neto para auto-selecionar
+    const netosParaEsteFilho = allDocs
+        .filter(d => d.categoria === 'neto' && d.categoriaFilho === state.filho && d.categoriaPai === state.pai)
+        .sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+
+    if (netosParaEsteFilho.length > 0) {
+        state.neto = netosParaEsteFilho[0].nome;
+    } else {
+        state.neto = null;
     }
-}
 
-const loader = document.getElementById('loading-screen');
-
-function showLoading() {
-    loader.classList.remove('loader-hidden');
-}
-
-function hideLoading() {
-    loader.classList.add('loader-hidden');
-}
-
-   function renderSidebar() {
-    const menu = document.getElementById('tree-menu');
-    menu.innerHTML = '';
-    
-    const pais = allDocs.filter(d => d.categoria === 'pai').sort((a,b) => a.ordem - b.ordem);
-    
-    pais.forEach(p => {
-        const pDiv = document.createElement('div');
-        const hasFilhos = allDocs.some(d => d.categoria === 'filho' && d.categoriaPai === p.nome);
-        
-        pDiv.innerHTML = `
-            <div class="tree-parent menu-item" id="menu-${p.id}" onclick="toggleFolder('folder-${p.id}', '${p.id}')">
-                ${hasFilhos ? '📁' : '📄'} ${p.nome}
-            </div>
-            <div class="tree-children" id="folder-${p.id}"></div>
-        `;
-        menu.appendChild(pDiv);
-
-        const containerFilhos = pDiv.querySelector(`#folder-${p.id}`);
-        const filhos = allDocs.filter(d => d.categoria === 'filho' && d.categoriaPai === p.nome).sort((a,b) => a.ordem - b.ordem);
-        
-        filhos.forEach(f => {
-            const fDiv = document.createElement('div');
-            const hasNetos = allDocs.some(d => d.categoria === 'neto' && d.categoriaFilho === f.nome);
-            
-            fDiv.innerHTML = `
-                <div class="tree-child menu-item" id="menu-${f.id}" onclick="toggleFolder('folder-${f.id}', '${f.id}')">
-                    ${hasNetos ? '📂' : '└'} ${f.nome}
-                </div>
-                <div class="tree-children" id="folder-${f.id}" style="margin-left:15px"></div>
-            `;
-            containerFilhos.appendChild(fDiv);
-
-            const containerNetos = fDiv.querySelector(`#folder-${f.id}`);
-            const netos = allDocs.filter(d => d.categoria === 'neto' && d.categoriaFilho === f.nome).sort((a,b) => a.ordem - b.ordem);
-            
-            netos.forEach(n => {
-                const nDiv = document.createElement('div');
-                const hasBis = allDocs.some(d => d.categoria === 'bisneto' && d.categoriaNeto === n.nome);
-                
-                nDiv.innerHTML = `
-                    <div class="tree-child menu-item" id="menu-${n.id}" onclick="toggleFolder('folder-${n.id}', '${n.id}')">
-                        ${hasBis ? '📜' : '└'} ${n.nome}
-                    </div>
-                    <div class="tree-children" id="folder-${n.id}" style="margin-left:15px"></div>
-                `;
-                containerNetos.appendChild(nDiv);
-
-                const containerBis = nDiv.querySelector(`#folder-${n.id}`);
-                const bis = allDocs.filter(d => d.categoria === 'bisneto' && d.categoriaNeto === n.nome).sort((a,b) => a.ordem - b.ordem);
-                
-                bis.forEach(b => {
-                    const bDiv = document.createElement('div');
-                    bDiv.className = 'tree-child menu-item';
-                    bDiv.id = `menu-${b.id}`;
-                    bDiv.innerHTML = `└ ${b.nome}`;
-                    bDiv.onclick = (e) => { e.stopPropagation(); selectTopic(b.id); };
-                    containerBis.appendChild(bDiv);
-                });
-            });
-        });
-    });
-}
-
-
-    // Função auxiliar para abrir/fechar pastas
-window.toggleFolder = (folderId, docId) => {
-    const target = document.getElementById(folderId);
-    if(target) target.classList.toggle('show');
-    selectTopic(docId);
+    atualizarNavegacao();
+    renderNetos();
+    renderPosts();
 };
 
-
-// 2. Seleção de Tópico com persistência de Cards para Bisnetos
-window.selectTopic = async (docId) => {
-    if (typeof showLoading === 'function') showLoading();
-
-    try {
-        const ref = allDocs.find(d => d.id === docId);
-        if (!ref) return;
-
-        document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('tree-active'));
-        const selectedMenu = document.getElementById(`menu-${docId}`);
-        if (selectedMenu) selectedMenu.classList.add('tree-active');
-
-        const area = document.getElementById('content-area');
-        const tabsContainer = document.getElementById('sub-tabs');
-        const header = document.getElementById('topic-header');
-
-        area.innerHTML = "";
-        tabsContainer.classList.add('hidden');
-
-        // FILTRO DE POSTS
-        currentTopicData.posts = allDocs.filter(d => {
-            const mesmoNome = d.nome === ref.nome;
-            const mesmaCat = d.categoria === ref.categoria;
-            let linhagemCorreta = true;
-            if (ref.categoria === 'filho') linhagemCorreta = d.categoriaPai === ref.categoriaPai;
-            else if (ref.categoria === 'neto') linhagemCorreta = d.categoriaPai === ref.categoriaPai && d.categoriaFilho === ref.categoriaFilho;
-            else if (ref.categoria === 'bisneto') linhagemCorreta = d.categoriaPai === ref.categoriaPai && d.categoriaFilho === ref.categoriaFilho && d.categoriaNeto === ref.categoriaNeto;
-            return mesmoNome && mesmaCat && linhagemCorreta;
-        });
-
-        // BUSCA NAS COLEÇÕES (Isso já estava ok no seu código)
-        const collectionsList = ['legislacoes', 'construcoes', 'acoes', 'midia'];
-        for (const col of collectionsList) {
-            const snap = await getDocs(collection(db, col));
-            currentTopicData[col] = snap.docs.map(d => ({id: d.id, ...d.data()})).filter(item => {
-                return item.vinculos?.some(v => {
-                    if (ref.categoria === 'pai') return v.pai === ref.nome && !v.filho;
-                    if (ref.categoria === 'filho') return v.pai === ref.categoriaPai && v.filho === ref.nome && !v.neto;
-                    if (ref.categoria === 'neto') return v.pai === ref.categoriaPai && v.filho === ref.categoriaFilho && v.neto === ref.nome && !v.bisneto;
-                    if (ref.categoria === 'bisneto') return v.pai === ref.categoriaPai && v.filho === ref.categoriaFilho && v.neto === ref.categoriaNeto && v.bisneto === ref.nome;
-                    return false;
-                });
-            });
-        }
-
-        header.innerHTML = `<h1>${ref.nome}</h1>`;
-        renderTabs();
-        
-        // AQUI É ONDE DESENHAMOS OS POSTS NA TELA - AGORA COM O DATA-ID
-        area.innerHTML = '';
-        currentTopicData.posts.forEach(p => {
-            const isDone = p.status === 'done';
-            area.innerHTML += `
-                <div class="post-block ${isDone ? 'done-card' : ''}" data-id="${p.id}">
-                    <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('docs', '${p.id}', ${isDone})">
-                        ${isDone ? '✅' : '⬜'}
-                    </div>
-                    <div class="post-content-body">
-                        ${p.textoHtml}
-                    </div>
-                </div>`;
-        });
-
-        document.querySelector('.main-content').scrollTop = 0;
-    } catch (error) {
-        console.error("Erro:", error);
-    } finally {
-        if (typeof hideLoading === 'function') hideLoading();
+        // 4. RENDERIZA NETOS COMO SUBMENU
+  function renderNetos() {
+    const container = document.getElementById('neto-nav');
+    const netos = allDocs
+        .filter(d => d.categoria === 'neto' && d.categoriaFilho === state.filho && d.categoriaPai === state.pai)
+        .sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+    
+    if (netos.length === 0) {
+        container.classList.add('hidden');
+        return;
     }
-};
 
-   
-  
-
-   
-
-      function renderTabs() {
-    const tabsContainer = document.getElementById('sub-tabs');
-    tabsContainer.innerHTML = '';
-    const tabs = [{ id: 'tudo', label: 'Tudo' }];
+    container.classList.remove('hidden');
     
-    if(currentTopicData.legislacoes.length > 0) tabs.push({ id: 'legislacoes', label: `Leis (${currentTopicData.legislacoes.length})` });
-    if(currentTopicData.construcoes.length > 0) tabs.push({ id: 'construcoes', label: `Obras (${currentTopicData.construcoes.length})` });
-    if(currentTopicData.acoes.length > 0) tabs.push({ id: 'acoes', label: `Ações (${currentTopicData.acoes.length})` });
-    if(currentTopicData.midia.length > 0) tabs.push({ id: 'midia', label: `Mídia (${currentTopicData.midia.length})` }); // NOVO
+    // Gerar apenas os botões dos netos, sem o "Ver Todos"
+    container.innerHTML = netos.map(n => `
+        <button class="neto-btn ${state.neto === n.nome ? 'active' : ''}" 
+                onclick="filtrarPorNeto('${n.nome}')">
+            ${n.nome}
+        </button>
+    `).join('');
+}
 
-    if(tabs.length > 1) {
-                tabsContainer.classList.remove('hidden');
-                tabs.forEach(t => {
-                    const btn = document.createElement('div');
-                    btn.className = `tab-item ${t.id === 'tudo' ? 'active' : ''}`;
-                    btn.innerText = t.label;
-                    btn.onclick = () => {
-                        document.querySelectorAll('.tab-item').forEach(i => i.classList.remove('active'));
-                        btn.classList.add('active'); renderTabContent(t.id);
-                    };
-                    tabsContainer.appendChild(btn);
-                });
-            }
-        }
+        // 5. RENDERIZA OS POSTS/TABELAS
+function renderPosts() {
+    const container = document.getElementById('posts-container');
+    
+    // Filtra os documentos corretos
+    const posts = allDocs.filter(d => 
+        d.categoriaPai === state.pai && 
+        d.categoriaFilho === state.filho && 
+        (state.neto ? (d.categoriaNeto === state.neto || d.nome === state.neto) : true)
+    );
 
- window.renderTabContent = (tabId) => {
-    const area = document.getElementById('content-area');
-    area.innerHTML = '';
-
-    const items = [];
-    if(tabId === 'tudo' || tabId === 'posts') currentTopicData.posts.forEach(p => items.push({data: p, type: 'docs'}));
-    if(tabId === 'tudo' || tabId === 'legislacoes') currentTopicData.legislacoes.forEach(i => items.push({data: i, type: 'legislacoes', color: '#6366f1'}));
-    if(tabId === 'tudo' || tabId === 'construcoes') currentTopicData.construcoes.forEach(i => items.push({data: i, type: 'construcoes', color: '#16a34a'}));
-    if(tabId === 'tudo' || tabId === 'acoes') currentTopicData.acoes.forEach(i => items.push({data: i, type: 'acoes', color: '#f59e0b'}));
-    if(tabId === 'tudo' || tabId === 'midia') currentTopicData.midia.forEach(i => items.push({data: i, type: 'midia', color: '#06b6d4'}));
-
-    items.forEach(item => {
-        const isDone = item.data.status === 'done';
-        const docId = item.data.id; // PEGANDO O ID DO DOCUMENTO
-
-        if(item.type === 'docs') {
-            area.innerHTML += `
-                <div class="post-block ${isDone ? 'done-card' : ''}" data-id="${docId}">
-                    <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('docs', '${docId}', ${isDone})">
-                        ${isDone ? '✅' : '⬜'}
-                    </div>
-                    <div class="post-content-body">
-                        ${item.data.textoHtml}
-                    </div>
-                </div>`;
-        } else {
-            area.innerHTML += `
-                <div class="item-list-card ${isDone ? 'done-card' : ''}" data-id="${docId}" style="border-left-color: ${item.color}">
-                    <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('${item.type}', '${docId}', ${isDone})">
-                        ${isDone ? '✅' : '⬜'}
-                    </div>
-                    <h3>${item.data.nome}</h3>
-                    <p>${item.data.descricao || ''}</p>
-                </div>`;
-        }
-    });
-};
-
-
-        // --- LÓGICA DE ÚLTIMAS E COLEÇÕES GLOBAIS ---
+    container.innerHTML = posts.filter(p => p.textoHtml).map(p => {
+        // --- LIMPEZA DE SEGURANÇA ---
+        // Criamos um elemento temporário para limpar botões indesejados
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = p.textoHtml;
         
-window.viewLatest = async () => {
-    showLoading();
-    const area = document.getElementById('content-area');
-    document.getElementById('topic-header').innerHTML = "<h1>Últimas Atualizações</h1>";
-    document.getElementById('cards-container').innerHTML = '';
-    document.getElementById('sub-tabs').classList.add('hidden');
-    area.innerHTML = '';
+        // Remove qualquer botão ou container de ferramentas que veio do banco de dados
+        const tools = tempDiv.querySelector('#table-tools-container');
+        if (tools) tools.remove();
+        tempDiv.querySelectorAll('button').forEach(btn => btn.remove());
+        
+        const htmlLimpo = tempDiv.innerHTML;
 
-    const collectionsList = ['docs', 'legislacoes', 'construcoes', 'acoes', 'midia'];
-    const promises = collectionsList.map(col => getDocs(query(collection(db, col), orderBy("createdAt", "desc"), limit(30))));
-    const snapshots = await Promise.all(promises);
-    
-    let combined = [];
-    snapshots.forEach((snap, idx) => snap.forEach(d => combined.push({ id: d.id, ...d.data(), type: collectionsList[idx] })));
-    combined.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
-
-    combined.forEach(item => {
-        const isDone = item.status === 'done';
-        const docId = item.id; // <--- CAPTURA O ID AQUI
-
-        area.innerHTML += `
-            <div class="post-block ${isDone ? 'done-card' : ''}" data-id="${docId}">
-                <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('${item.type}', '${docId}', ${isDone})">
-                    ${isDone ? '✅' : '⬜'}
-                </div>
+        return `
+            <div class="post-card" data-id="${p.id}">
                 <div class="post-content-body">
-                    ${item.type === 'docs' ? item.textoHtml : `<h3>${item.nome}</h3><p>${item.descricao}</p>`}
+                    ${htmlLimpo}
                 </div>
-            </div>`;
-    });
-    hideLoading();
-};
+            </div>
+        `;
+    }).join('');
+}
 
+   function atualizarNavegacao() {
+    const header = document.querySelector('.workspace-header');
+    
+    // Só mostra o botão voltar se houver algum estado selecionado (Pai ou Filho)
+    const showBack = state.pai ? '' : 'hidden';
 
-
-   window.viewCollection = async (col, title, loadMore = false) => {
-    if (!loadMore) {
-        showLoading();
-        document.getElementById('sub-tabs').classList.add('hidden');
-        document.getElementById('cards-container').innerHTML = '';
-        document.getElementById('topic-header').innerHTML = `<h1>${title}</h1>`;
-        document.getElementById('content-area').innerHTML = '';
-        lastVisibleDoc = null;
+    let html = `
+        <div class="back-container">
+            <button class="back-btn ${showBack}" onclick="goBack()">
+                <i>←</i> Voltar
+            </button>
+            <div class="breadcrumb">
+    `;
+    
+    html += `<span class="path-item" onclick="location.reload()">SISTEMA</span>`;
+    
+    if (state.pai) {
+        html += `<span class="separator">></span><span class="path-item" onclick="selecionarPai('${state.pai}')">${state.pai}</span>`;
     }
-    const area = document.getElementById('content-area');
-    let q = lastVisibleDoc ? query(collection(db, col), orderBy("nome", "asc"), startAfter(lastVisibleDoc), limit(50)) : query(collection(db, col), orderBy("nome", "asc"), limit(50));
-    const snap = await getDocs(q);
-    lastVisibleDoc = snap.docs[snap.docs.length - 1];
+    
+    if (state.filho) {
+        html += `<span class="separator">></span><span class="path-item" onclick="selecionarFilho('${state.filho}')">${state.filho}</span>`;
+    }
+    
+    if (state.neto) {
+        html += `<span class="separator">></span><span class="current">${state.neto}</span>`;
+    }
+    
+    html += `</div></div>`;
+    header.innerHTML = html;
+}
 
-    snap.forEach(d => {
-        const data = d.data();
-        const docId = d.id; // <--- CAPTURA O ID AQUI
-        if (!data.nome) return;
-        const isDone = data.status === 'done';
-        
-        area.innerHTML += `
-            <div class="item-list-card ${isDone ? 'done-card' : ''}" data-id="${docId}">
-                <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('${col}', '${docId}', ${isDone})">
-                    ${isDone ? '✅' : '⬜'}
-                </div>
-                <h3>${data.nome}</h3>
-                <p>${data.descricao || 'Sem descrição.'}</p>
-                <span class="date-footer">Criado: ${formatarData(data.createdAt)}</span>
-            </div>`;
+
+    window.filtrarPorNeto = (netoNome) => {
+    state.neto = netoNome;
+    
+    // Atualiza a navegação para mostrar o neto atual
+    atualizarNavegacao();
+
+    // Atualizar visual dos botões (quem está ativo)
+    document.querySelectorAll('.neto-btn').forEach(b => {
+        b.classList.toggle('active', b.innerText === netoNome);
     });
-    hideLoading();
+
+    // Lógica para Bisnetos (sub-filtros), se houver
+    const bisArea = document.getElementById('bisneto-area');
+    const bisnetos = allDocs
+        .filter(d => d.categoria === 'bisneto' && d.categoriaNeto === netoNome)
+        .sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+    
+    if(bisnetos.length > 0) {
+        bisArea.classList.remove('hidden');
+        bisArea.innerHTML = bisnetos.map(b => `
+            <div style="background: #1e293b; padding: 5px 12px; border-radius: 4px; font-size: 0.6rem; border: 1px solid var(--accent); cursor: pointer;">
+                ${b.nome}
+            </div>
+        `).join('');
+    } else {
+        bisArea.innerHTML = '';
+    }
+
+    renderPosts();
 };
+
+window.goBack = () => {
+    if (state.neto && state.filho) {
+        // Se está vendo o conteúdo (Neto), volta para o grid de pastas (Filho)
+        selecionarPai(state.pai);
+    } else if (state.filho || state.pai) {
+        // Se está no grid de pastas, volta para a tela inicial limpa
+        state.pai = null;
+        state.filho = null;
+        state.neto = null;
+        document.getElementById('filho-grid').innerHTML = '';
+        document.getElementById('content-view').classList.add('hidden');
+        document.getElementById('filho-grid').classList.remove('hidden');
+        atualizarNavegacao();
+    }
+};
+
+window.abrirEditorNovaTabela = () => {
+    manualEditId = null; 
+    document.getElementById('editor-title').innerText = "Nova Tabela para: " + currentManualTopic.nome;
+    
+    // 1. Exibe a barra de ferramentas de edição da tabela (Botões de Adicionar/Remover Linha)
+    // Nota: Estes botões aparecem apenas no editor, não na visualização final
+    const tools = document.getElementById('table-tools-container');
+    if (tools) tools.style.display = 'flex';
+
+    // 2. Monta a estrutura da tabela
+    let tableHtml = `
+    <table contenteditable="false" style="width:100%; border-collapse: collapse; margin-top:10px; border: 1px solid #334155; background: #0f172a; color: #f8fafc;">
+        <thead contenteditable="false" style="user-select: none; background: #1e293b;">
+            <tr>
+                <th style="border: 1px solid #475569; color: #6366f1; padding: 15px 12px; text-align: left;">Tarefa</th>
+                <th style="border: 1px solid #475569; color: #6366f1; padding: 15px 12px; text-align: left;">Responsável</th>
+                <th style="border: 1px solid #475569; color: #6366f1; padding: 15px 12px; text-align: left;">Prazo</th>
+                <th style="border: 1px solid #475569; color: #6366f1; padding: 15px 12px; text-align: center; width: 80px;">Status</th>
+            </tr>
+        </thead>
+        <tbody contenteditable="false">`; 
+    
+    // Criar as 10 linhas iniciais
+    for (let i = 0; i < 10; i++) {
+        tableHtml += `
+        <tr>
+            <td contenteditable="true" style="border: 1px solid #334155; padding: 15px 12px; min-height: 40px;"></td>
+            <td contenteditable="true" style="border: 1px solid #334155; padding: 15px 12px;"></td>
+            <td contenteditable="true" style="border: 1px solid #334155; padding: 15px 12px;"></td>
+            <td class="td-check" onclick="toggleRowCheck(this)" contenteditable="false" 
+                style="border: 1px solid #334155; text-align: center; cursor: pointer; user-select: none; font-size: 1.1rem;">⬜</td>
+        </tr>`;
+    }
+    
+    tableHtml += `</tbody></table><br>`;
+
+    // 3. Insere no editor e limpa o estado anterior
+    const editor = document.getElementById('editor');
+    editor.innerHTML = tableHtml;
+    
+    // 4. Mostra a área do editor e faz scroll suave para o topo
+    document.getElementById('editor-area').classList.remove('hidden');
+    document.getElementById('main-scroll').scrollTo({ top: 0, behavior: 'smooth' });
+
+    console.log("📊 Tabela inicializada com sucesso (Símbolo: ⬜)");
+};
+
+     function getIcon(name) {
+    const n = name.toUpperCase();
+    const icons = {
+        'ECONOMIA': '<i class="fas fa-chart-line"></i>',
+        'SEGURANÇA': '<i class="fas fa-shield-alt"></i>',
+        'GOVERNO': '<i class="fas fa-landmark"></i>',
+        'DIPLOMACIA': '<i class="fas fa-globe"></i>',
+        'COMÉRCIO': '<i class="fas fa-shopping-cart"></i>',
+        'JUSTIÇA': '<i class="fas fa-balance-scale"></i>',
+        'PESQUISA': '<i class="fas fa-flask"></i>',
+        'POLÍTICAS': '<i class="fas fa-cogs"></i>'
+    };
+    return icons[n] || '<i class="fas fa-folder"></i>';
+}
 
         init();
 
-// 1. AJUSTE NA FUNÇÃO DE ABERTURA (Verifica o estado atual da tela)
-window.openCheckModal = (col, docId, isAlreadyDoneOld) => {
-    currentTaskRef = { col, docId };
-
-    // Procura o elemento que foi clicado na tela
-    const elementoClicado = document.querySelector(`[onclick*="'${docId}'"]`);
-    
-    // Verifica se ele tem a classe 'checked' ou se o ícone é ✅
-    const estaRealmenteConcluido = elementoClicado && (elementoClicado.classList.contains('checked') || elementoClicado.innerText.includes('✅'));
-
-    if (estaRealmenteConcluido) {
-        // Se já está feito, abre o modal de "Desfazer"
-        document.getElementById('undo-modal').style.display = 'flex';
-    } else {
-        // Se não está feito, marca como concluído
-        processarCheck(loggedInUserName);
-    }
-};
-
-
-   
-
-// 2. AJUSTE NA FUNÇÃO CONFIRMAR DESFAZER (Garante que ela chame o processarCheck corretamente)
-window.confirmarDesfazer = () => {
-    console.log("Desfazendo item...");
-    document.getElementById('undo-modal').style.display = 'none';
-    
-    // Passamos null para a função processarCheck para limpar os dados no Firebase
-    processarCheck(null);
-};
-
-
-// Função unificada para Gravar ou Limpar o "Feito"
-window.processarCheck = async (userName) => {
-    try {
-        const { col, docId } = currentTaskRef;
-        const docRef = doc(db, col, docId); 
         
-        const marcarComoFeito = userName !== null;
-
-        const novosDados = marcarComoFeito 
-            ? { 
-                concluidoPor: userName, 
-                userIdConcluiu: loggedInUserId,
-                status: 'done',
-                concluido: "sim"
-              } 
-            : { 
-                concluidoPor: "", 
-                userIdConcluiu: "",
-                status: "",
-                concluido: ""
-              };
-
-        // 1. Grava no Firebase
-        await updateDoc(docRef, novosDados);
-
-        // 2. Atualiza os dados no cache local (allDocs)
-        const itemLocal = allDocs.find(d => d.id === docId);
-        if (itemLocal) {
-            itemLocal.status = novosDados.status;
-            itemLocal.concluidoPor = novosDados.concluidoPor;
-        }
-
-        // 3. ATUALIZAÇÃO VISUAL "SILENCIOSA" (Sem recarregar a página)
-        // Procura o card na tela pelo ID ou pela função de clique
-        const cardsNaTela = document.querySelectorAll(`[onclick*="'${docId}'"]`);
-        
-        cardsNaTela.forEach(elementoClicavel => {
-            // Acha o container principal do card (post-block ou item-list-card)
-            const cardContainer = elementoClicavel.closest('.post-block') || elementoClicavel.closest('.item-list-card');
-            
-            if (cardContainer) {
-                if (marcarComoFeito) {
-                    cardContainer.classList.add('done-card');
-                    elementoClicavel.classList.add('checked');
-                    elementoClicavel.innerHTML = '✅';
-                    
-                    // Adiciona a nota de rodapé "Concluído por..." se não existir
-                    if (!cardContainer.querySelector('.done-by-note')) {
-                        const note = document.createElement('div');
-                        note.className = 'done-by-note';
-                        note.style.cssText = "font-size:0.7rem; color:#16a34a; margin-top:12px; font-weight:bold;";
-                        note.innerHTML = `✅ Concluído por: ${userName}`;
-                        cardContainer.appendChild(note);
-                    }
-                } else {
-                    // Se estiver desfazendo
-                    cardContainer.classList.remove('done-card');
-                    elementoClicavel.classList.remove('checked');
-                    elementoClicavel.innerHTML = '⬜';
-                    const note = cardContainer.querySelector('.done-by-note');
-                    if (note) note.remove();
-                }
-            }
-        });
-
-        // 4. Fecha os modais
-        if(document.getElementById('user-modal')) document.getElementById('user-modal').style.display = 'none';
-        if(document.getElementById('undo-modal')) document.getElementById('undo-modal').style.display = 'none';
-        
-        console.log("Check processado silenciosamente.");
-
-    } catch (e) {
-        console.error("Erro ao processar check:", e);
-        alert("Erro ao salvar alteração.");
-    }
-};
-
-// --- REDUZIMOS O REFRESH VIEW PARA NÃO FAZER NADA SE NÃO FOR NECESSÁRIO ---
-window.refreshView = (col) => {
-    // Agora que o processarCheck já atualiza o visual individualmente,
-    // não precisamos mais limpar a tela inteira aqui.
-    // Isso evita o "pulo" da página.
-    console.log("Visualização atualizada.");
-};
-
-
-window.confirmCheck = async (userName) => {
-    try {
-        const { col, docId } = currentTaskRef;
-        const docRef = doc(db, col, docId); 
-        
-        // 1. Grava no Firebase
-        await updateDoc(docRef, { 
-            concluidoPor: userName,
-            status: 'done'
-        });
-        
-        // 2. Atualiza os dados localmente (para refletir a mudança sem refresh)
-        const atualizarListaLocal = (lista) => {
-            const item = lista.find(d => d.id === docId);
-            if (item) {
-                item.status = 'done';
-                item.concluidoPor = userName;
-            }
-        };
-
-        atualizarListaLocal(allDocs);
-        atualizarListaLocal(currentTopicData.posts);
-        atualizarListaLocal(currentTopicData.legislacoes);
-        atualizarListaLocal(currentTopicData.construcoes);
-        atualizarListaLocal(currentTopicData.acoes);
-        atualizarListaLocal(currentTopicData.midia);
-
-        // 3. Fecha o Modal
-        document.getElementById('user-modal').style.display = 'none';
-
-        // 4. Identifica onde o usuário está e atualiza apenas a parte visual
-        const tituloAtual = document.getElementById('topic-header').innerText;
-        
-        if (tituloAtual.includes("Últimas")) {
-            viewLatest(); // Re-renderiza a tela de novidades
-        } else if (tituloAtual.includes("Legislações") || tituloAtual.includes("Construções") || tituloAtual.includes("Ações") || tituloAtual.includes("Mídia")) {
-            // Se estiver em uma coleção global, identifica qual e re-renderiza
-            const colTitle = tituloAtual.split(' ').pop();
-            viewCollection(col, tituloAtual);
-        } else {
-            // Se estiver dentro de um tópico do manual, renderiza a aba atual
-            const abaAtiva = document.querySelector('.tab-item.active');
-            const tabId = abaAtiva ? abaAtiva.innerText.split(' ')[0].toLowerCase() : 'tudo';
-            
-            // Tradução de nomes de abas para IDs de busca
-            const mapTabs = { 'leis': 'legislacoes', 'obras': 'construcoes', 'ações': 'acoes', 'mídia': 'midia', 'tudo': 'tudo' };
-            renderTabContent(mapTabs[tabId] || tabId);
-        }
-
-    } catch (e) {
-        console.error("Erro ao atualizar:", e);
-        alert("Erro ao salvar.");
-    }
-};
-
-// Adicione apenas esta função para controlar o menu mobile:
-        window.toggleMenu = () => {
-            const sb = document.getElementById('sidebar');
-            const ov = document.getElementById('overlay');
-            sb.classList.toggle('active');
-            ov.classList.toggle('active');
-        };
-
-        // Modifique o final da sua função selectTopic para fechar o menu ao clicar em um item no mobile
-        const originalSelectTopic = window.selectTopic;
-        window.selectTopic = async (docId) => {
-            await originalSelectTopic(docId);
-            if (window.innerWidth <= 1024) toggleMenu();
-        }
-
-window.renderTabContent = (tabId, loadMore = false) => {
-    if (!loadMore) manualLimit = 50;
-    const area = document.getElementById('content-area');
-    area.innerHTML = '';
-
-    const items = [];
-    if(tabId === 'tudo' || tabId === 'posts') currentTopicData.posts.forEach(p => items.push({data: p, type: 'docs'}));
-    if(tabId === 'tudo' || tabId === 'legislacoes') currentTopicData.legislacoes.forEach(i => items.push({data: i, type: 'legislacoes', color: '#6366f1'}));
-    if(tabId === 'tudo' || tabId === 'construcoes') currentTopicData.construcoes.forEach(i => items.push({data: i, type: 'construcoes', color: '#16a34a'}));
-    if(tabId === 'tudo' || tabId === 'acoes') currentTopicData.acoes.forEach(i => items.push({data: i, type: 'acoes', color: '#f59e0b'}));
-    if(tabId === 'tudo' || tabId === 'midia') currentTopicData.midia.forEach(i => items.push({data: i, type: 'midia', color: '#06b6d4'}));
-
-    const filtered = items.filter(item => item.type === 'docs' ? (item.data.textoHtml && item.data.textoHtml.length > 5) : true);
-    
-    filtered.slice(0, manualLimit).forEach(item => {
-        const isDone = item.data.status === 'done';
-        const docId = item.data.id; // <--- CAPTURA O ID AQUI
-
-        if(item.type === 'docs') {
-            area.innerHTML += `
-                <div class="post-block ${isDone ? 'done-card' : ''}" data-id="${docId}">
-                    <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('docs', '${docId}', ${isDone})">
-                        ${isDone ? '✅' : '⬜'}
-                    </div>
-                    <div class="post-content-body">
-                        ${item.data.textoHtml}
-                    </div>
-                    <span class="date-footer">Atualizado: ${formatarData(item.data.createdAt)}</span>
-                </div>`;
-        } else {
-            area.innerHTML += `
-                <div class="item-list-card ${isDone ? 'done-card' : ''}" data-id="${docId}" style="border-left-color: ${item.color}">
-                    <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('${item.type}', '${docId}', ${isDone})">
-                        ${isDone ? '✅' : '⬜'}
-                    </div>
-                    <h3>${item.data.nome}</h3>
-                    <p>${item.data.descricao || ''}</p>
-                </div>`;
-        }
-    });
-};
- 
- 
-
-
-const formatarData = (ts) => {
-    if (!ts) return "Data não disponível";
-    
-    try {
-        let date;
-        // Se for o objeto Timestamp do Firestore (tem o método toDate)
-        if (ts && typeof ts.toDate === 'function') {
-            date = ts.toDate();
-        } 
-        // Se for um objeto com seconds (às vezes o Firebase retorna assim em cache)
-        else if (ts && ts.seconds) {
-            date = new Date(ts.seconds * 1000);
-        }
-        // Se já for uma instância de Date ou string/number
-        else {
-            date = new Date(ts);
-        }
-
-        // Verifica se a data é válida antes de formatar
-        if (isNaN(date.getTime())) return "Data não disponível";
-
-        return date.toLocaleDateString('pt-BR', { 
-            day: '2-digit', 
-            month: '2-digit', 
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    } catch (e) {
-        console.error("Erro ao formatar data:", e, ts);
-        return "Data não disponível";
-    }
-};
-
-
-// --- LÓGICA DE CHECK PARA TABELAS DENTRO DO VISUALIZADOR ---
-
-document.getElementById('content-area').addEventListener('click', async (e) => {
-    const cell = e.target.closest('.td-check');
-    if (!cell) return;
-
-    e.preventDefault();
-    e.stopPropagation();
-
-    // BUSCA O ID: Tenta primeiro no post-block, depois em qualquer pai que tenha data-id
-    let container = cell.closest('.post-block') || cell.closest('.item-list-card') || cell.closest('[data-id]');
-    let docId = container ? container.getAttribute('data-id') : null;
-
-    if (!docId) {
-        console.error("Erro: Não foi possível encontrar o atributo data-id no container:", container);
-        alert("Erro técnico: O ID deste documento não foi carregado corretamente. Por favor, atualize a página.");
-        return;
-    }
-
-    const row = cell.parentElement;
-
-    // 2. Se a linha já estiver concluída, abre o modal de Desfazer
-    if (row.classList.contains('row-done')) {
-        // Configuramos a função de desfazer específica para esta célula/linha
-        window.confirmarDesfazer = async () => {
-            document.getElementById('undo-modal').style.display = 'none';
-            await executarToggleTabela(docId, cell, row, false);
-        };
-        document.getElementById('undo-modal').style.display = 'flex';
-    } else {
-        // 3. Se não estiver concluída, marca agora
-        await executarToggleTabela(docId, cell, row, true);
-    }
-});
-
-// Função que altera o HTML e salva no Firebase
-async function executarToggleTabela(docId, cell, row, marcarComoFeito) {
-    // Referência ao corpo do conteúdo que será salvo
-    const postBlock = cell.closest('.post-block');
-    const contentBody = postBlock.querySelector('.post-content-body');
-
-    if (marcarComoFeito) {
-        row.classList.add('row-done');
-        // Usa o nome do usuário capturado no onAuthStateChanged da página
-        cell.innerHTML = `✅<br><small style="font-size:0.6rem; display:block; line-height:1; color:#16a34a; font-weight:bold; text-decoration:none !important;">${loggedInUserName}</small>`;
-    } else {
-        row.classList.remove('row-done');
-        cell.innerHTML = `✔️`;
-    }
-
-    // 4. Salva o HTML modificado no Firebase
-    try {
-        const docRef = doc(db, "docs", docId);
-        
-        // Pegamos o HTML exatamente como está agora (com as novas classes e nomes)
-        const novoTextoHtml = contentBody.innerHTML.trim();
-
-        await updateDoc(docRef, {
-            textoHtml: novoTextoHtml
-        });
-
-        console.log("Progresso da tabela salvo com sucesso!");
-    } catch (error) {
-        console.error("Erro ao salvar progresso da tabela:", error);
-        alert("Houve um erro ao salvar o check na tabela. Verifique sua conexão.");
-    }
-}
-
-// Função que realmente faz a mudança visual e salva no Firebase
-async function executarAcaoTabela(docId, cell, row, marcarComoFeito) {
-    if (marcarComoFeito) {
-        row.classList.add('row-done');
-        // Adiciona o ✅ e o nome do usuário logado embaixo
-        cell.innerHTML = `✅<br><small style="font-size:0.6rem; display:block; line-height:1; color:#16a34a; font-weight:bold; text-decoration:none !important;">${loggedInUserName}</small>`;
-    } else {
-        row.classList.remove('row-done');
-        cell.innerHTML = `✔️`;
-    }
-
-    // Identifica o bloco de conteúdo para salvar
-    const postBlock = cell.closest('.post-block');
-    const contentBody = postBlock.querySelector('.post-content-body');
-    
-    if (!contentBody) {
-        console.error("Erro: Não foi possível encontrar o corpo do conteúdo para salvar.");
-        return;
-    }
-
-    const novoHtmlParaSalvar = contentBody.innerHTML.trim();
-
-    try {
-        // Importação dinâmica para garantir que as funções do Firebase estejam disponíveis
-        const { doc, updateDoc, getFirestore } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
-        const db = getFirestore();
-        
-        await updateDoc(doc(db, "docs", docId), { 
-            textoHtml: novoHtmlParaSalvar 
-        });
-        
-        console.log("Tabela salva com sucesso no Firebase!");
-    } catch (error) {
-        console.error("Erro ao salvar tabela:", error);
-    }
-}
-
-async function atualizarTabelaNoFirebase(docId, cell, row, marcarComoFeito) {
-    if (marcarComoFeito) {
-        row.classList.add('row-done');
-        cell.innerHTML = `✅<br><small>${loggedInUserName}</small>`;
-    } else {
-        row.classList.remove('row-done');
-        cell.innerHTML = `✔️`;
-    }
-
-    // Pega o HTML atualizado do bloco (com as novas classes e símbolos)
-    const postBlock = cell.closest('.post-block');
-    // Removemos os elementos que não devem ser salvos no HTML (como o ícone de check flutuante do card)
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = postBlock.innerHTML;
-    
-    // Limpa elementos de interface antes de salvar a string HTML
-    const checkCard = tempDiv.querySelector('.card-check');
-    if (checkCard) checkCard.remove();
-    const footer = tempDiv.querySelector('.date-footer');
-    if (footer) footer.remove();
-    const userNote = tempDiv.querySelector('div[style*="color:#16a34a"]');
-    if (userNote) userNote.remove();
-
-    const novoHtml = tempDiv.innerHTML.trim();
-
-    try {
-        const { doc, updateDoc, getFirestore } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
-        const db = getFirestore();
-        await updateDoc(doc(db, "docs", docId), { textoHtml: novoHtml });
-        console.log("Tabela atualizada no Firebase!");
-    } catch (error) {
-        console.error("Erro ao salvar tabela:", error);
-        alert("Erro ao salvar progresso da tabela.");
-    }
-}
-
-window.abrirCheckTabela = () => {}; 
-window.toggleRowCheck = () => {};
-
     </script>
 </body>
 </html>
