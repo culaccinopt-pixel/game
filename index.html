@@ -647,15 +647,14 @@ document.getElementById('posts-container').addEventListener('click', async (e) =
         }
 
         // 1. RENDERIZA OS BOTÕES DA ESQUERDA (PAI)
-     function renderPais() {
+function renderPais() {
     const container = document.getElementById('sidebar-pais');
-    // Adicionamos o .sort() para ordenar pelo campo 'ordem'
     const pais = allDocs
         .filter(d => d.categoria === 'pai')
         .sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
     
     container.innerHTML = pais.map(p => `
-        <div class="dept-btn" onclick="selecionarPai('${p.nome}')">
+        <div class="dept-btn ${state.pai === p.nome ? 'active' : ''}" onclick="selecionarPai('${p.nome}')">
             <i>${getIcon(p.nome)}</i>
             <span>${p.nome}</span>
         </div>
@@ -667,11 +666,13 @@ window.selecionarPai = (paiNome) => {
     state.pai = paiNome;
     state.filho = null;
     state.neto = null;
+    state.bisneto = null; // Adicione isso para resetar bisnetos ao trocar de categoria
     
-    // Atualiza a linha de navegação compacta
+    // ATUALIZA O DESTAQUE NA ESQUERDA
+    renderPais(); 
+    
     atualizarNavegacao();
     
-    // Filtra e ordena os FILHOS pelo campo 'ordem'
     const filhos = allDocs
         .filter(d => d.categoria === 'filho' && d.categoriaPai === paiNome)
         .sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
