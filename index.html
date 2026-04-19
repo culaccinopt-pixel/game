@@ -927,7 +927,7 @@ window.abrirEditorNovaTabela = () => {
     console.log("📊 Tabela inicializada com sucesso (Símbolo: ⬜)");
 };
 
-     function getIcon(name) {
+function getIcon(name) {
     const n = name.toUpperCase();
     const icons = {
         'ECONOMIA': '<i class="fas fa-chart-line"></i>',
@@ -937,8 +937,15 @@ window.abrirEditorNovaTabela = () => {
         'COMÉRCIO': '<i class="fas fa-shopping-cart"></i>',
         'JUSTIÇA': '<i class="fas fa-balance-scale"></i>',
         'PESQUISA': '<i class="fas fa-flask"></i>',
-        'POLÍTICAS': '<i class="fas fa-cogs"></i>'
+        
+        // NOVOS ÍCONES PERSONALIZADOS:
+        'POLÍTICAS SOCIAIS': '<i class="fas fa-hand-holding-heart"></i>', // Coração com mão (Social)
+        'SOCIEDADE': '<i class="fas fa-users"></i>',                      // Grupo de pessoas
+        'AMBIENTE': '<i class="fas fa-leaf"></i>'                        // Folha (Ecologia)
     };
+
+    // Caso o nome no banco de dados seja um pouco diferente, 
+    // verificamos se a chave existe, senão usamos o ícone de pasta padrão.
     return icons[n] || '<i class="fas fa-folder"></i>';
 }
 
