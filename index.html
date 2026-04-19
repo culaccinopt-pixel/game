@@ -505,6 +505,56 @@
     margin-bottom: 5px; /* Reduzi de 10px para 5px */
 }
 
+/* Estilo para a linha concluída (MAIS VERDE) */
+.row-done {
+    /* Fundo verde mais visível e sólido */
+    background: rgba(16, 185, 129, 0.15) !important; 
+    /* Cor do texto: um verde claro em vez de cinza */
+    color: #10b981 !important; 
+    text-decoration: line-through;
+    transition: 0.3s ease;
+}
+
+.row-done td {
+    /* Bordas entre as células também ficam verdes */
+    border-bottom: 1px solid rgba(16, 185, 129, 0.3) !important;
+}
+
+/* Pequeno detalhe: a primeira célula da linha ganha uma borda grossa à esquerda */
+.row-done td:first-child {
+    border-left: 4px solid #10b981 !important;
+}
+
+/* Deixar o check ✅ mais vibrante quando marcado */
+.row-done .td-check {
+    color: #fff;
+    text-shadow: 0 0 8px #10b981;
+    text-decoration: none !important; /* Não risca o check */
+    display: table-cell;
+}
+
+/* Estilo padrão da tag Bisneto */
+.bisneto-tag {
+    background: #1e293b;
+    color: #94a3b8;
+    padding: 6px 14px;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: 0.2s;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+/* Quando estiver selecionado */
+.bisneto-tag.active {
+    background: var(--accent) !important;
+    color: #000 !important;
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 10px var(--accent-glow);
+}
+
     </style>
 </head>
 <body>
@@ -744,23 +794,30 @@ function renderPosts() {
     const container = document.getElementById('posts-container');
     
     const posts = allDocs.filter(d => {
+        // Verifica se o documento é um "post" (tem textoHtml) ou uma tabela
+        if (!d.textoHtml) return false;
+
         const matchesPai = d.categoriaPai === state.pai;
         const matchesFilho = d.categoriaFilho === state.filho;
-        const matchesNeto = d.categoriaNeto === state.neto || d.nome === state.neto;
-        
-        // Se houver um bisneto selecionado, filtra por ele. 
-        // Se não, mostra tudo o que pertence ao neto.
+        const matchesNeto = d.categoriaNeto === state.neto;
+
+        // Se um bisneto está selecionado, o post PRECISA ter a categoriaBisneto igual
         if (state.bisneto) {
-            return matchesPai && matchesFilho && d.categoriaBisneto === state.bisneto;
+            return matchesPai && matchesFilho && matchesNeto && d.categoriaBisneto === state.bisneto;
         }
         
-        return matchesPai && matchesFilho && matchesNeto;
+        // Se NÃO há bisneto selecionado, mostra o que é apenas do Neto
+        return matchesPai && matchesFilho && matchesNeto && (!d.categoriaBisneto || d.categoriaBisneto === "");
     });
 
-    container.innerHTML = posts.filter(p => p.textoHtml).map(p => {
+    if (posts.length === 0) {
+        container.innerHTML = `<p style="color: var(--text-dim); font-size: 0.8rem; text-align: center; margin-top: 20px;">Nenhum registro encontrado nesta categoria.</p>`;
+        return;
+    }
+
+    container.innerHTML = posts.map(p => {
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = p.textoHtml;
-        tempDiv.querySelectorAll('button').forEach(btn => btn.remove());
         
         return `
             <div class="post-card" data-id="${p.id}">
@@ -811,54 +868,55 @@ function atualizarNavegacao() {
 }
 
 
-  window.filtrarPorNeto = (netoNome) => {
+window.filtrarPorNeto = (netoNome) => {
     state.neto = netoNome;
     
-    // 1. Busca todos os bisnetos deste neto e ordena pelo campo 'ordem'
+    // Busca e ordena bisnetos
     const bisnetos = allDocs
         .filter(d => d.categoria === 'bisneto' && d.categoriaNeto === netoNome)
         .sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
     
-    // 2. Se existirem bisnetos, seleciona automaticamente o primeiro (menor ordem)
-    if (bisnetos.length > 0) {
-        state.bisneto = bisnetos[0].nome;
-    } else {
-        state.bisneto = null;
-    }
+    // Auto-seleciona o primeiro bisneto se houver
+    state.bisneto = bisnetos.length > 0 ? bisnetos[0].nome : null;
     
-    // 3. Atualiza a navegação (Breadcrumb)
     atualizarNavegacao();
 
-    // 4. Atualiza o destaque visual nos botões de Netos
+    // Destaque nos botões de Netos
     document.querySelectorAll('.neto-btn').forEach(b => {
         b.classList.toggle('active', b.innerText.trim() === netoNome);
     });
 
-    // 5. Renderiza a área de Bisnetos
     const bisArea = document.getElementById('bisneto-area');
     if (bisnetos.length > 0) {
         bisArea.classList.remove('hidden');
-        bisArea.innerHTML = bisnetos.map(b => {
-            // Verifica se este é o bisneto selecionado para aplicar a cor
-            const isActive = state.bisneto === b.nome;
-            const style = isActive 
-                ? `background: var(--accent); color: #000; border-color: var(--accent);` 
-                : `background: #1e293b; color: var(--text-dim); border-color: var(--border);`;
-
-            return `
-                <div onclick="filtrarPorBisneto('${b.nome}')" 
-                     class="bisneto-tag"
-                     style="${style} padding: 5px 12px; border-radius: 4px; font-size: 0.65rem; border: 1px solid; cursor: pointer; transition: 0.2s; font-weight: bold; text-transform: uppercase;">
-                    ${b.nome}
-                </div>
-            `;
-        }).join('');
+        bisArea.innerHTML = bisnetos.map(b => `
+            <div onclick="filtrarPorBisneto('${b.nome}')" 
+                 class="bisneto-tag ${state.bisneto === b.nome ? 'active' : ''}">
+                ${b.nome}
+            </div>
+        `).join('');
     } else {
         bisArea.innerHTML = '';
         bisArea.classList.add('hidden');
     }
 
-    // 6. Carrega os posts (filtrando pelo bisneto selecionado automaticamente)
+    renderPosts();
+};
+
+window.filtrarPorBisneto = (bisnetoNome) => {
+    state.bisneto = bisnetoNome;
+    
+    atualizarNavegacao();
+
+    // Atualiza o visual dos botões (tags)
+    document.querySelectorAll('.bisneto-tag').forEach(tag => {
+        if (tag.innerText.trim() === bisnetoNome) {
+            tag.classList.add('active');
+        } else {
+            tag.classList.remove('active');
+        }
+    });
+
     renderPosts();
 };
 
