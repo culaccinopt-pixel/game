@@ -846,21 +846,27 @@ table td {
         </div>
 
 <div id="editor-area" class="hidden">
-<div class="editor-box">
-    <button class="btn-close-editor" onclick="cancelarEdicaoManual()">&times;</button>
-    <h3 id="editor-title" contenteditable="false" spellcheck="false">Nova Atualização</h3>
-    
-    <!-- O LUGAR CORRETO É AQUI -->
-    <div id="table-tools-container" contenteditable="false" style="display: none; gap: 8px; margin: 10px 0; flex-wrap: wrap;">
-        <button class="btn" onclick="adicionarLinhaTopo()" style="background:#16a34a; font-size:0.7rem; padding:8px 12px; border-radius:6px; flex:none; width:auto;">+ LINHA TOPO</button>
-        <button class="btn" onclick="adicionarLinhaFundo()" style="background:#16a34a; font-size:0.7rem; padding:8px 12px; border-radius:6px; flex:none; width:auto;">+ LINHA FUNDO</button>
-        <button class="btn" onclick="removerLinhaTopo()" style="background:#ef4444; font-size:0.7rem; padding:8px 12px; border-radius:6px; flex:none; width:auto;">- LINHA TOPO</button>
-        <button class="btn" onclick="removerLinhaFundo()" style="background:#ef4444; font-size:0.7rem; padding:8px 12px; border-radius:6px; flex:none; width:auto;">- LINHA BAIXO</button>
-    </div>
+    <div class="editor-box">
+        <button class="btn-close-editor" onclick="cancelarEdicaoManual()">&times;</button>
+        <h3 id="editor-title" contenteditable="false" spellcheck="false">Editor de Conteúdo</h3>
+        
+        <!-- FERRAMENTAS DO TOPO -->
+        <div id="table-tools-container" contenteditable="false" style="display: none; gap: 8px; margin: 10px 0; flex-wrap: wrap;">
+            <button class="btn" onclick="adicionarLinhaTopo()" style="background:#16a34a; font-size:0.7rem; padding:8px 12px; border-radius:6px;">+ LINHA TOPO</button>
+            <button class="btn" onclick="removerLinhaTopo()" style="background:#ef4444; font-size:0.7rem; padding:8px 12px; border-radius:6px;">- LINHA TOPO</button>
+        </div>
 
-    <div id="editor" contenteditable="true"></div>
-    <button onclick="salvarPost()" id="btnSalvar" class="btn btn-save">Publicar</button>
-</div>
+        <!-- ÁREA DO EDITOR -->
+        <div id="editor" contenteditable="true"></div>
+
+        <!-- FERRAMENTAS DO FUNDO (MOVIDAS PARA CÁ) -->
+        <div id="table-bottom-tools-container" contenteditable="false" style="display: none; gap: 8px; margin: 10px 0; flex-wrap: wrap;">
+            <button class="btn" onclick="adicionarLinhaFundo()" style="background:#16a34a; font-size:0.7rem; padding:8px 12px; border-radius:6px;">+ LINHA FUNDO</button>
+            <button class="btn" onclick="removerLinhaFundo()" style="background:#ef4444; font-size:0.7rem; padding:8px 12px; border-radius:6px;">- LINHA BAIXO</button>
+        </div>
+
+        <button onclick="salvarPost()" id="btnSalvar" class="btn btn-save">Publicar Atualização</button>
+    </div>
 </div>
 
 
@@ -1129,87 +1135,80 @@ function renderizarArvore(filtro = "") {
     const container = document.getElementById('tree-container');
     container.innerHTML = '';
 
-    // Lógica de Busca (Filtro simples)
-    if (filtro !== "") {
-        const resultados = allDocs.filter(d => d.nome.toLowerCase().includes(filtro));
-        resultados.forEach(res => {
-            const isActive = (currentManualTopic && currentManualTopic.id === res.id) ? 'active' : '';
-            const div = document.createElement('div');
-            div.className = 'tree-node';
-            div.style.border = "none";
-            div.innerHTML = `
-                <div style="display: flex; align-items: center;">
-                    <span class="tree-label ${isActive}" data-id="${res.id}" onclick="selecionarTopico('${res.id}')">🔍 ${res.nome}</span>
-                </div>`;
-            container.appendChild(div);
-        });
-        return;
-    }
-
     // --- NÍVEL 1: PAIS ---
-  const pais = allDocs.filter(d => d.categoria === 'pai').sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
-
-pais.forEach(p => {
-    const pDiv = document.createElement('div');
-    pDiv.className = 'tree-node';
-    const isActiveP = (currentManualTopic && currentManualTopic.id === p.id) ? 'active' : '';
+    const pais = allDocs.filter(d => d.categoria === 'pai').sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
     
-    // CORREÇÃO: Adicionado a classe "open" para iniciar aberto
-    const pBranch = document.createElement('div');
-    pBranch.className = 'tree-branch open'; 
+    pais.forEach(p => {
+        const pDiv = document.createElement('div');
+        pDiv.className = 'tree-node';
+        
+        // Verifica se este pai deve estar aberto (se é o pai do item selecionado ou se é um Pai padrão)
+        const isParentOfSelected = currentManualTopic && (currentManualTopic.categoriaPai === p.nome || currentManualTopic.nome === p.nome);
+        const isOpenP = isParentOfSelected ? 'open' : 'open'; // Mantemos 'open' pois você quer os pais sempre abertos
+        const iconP = '▼';
 
-    pDiv.innerHTML = `
-        <div style="display: flex; align-items: center;">
-            <span class="toggle-icon" onclick="toggleBranch(this)">▼</span>
-            <span class="tree-label ${isActiveP}" data-id="${p.id}" onclick="selecionarTopico('${p.id}')">📂 ${p.nome}</span>
-        </div>`;
+        const isActiveP = (currentManualTopic && currentManualTopic.id === p.id) ? 'active' : '';
+        const pBranch = document.createElement('div');
+        pBranch.className = `tree-branch ${isOpenP}`; 
+
+        pDiv.innerHTML = `
+            <div style="display: flex; align-items: center;">
+                <span class="toggle-icon" onclick="toggleBranch(this)">${iconP}</span>
+                <span class="tree-label ${isActiveP}" data-id="${p.id}" onclick="selecionarTopico('${p.id}')">📂 ${p.nome}</span>
+            </div>`;
         
         // --- NÍVEL 2: FILHOS ---
-        const filhos = allDocs.filter(d => d.categoria === 'filho' && d.categoriaPai === p.nome)
-                             .sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+        const filhos = allDocs.filter(d => d.categoria === 'filho' && d.categoriaPai === p.nome).sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
         
         filhos.forEach(f => {
             const fDiv = document.createElement('div');
             fDiv.className = 'tree-node';
-            const isActiveF = (currentManualTopic && currentManualTopic.id === f.id) ? 'active' : '';
             
+            // LÓGICA DE PERSISTÊNCIA: Verifica se este Filho é pai do item selecionado
+            const isParentOfSelectedF = currentManualTopic && (currentManualTopic.categoriaFilho === f.nome || currentManualTopic.nome === f.nome);
+            const isOpenF = isParentOfSelectedF ? 'open' : ''; 
+            const iconF = isParentOfSelectedF ? '▼' : '▶';
+
+            const isActiveF = (currentManualTopic && currentManualTopic.id === f.id) ? 'active' : '';
             const fBranch = document.createElement('div');
-            fBranch.className = 'tree-branch'; 
+            fBranch.className = `tree-branch ${isOpenF}`; 
 
             fDiv.innerHTML = `
                 <div style="display: flex; align-items: center;">
-                    <span class="toggle-icon" onclick="toggleBranch(this)">▶</span>
+                    <span class="toggle-icon" onclick="toggleBranch(this)">${iconF}</span>
                     <span class="tree-label ${isActiveF}" data-id="${f.id}" onclick="selecionarTopico('${f.id}')">📄 ${f.nome}</span>
                 </div>`;
             
             // --- NÍVEL 3: NETOS ---
-            const netos = allDocs.filter(d => d.categoria === 'neto' && d.categoriaFilho === f.nome && d.categoriaPai === p.nome)
-                                 .sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+            const netos = allDocs.filter(d => d.categoria === 'neto' && d.categoriaFilho === f.nome && d.categoriaPai === p.nome).sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
             
             netos.forEach(n => {
                 const nDiv = document.createElement('div');
                 nDiv.className = 'tree-node';
+
+                // LÓGICA DE PERSISTÊNCIA: Verifica se este Neto é pai do Bisneto selecionado
+                const isParentOfSelectedN = currentManualTopic && (currentManualTopic.categoriaNeto === n.nome || currentManualTopic.nome === n.nome);
+                const isOpenN = isParentOfSelectedN ? 'open' : '';
+                const iconN = isParentOfSelectedN ? '▼' : '▶';
+
                 const isActiveN = (currentManualTopic && currentManualTopic.id === n.id) ? 'active' : '';
-                
                 const nBranch = document.createElement('div');
-                nBranch.className = 'tree-branch';
+                nBranch.className = `tree-branch ${isOpenN}`;
 
                 nDiv.innerHTML = `
                     <div style="display: flex; align-items: center;">
-                        <span class="toggle-icon" onclick="toggleBranch(this)">▶</span>
+                        <span class="toggle-icon" onclick="toggleBranch(this)">${iconN}</span>
                         <span class="tree-label ${isActiveN}" data-id="${n.id}" onclick="selecionarTopico('${n.id}')">📜 ${n.nome}</span>
                     </div>`;
                 
                 // --- NÍVEL 4: BISNETOS ---
-                const bisnetos = allDocs.filter(d => d.categoria === 'bisneto' && d.categoriaNeto === n.nome)
-                                        .sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+                const bisnetos = allDocs.filter(d => d.categoria === 'bisneto' && d.categoriaNeto === n.nome).sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
                 
                 bisnetos.forEach(b => {
+                    const isActiveB = (currentManualTopic && currentManualTopic.id === b.id) ? 'active' : '';
                     const bDiv = document.createElement('div');
                     bDiv.className = 'tree-node';
-                    const isActiveB = (currentManualTopic && currentManualTopic.id === b.id) ? 'active' : '';
-                    bDiv.style.borderLeft = "none"; // Estética para o último nível
-                    
+                    bDiv.style.borderLeft = "none";
                     bDiv.innerHTML = `
                         <div style="display: flex; align-items: center; padding-left: 12px;">
                             <span class="tree-label ${isActiveB}" data-id="${b.id}" onclick="selecionarTopico('${b.id}')">└ ${b.nome}</span>
@@ -1217,24 +1216,18 @@ pais.forEach(p => {
                     nBranch.appendChild(bDiv);
                 });
 
-                // Adiciona o ramo de bisnetos se existirem, senão esconde a setinha do Neto
                 if(bisnetos.length > 0) nDiv.appendChild(nBranch);
                 else nDiv.querySelector('.toggle-icon').style.visibility = 'hidden';
-                
                 fBranch.appendChild(nDiv);
             });
 
-            // Adiciona o ramo de netos se existirem, senão esconde a setinha do Filho
             if(netos.length > 0) fDiv.appendChild(fBranch);
             else fDiv.querySelector('.toggle-icon').style.visibility = 'hidden';
-
             pBranch.appendChild(fDiv);
         });
 
-        // Adiciona o ramo de filhos se existirem, senão esconde a setinha do Pai
         if(filhos.length > 0) pDiv.appendChild(pBranch);
         else pDiv.querySelector('.toggle-icon').style.visibility = 'hidden';
-
         container.appendChild(pDiv);
     });
 }
@@ -1407,15 +1400,18 @@ window.abrirEditorNovaTabela = () => {
     manualEditId = null; 
     const editor = document.getElementById('editor');
     
-    // TRANCA o editor principal (impede digitar fora da tabela)
+    // TRANCA o editor principal para impedir digitar fora das células da tabela
     editor.contentEditable = "false";
     
     document.getElementById('editor-title').innerText = "Nova Tabela para: " + currentManualTopic.nome;
     
-    const tools = document.getElementById('table-tools-container');
-    if (tools) tools.style.display = 'flex';
+    // EXIBE as ferramentas de controle (Topo e Fundo)
+    document.getElementById('table-tools-container').style.display = 'flex';
+    if (document.getElementById('table-bottom-tools-container')) {
+        document.getElementById('table-bottom-tools-container').style.display = 'flex';
+    }
 
-    // Monta a tabela (as TDs continuam editáveis individualmente)
+    // Monta a estrutura da tabela (TDs individuais permanecem editáveis)
     let tableHtml = `
     <table style="width:100%; border-collapse: collapse; margin-top:10px; border: 1px solid #334155; background: #0f172a;">
         <thead style="background: #1e293b; user-select: none;">
@@ -1428,6 +1424,7 @@ window.abrirEditorNovaTabela = () => {
         </thead>
         <tbody>`; 
     
+    // Cria 10 linhas iniciais
     for (let i = 0; i < 10; i++) {
         tableHtml += `
         <tr>
@@ -1442,6 +1439,8 @@ window.abrirEditorNovaTabela = () => {
     tableHtml += `</tbody></table>`;
 
     editor.innerHTML = tableHtml;
+
+    // Mostra o editor e rola para o topo
     document.getElementById('editor-area').classList.remove('hidden');
     document.getElementById('main-scroll').scrollTo({ top: 0, behavior: 'smooth' });
 };
@@ -1511,15 +1510,10 @@ document.getElementById('btn-toggle-tree').addEventListener('click', () => {
 
   
 
-        window.editarPostManual = (id) => {
-            const p = allDocs.find(x => x.id === id);
-            manualEditId = id;
-            document.getElementById('editor').innerHTML = p.textoHtml;
-            document.getElementById('main-scroll').scrollTop = 0;
-        };
-
 window.salvarPost = async () => {
     const html = document.getElementById('editor').innerHTML;
+    
+    // Validação básica: não permite salvar post vazio
     if (!html || html.trim() === "" || html === "<br>") {
         alert("O conteúdo não pode estar vazio.");
         return;
@@ -1527,13 +1521,14 @@ window.salvarPost = async () => {
 
     try {
         if (manualEditId) {
-            // EDITANDO
+            // --- MODO EDIÇÃO ---
             await updateDoc(doc(db, "docs", manualEditId), { 
                 textoHtml: html,
                 updatedBy: currentUserId // Registra quem editou por último
             });
         } else {
-            // NOVO OU PLACEHOLDER
+            // --- MODO NOVO POST ---
+            // Verifica se existe um "placeholder" (item na árvore que ainda não tem conteúdo)
             const placeholder = allDocs.find(d =>
                 d.nome === currentManualTopic.nome &&
                 d.categoria === currentManualTopic.categoria &&
@@ -1543,39 +1538,56 @@ window.salvarPost = async () => {
                 (!d.textoHtml || d.textoHtml.trim() === "")
             );
 
-    if (placeholder) {
+            if (placeholder) {
+                // Atualiza o placeholder existente
                 await updateDoc(doc(db, "docs", placeholder.id), { 
                     textoHtml: html, 
                     createdAt: serverTimestamp(),
-                    userId: currentUserId // Registra o ID do criador
+                    userId: currentUserId 
                 });
             } else {
+                // Cria um documento totalmente novo se necessário
                 const novoPost = {
                     ...currentManualTopic,
                     textoHtml: html,
                     createdAt: serverTimestamp(),
-                    userId: currentUserId // Registra o ID do criador
+                    userId: currentUserId
                 };
-                delete novoPost.id; 
+                delete novoPost.id; // Remove o ID antigo para o Firebase gerar um novo
                 await addDoc(collection(db, "docs"), novoPost);
             }
         }
 
-        // --- FINALIZAÇÃO ---
+        // --- LIMPEZA DA INTERFACE ---
         
-        // 1. Esconde a área do editor e limpa o campo
+        // 1. Esconde a área do editor
         document.getElementById('editor-area').classList.add('hidden');
         document.getElementById('editor').innerHTML = "";
-        manualEditId = null; // Reseta o estado de edição
+        manualEditId = null; 
 
-        // 2. Recarrega todos os documentos do banco para atualizar a árvore e a lista local
+        // 2. Esconde as ferramentas de tabela (Topo e Fundo)
+        document.getElementById('table-tools-container').style.display = 'none';
+        if (document.getElementById('table-bottom-tools-container')) {
+            document.getElementById('table-bottom-tools-container').style.display = 'none';
+        }
+
+        // --- ATUALIZAÇÃO E SINCRONIZAÇÃO ---
+
+        // 3. Recarrega todos os documentos do banco para atualizar a árvore e a lista local
         await carregarTudo();
 
-        // 3. Atualiza a visualização do tópico onde o usuário está
+        // 4. Sincroniza o currentManualTopic com a nova versão baixada do banco
         if (currentManualTopic) {
+            const versaoNova = allDocs.find(d => d.id === currentManualTopic.id);
+            if (versaoNova) {
+                currentManualTopic = versaoNova; // Atualiza a referência local
+            }
+            
+            // 5. Re-seleciona o tópico para atualizar os posts na tela e manter o destaque na árvore
             selecionarTopico(currentManualTopic.id);
         }
 
+        console.log("Post publicado e interface sincronizada.");
 
     } catch (e) {
         console.error("Erro ao salvar post:", e);
@@ -1849,22 +1861,32 @@ window.abrirEditorNovoPost = () => {
 // Abre o editor para EDITAR um post existente
 window.editarPostManual = (id) => {
     const p = allDocs.find(x => x.id === id);
-    if(!p) return;
+    if (!p) return;
 
     manualEditId = id;
     const editor = document.getElementById('editor');
     editor.innerHTML = p.textoHtml;
 
-    // Se o conteúdo possuir uma tabela, trancamos a edição externa
+    // Lógica para detectar se o conteúdo é uma tabela ou texto livre
     if (p.textoHtml.includes('<table')) {
+        // Se for TABELA: Tranca o editor principal e mostra botões (Topo e Fundo)
         editor.contentEditable = "false";
         document.getElementById('table-tools-container').style.display = 'flex';
+        if (document.getElementById('table-bottom-tools-container')) {
+            document.getElementById('table-bottom-tools-container').style.display = 'flex';
+        }
     } else {
+        // Se for TEXTO: Libera o editor para escrita livre e esconde botões
         editor.contentEditable = "true";
         document.getElementById('table-tools-container').style.display = 'none';
+        if (document.getElementById('table-bottom-tools-container')) {
+            document.getElementById('table-bottom-tools-container').style.display = 'none';
+        }
     }
 
     document.getElementById('editor-title').innerText = "Editando Conteúdo";
+    
+    // Mostra o editor e rola para o topo
     document.getElementById('editor-area').classList.remove('hidden');
     document.getElementById('main-scroll').scrollTo({ top: 0, behavior: 'smooth' });
 };
@@ -1874,6 +1896,7 @@ window.cancelarEdicaoManual = () => {
     document.getElementById('editor-area').classList.add('hidden');
     document.getElementById('editor').innerHTML = "";
     document.getElementById('table-tools-container').style.display = 'none'; // Esconde ferramentas
+     document.getElementById('table-bottom-tools-container').style.display = 'none';
     manualEditId = null;
 };
 
@@ -2549,40 +2572,60 @@ document.addEventListener('drop', (e) => {
 // --- SISTEMA DE PROTEÇÃO ANTI-EDIÇÃO DE INTERFACE ---
 
 const bloquearAcoesProibidas = (e) => {
-    const alvoProtegido = e.target.closest('#table-tools-container') || e.target.closest('#editor-title');
+    // Identifica se o evento ocorreu dentro de alguma área que deve ser protegida
+    const alvoProtegido = e.target.closest('#table-tools-container') || 
+                         e.target.closest('#table-bottom-tools-container') || 
+                         e.target.closest('#editor-title');
     
     if (alvoProtegido) {
-        // Se for tentativa de digitação, apagar ou colar
-        if (['keydown', 'keypress', 'input', 'paste', 'beforeinput'].includes(e.type)) {
-            // Permite apenas teclas de comando (F5, PrintScreen, etc), bloqueia escrita
-            if (e.key && e.key.length === 1 || ['Enter', 'Backspace', 'Delete'].includes(e.key)) {
+        // Lista de eventos que tentam modificar o conteúdo
+        const eventosDeModificacao = ['keydown', 'keypress', 'input', 'paste', 'beforeinput'];
+
+        if (eventosDeModificacao.includes(e.type)) {
+            // Bloqueia se for uma tecla de caractere (length 1) ou teclas de edição (Enter, Back, Del)
+            // Permite teclas de comando puras (como F5, setas de navegação, Tab)
+            if (e.key && (e.key.length === 1 || ['Enter', 'Backspace', 'Delete'].includes(e.key))) {
                 e.preventDefault();
-                e.stopImmediatePropagation();
+                e.stopImmediatePropagation(); // Impede que outros scripts processem a tecla
+                console.warn("🛡️ Interface Blindada: Edição de controles proibida.");
             }
         }
     }
 };
 
-// Aplica o bloqueio na fase de captura (antes de qualquer outro script)
+// Aplica a proteção em todos os eventos de entrada de dados
+// O uso do 'true' no final (capture phase) garante que o bloqueio ocorra antes de qualquer outra ação
 ['keydown', 'keypress', 'input', 'paste', 'beforeinput'].forEach(event => {
     document.addEventListener(event, bloquearAcoesProibidas, true);
 });
 
-// "Ejetor" de Foco: Se o cursor de texto entrar no título ou botões, ele é expulso
-document.addEventListener('focusin', (e) => {
-    if (e.target.closest('#editor-title') || e.target.closest('#table-tools-container')) {
-        // Devolve o foco para o editor principal
-        const editor = document.getElementById('editor');
-        if (editor) editor.focus();
+// Impede que o usuário arraste e solte (drag and drop) textos ou arquivos para dentro dos botões
+document.addEventListener('drop', (e) => {
+    if (e.target.closest('#table-tools-container') || 
+        e.target.closest('#table-bottom-tools-container') || 
+        e.target.closest('#editor-title')) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
     }
 }, true);
 
-// Impede que o usuário arraste texto para dentro dos botões
-document.addEventListener('drop', (e) => {
-    if (e.target.closest('#table-tools-container') || e.target.closest('#editor-title')) {
-        e.preventDefault();
+// "Ejetor de Foco": Se por algum erro do navegador o cursor de texto (caret) 
+// entrar no título ou nos botões, ele é expulso de volta para o editor principal.
+document.addEventListener('focusin', (e) => {
+    const alvo = e.target.closest('#editor-title') || 
+                 e.target.closest('#table-tools-container') || 
+                 e.target.closest('#table-bottom-tools-container');
+                 
+    if (alvo) {
+        const editorPrincipal = document.getElementById('editor');
+        if (editorPrincipal) {
+            // Pequeno delay para garantir que o navegador processe o foco antes de mover
+            setTimeout(() => editorPrincipal.focus(), 10);
+        }
     }
 }, true);
+
+
 
     </script>
 </body>
