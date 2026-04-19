@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestor de Categorias - Editar/Eliminar</title>
+    <style>
+        :root { 
+            --primary: #fbbf24; 
+            --danger: #ef4444;
+            --bg: #0f172a; 
+            --card-bg: #1e293b; 
+            --text: #f8fafc; 
+            --text-muted: #94a3b8;
+            --border: #334155; 
+            --input-bg: #0f172a;
+        }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        .container { background: var(--card-bg); padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); width: 100%; max-width: 800px; border: 1px solid var(--border); }
+        
+        .nav-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .btn-nav { text-decoration: none; background: var(--border); color: var(--text); padding: 8px 15px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; }
+        
+        h2 { margin: 0 0 10px 0; color: var(--primary); text-align: center; }
+        p.subtitle { text-align: center; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 25px; }
+
+        /* Dropdowns Hierárquicos */
+        .selection-grid { 
+            display: grid; 
+            grid-template-columns: repeat(4, 1fr); 
+            gap: 10px; 
+            background: rgba(0,0,0,0.2); 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin-bottom: 25px;
+            border: 1px dashed var(--border);
+        }
+
+        /* Formulário */
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; opacity: 0.3; pointer-events: none; transition: 0.3s; }
+        .form-grid.active { opacity: 1; pointer-events: all; }
+
+        .full-width { grid-column: span 2; }
+        .field-group { display: flex; flex-direction: column; }
+        label { font-size: 0.75rem; font-weight: 600; margin-bottom: 4px; color: var(--text-muted); text-transform: uppercase; }
+        
+        input, select { padding: 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--input-bg); color: var(--text); outline: none; }
+        input:focus { border-color: var(--primary); }
+
+        /* Botões */
+        .actions { display: grid; grid-template-columns: 1fr 200px; gap: 10px; margin-top: 20px; }
+        
+        .btn-submit { background: var(--primary); color: #000; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-submit:hover { background: #fcd34d; }
+
+        .btn-delete { background: transparent; color: var(--danger); border: 1px solid var(--danger); padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-delete:hover { background: var(--danger); color: white; }
+
+        .btn-delete:disabled, .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="nav-bar">
+            <a href="index.html" class="btn-nav">← Voltar</a>
+            <span id="status-msg" style="font-size: 0.8rem; color: var(--primary);">Aguardando seleção...</span>
+        </div>
+        
+        <h2>Gestor de Documentos</h2>
+        <p class="subtitle">Navegue na hierarquia para editar ou excluir um registro</p>
+
+        <div class="selection-grid">
+            <div class="field-group"><label>Pai</label><select id="selPai"><option value="">-</option></select></div>
+            <div class="field-group"><label>Filho</label><select id="selFilho" disabled><option value="">-</option></select></div>
+            <div class="field-group"><label>Neto</label><select id="selNeto" disabled><option value="">-</option></select></div>
+            <div class="field-group"><label>Bisneto</label><select id="selBisneto" disabled><option value="">-</option></select></div>
+        </div>
+
+        <form id="editForm">
+            <div class="form-grid" id="formArea">
+                <div class="field-group full-width">
+                    <label>Nome do Registro</label>
+                    <input type="text" id="nome" required>
+                </div>
+
+                <div class="field-group">
+                    <label>Ordem</label>
+                    <input type="number" id="ordem">
+                </div>
+                
+                <div class="field-group">
+                    <label>Tags</label>
+                    <input type="text" id="tags">
+                </div>
+                
+                <div class="full-width actions">
+                    <button type="submit" class="btn-submit" id="btnSalvar">Salvar Alterações</button>
+                    <button type="button" class="btn-delete" id="btnEliminar">Eliminar Tópico</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, getDocs, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyDPLJ4Ln3Ton-DxsJ0tEKeioWHnV01Plo0",
+            authDomain: "politicalgame-30215.firebaseapp.com",
+            projectId: "politicalgame-30215",
+            storageBucket: "politicalgame-30215.firebasestorage.app",
+            messagingSenderId: "736655823319",
+            appId: "1:736655823319:web:60ebdc530e101784b9bb92"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let localData = [];
+        let currentDocId = null;
+
+        const selects = {
+            pai: document.getElementById('selPai'),
+            filho: document.getElementById('selFilho'),
+            neto: document.getElementById('selNeto'),
+            bisneto: document.getElementById('selBisneto')
+        };
+        const formArea = document.getElementById('formArea');
+        const statusMsg = document.getElementById('status-msg');
+
+        // Carregar dados
+        async function loadData() {
+            const querySnapshot = await getDocs(collection(db, "docs"));
+            localData = querySnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+            populatePai();
+        }
+
+        function populatePai() {
+            const pais = localData.filter(d => d.categoria === 'pai');
+            renderOptions(selects.pai, pais);
+        }
+
+        function renderOptions(selectElement, items) {
+            selectElement.innerHTML = '<option value="">Selecione...</option>';
+            items.sort((a, b) => (a.ordem || 0) - (b.ordem || 0)).forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item.id;
+                opt.innerText = item.nome;
+                selectElement.appendChild(opt);
+            });
+            selectElement.disabled = items.length === 0;
+        }
+
+        function getNomeById(id) { return localData.find(d => d.id === id)?.nome; }
+
+        function resetBelow(level) {
+            if(level === 'pai') { selects.filho.innerHTML = '-'; selects.filho.disabled = true; selects.neto.innerHTML = '-'; selects.neto.disabled = true; selects.bisneto.innerHTML = '-'; selects.bisneto.disabled = true; }
+            if(level === 'filho') { selects.neto.innerHTML = '-'; selects.neto.disabled = true; selects.bisneto.innerHTML = '-'; selects.bisneto.disabled = true; }
+            if(level === 'neto') { selects.bisneto.innerHTML = '-'; selects.bisneto.disabled = true; }
+            formArea.classList.remove('active');
+            currentDocId = null;
+        }
+
+        // Lógica de encadeamento dos selects
+        selects.pai.addEventListener('change', (e) => {
+            const val = e.target.value;
+            resetBelow('pai');
+            if(val) {
+                const filhos = localData.filter(d => d.categoria === 'filho' && d.categoriaPai === getNomeById(val));
+                renderOptions(selects.filho, filhos);
+                loadDocToForm(val);
+            }
+        });
+
+        selects.filho.addEventListener('change', (e) => {
+            const val = e.target.value;
+            resetBelow('filho');
+            if(val) {
+                const netos = localData.filter(d => d.categoria === 'neto' && d.categoriaFilho === getNomeById(val));
+                renderOptions(selects.neto, netos);
+                loadDocToForm(val);
+            }
+        });
+
+        selects.neto.addEventListener('change', (e) => {
+            const val = e.target.value;
+            resetBelow('neto');
+            if(val) {
+                const bisnetos = localData.filter(d => d.categoria === 'bisneto' && d.categoriaNeto === getNomeById(val));
+                renderOptions(selects.bisneto, bisnetos);
+                loadDocToForm(val);
+            }
+        });
+
+        selects.bisneto.addEventListener('change', (e) => {
+            if(e.target.value) loadDocToForm(e.target.value);
+        });
+
+        function loadDocToForm(id) {
+            const docData = localData.find(d => d.id === id);
+            if(!docData) return;
+            currentDocId = id;
+            document.getElementById('nome').value = docData.nome || '';
+            document.getElementById('ordem').value = docData.ordem || 0;
+            document.getElementById('tags').value = docData.tags || '';
+            formArea.classList.add('active');
+            statusMsg.innerText = `Selecionado: ${docData.nome}`;
+        }
+
+        // AÇÃO: ATUALIZAR
+        document.getElementById('editForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if(!currentDocId) return;
+            const btn = document.getElementById('btnSalvar');
+            btn.disabled = true;
+            try {
+                await updateDoc(doc(db, "docs", currentDocId), {
+                    nome: document.getElementById('nome').value,
+                    ordem: parseInt(document.getElementById('ordem').value),
+                    tags: document.getElementById('tags').value
+                });
+                alert("Atualizado com sucesso!");
+                location.reload();
+            } catch (error) { alert("Erro ao atualizar."); btn.disabled = false; }
+        });
+
+        // AÇÃO: ELIMINAR
+        document.getElementById('btnEliminar').addEventListener('click', async () => {
+            if(!currentDocId) return;
+            
+            const confirmacao = confirm("TEM CERTEZA?\nEsta ação é irreversível e excluirá este item permanentemente.");
+            
+            if(confirmacao) {
+                const btn = document.getElementById('btnEliminar');
+                btn.disabled = true;
+                btn.innerText = "Eliminando...";
+                try {
+                    await deleteDoc(doc(db, "docs", currentDocId));
+                    alert("Documento eliminado com sucesso!");
+                    location.reload();
+                } catch (error) {
+                    alert("Erro ao eliminar documento.");
+                    btn.disabled = false;
+                    btn.innerText = "Eliminar Tópico";
+                }
+            }
+        });
+
+        loadData();
+    </script>
+</body>
+</html>
