@@ -769,6 +769,48 @@ table td {
 }
 
 
+/* Estilo da Trilha de Navegação (Breadcrumb) */
+.breadcrumb-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #94a3b8;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+}
+
+.breadcrumb-nav .path-item {
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.breadcrumb-nav .path-item:hover {
+    color: var(--accent);
+}
+
+.breadcrumb-nav .separator {
+    color: #475569;
+    font-weight: bold;
+}
+
+.breadcrumb-nav .current-path {
+    color: var(--accent);
+    font-weight: bold;
+}
+
+/* Destaque para o item selecionado na árvore */
+.tree-label.active {
+    background: rgba(99, 102, 241, 0.2); /* Fundo leve do accent */
+    color: var(--accent) !important;
+    font-weight: bold;
+    border-left: 2px solid var(--accent);
+    padding-left: 8px !important; /* Ajuste para não bater na borda */
+}
+
     </style>
 </head>
 <body>
@@ -798,6 +840,7 @@ table td {
 </aside>
 
     <main class="main-content" id="main-scroll">
+          <div id="breadcrumb-container"></div> 
         <div id="content-header">
             <p style="color: #94a3b8;">Selecione um tópico ou use as ferramentas laterais.</p>
         </div>
@@ -1086,41 +1129,49 @@ function renderizarArvore(filtro = "") {
     const container = document.getElementById('tree-container');
     container.innerHTML = '';
 
+    // Lógica de Busca (Filtro simples)
     if (filtro !== "") {
         const resultados = allDocs.filter(d => d.nome.toLowerCase().includes(filtro));
         resultados.forEach(res => {
+            const isActive = (currentManualTopic && currentManualTopic.id === res.id) ? 'active' : '';
             const div = document.createElement('div');
             div.className = 'tree-node';
             div.style.border = "none";
             div.innerHTML = `
                 <div style="display: flex; align-items: center;">
-                    <span class="tree-label" onclick="selecionarTopico('${res.id}')">🔍 ${res.nome}</span>
+                    <span class="tree-label ${isActive}" data-id="${res.id}" onclick="selecionarTopico('${res.id}')">🔍 ${res.nome}</span>
                 </div>`;
             container.appendChild(div);
         });
         return;
     }
 
-    // Nível 1: PAIS
-    const pais = allDocs.filter(d => d.categoria === 'pai').sort((a, b) => a.ordem - b.ordem);
-    pais.forEach(p => {
-        const pDiv = document.createElement('div');
-        pDiv.className = 'tree-node';
-        
-        const pBranch = document.createElement('div');
-        pBranch.className = 'tree-branch open'; 
+    // --- NÍVEL 1: PAIS ---
+  const pais = allDocs.filter(d => d.categoria === 'pai').sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
 
-        pDiv.innerHTML = `
-            <div style="display: flex; align-items: center;">
-                <span class="toggle-icon" onclick="toggleBranch(this)">▼</span>
-                <span class="tree-label" onclick="selecionarTopico('${p.id}')">📂 ${p.nome}</span>
-            </div>`;
+pais.forEach(p => {
+    const pDiv = document.createElement('div');
+    pDiv.className = 'tree-node';
+    const isActiveP = (currentManualTopic && currentManualTopic.id === p.id) ? 'active' : '';
+    
+    // CORREÇÃO: Adicionado a classe "open" para iniciar aberto
+    const pBranch = document.createElement('div');
+    pBranch.className = 'tree-branch open'; 
+
+    pDiv.innerHTML = `
+        <div style="display: flex; align-items: center;">
+            <span class="toggle-icon" onclick="toggleBranch(this)">▼</span>
+            <span class="tree-label ${isActiveP}" data-id="${p.id}" onclick="selecionarTopico('${p.id}')">📂 ${p.nome}</span>
+        </div>`;
         
-        // Nível 2: FILHOS
-        const filhos = allDocs.filter(d => d.categoria === 'filho' && d.categoriaPai === p.nome).sort((a, b) => a.ordem - b.ordem);
+        // --- NÍVEL 2: FILHOS ---
+        const filhos = allDocs.filter(d => d.categoria === 'filho' && d.categoriaPai === p.nome)
+                             .sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+        
         filhos.forEach(f => {
             const fDiv = document.createElement('div');
             fDiv.className = 'tree-node';
+            const isActiveF = (currentManualTopic && currentManualTopic.id === f.id) ? 'active' : '';
             
             const fBranch = document.createElement('div');
             fBranch.className = 'tree-branch'; 
@@ -1128,14 +1179,17 @@ function renderizarArvore(filtro = "") {
             fDiv.innerHTML = `
                 <div style="display: flex; align-items: center;">
                     <span class="toggle-icon" onclick="toggleBranch(this)">▶</span>
-                    <span class="tree-label" onclick="selecionarTopico('${f.id}')">📄 ${f.nome}</span>
+                    <span class="tree-label ${isActiveF}" data-id="${f.id}" onclick="selecionarTopico('${f.id}')">📄 ${f.nome}</span>
                 </div>`;
             
-            // Nível 3: NETOS
-            const netos = allDocs.filter(d => d.categoria === 'neto' && d.categoriaFilho === f.nome && d.categoriaPai === p.nome).sort((a, b) => a.ordem - b.ordem);
+            // --- NÍVEL 3: NETOS ---
+            const netos = allDocs.filter(d => d.categoria === 'neto' && d.categoriaFilho === f.nome && d.categoriaPai === p.nome)
+                                 .sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+            
             netos.forEach(n => {
                 const nDiv = document.createElement('div');
                 nDiv.className = 'tree-node';
+                const isActiveN = (currentManualTopic && currentManualTopic.id === n.id) ? 'active' : '';
                 
                 const nBranch = document.createElement('div');
                 nBranch.className = 'tree-branch';
@@ -1143,34 +1197,41 @@ function renderizarArvore(filtro = "") {
                 nDiv.innerHTML = `
                     <div style="display: flex; align-items: center;">
                         <span class="toggle-icon" onclick="toggleBranch(this)">▶</span>
-                        <span class="tree-label" onclick="selecionarTopico('${n.id}')">📜 ${n.nome}</span>
+                        <span class="tree-label ${isActiveN}" data-id="${n.id}" onclick="selecionarTopico('${n.id}')">📜 ${n.nome}</span>
                     </div>`;
                 
-                // Nível 4: BISNETOS
-                const bisnetos = allDocs.filter(d => d.categoria === 'bisneto' && d.categoriaNeto === n.nome).sort((a, b) => a.ordem - b.ordem);
+                // --- NÍVEL 4: BISNETOS ---
+                const bisnetos = allDocs.filter(d => d.categoria === 'bisneto' && d.categoriaNeto === n.nome)
+                                        .sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+                
                 bisnetos.forEach(b => {
                     const bDiv = document.createElement('div');
                     bDiv.className = 'tree-node';
-                    bDiv.style.borderLeft = "none";
+                    const isActiveB = (currentManualTopic && currentManualTopic.id === b.id) ? 'active' : '';
+                    bDiv.style.borderLeft = "none"; // Estética para o último nível
+                    
                     bDiv.innerHTML = `
                         <div style="display: flex; align-items: center; padding-left: 12px;">
-                            <span class="tree-label" onclick="selecionarTopico('${b.id}')">└ ${b.nome}</span>
+                            <span class="tree-label ${isActiveB}" data-id="${b.id}" onclick="selecionarTopico('${b.id}')">└ ${b.nome}</span>
                         </div>`;
                     nBranch.appendChild(bDiv);
                 });
 
+                // Adiciona o ramo de bisnetos se existirem, senão esconde a setinha do Neto
                 if(bisnetos.length > 0) nDiv.appendChild(nBranch);
                 else nDiv.querySelector('.toggle-icon').style.visibility = 'hidden';
                 
                 fBranch.appendChild(nDiv);
             });
 
+            // Adiciona o ramo de netos se existirem, senão esconde a setinha do Filho
             if(netos.length > 0) fDiv.appendChild(fBranch);
             else fDiv.querySelector('.toggle-icon').style.visibility = 'hidden';
 
             pBranch.appendChild(fDiv);
         });
 
+        // Adiciona o ramo de filhos se existirem, senão esconde a setinha do Pai
         if(filhos.length > 0) pDiv.appendChild(pBranch);
         else pDiv.querySelector('.toggle-icon').style.visibility = 'hidden';
 
@@ -1289,6 +1350,38 @@ async function executarToggleFinal(cell, novoEstado) {
             } catch (e) { console.error(e); }
         }
     }
+}
+
+function atualizarBreadcrumb() {
+    const container = document.getElementById('breadcrumb-container');
+    if (!currentManualTopic) {
+        container.innerHTML = "";
+        return;
+    }
+
+    let html = `<div class="breadcrumb-nav">`;
+    
+    // Item Raiz
+    html += `<span class="path-item" onclick="location.reload()">SISTEMA</span>`;
+
+    // Monta a hierarquia baseada nos campos do documento
+    if (currentManualTopic.categoriaPai) {
+        html += `<span class="separator">></span><span class="path-item">${currentManualTopic.categoriaPai}</span>`;
+    }
+    
+    if (currentManualTopic.categoriaFilho) {
+        html += `<span class="separator">></span><span class="path-item">${currentManualTopic.categoriaFilho}</span>`;
+    }
+    
+    if (currentManualTopic.categoriaNeto) {
+        html += `<span class="separator">></span><span class="path-item">${currentManualTopic.categoriaNeto}</span>`;
+    }
+
+    // Item Atual (Onde o usuário clicou)
+    html += `<span class="separator">></span><span class="current-path">${currentManualTopic.nome}</span>`;
+    
+    html += `</div>`;
+    container.innerHTML = html;
 }
 
 // Função para abrir/fechar ramos individualmente clicando na setinha
@@ -1931,12 +2024,24 @@ window.listarItensGestao = (col) => {
 };
 
 window.selecionarTopico = async (id) => {
+    // --- NOVO: Lógica de destaque visual ---
+    // Remove a classe 'active' de todos os itens
+    document.querySelectorAll('.tree-label').forEach(el => el.classList.remove('active'));
+    
+    // Adiciona a classe 'active' no item que tem o data-id igual ao id clicado
+    const itemClicado = document.querySelector(`.tree-label[data-id="${id}"]`);
+    if (itemClicado) itemClicado.classList.add('active');
+    // ---------------------------------------
+
     const docEncontrado = allDocs.find(d => d.id === id);
     if (!docEncontrado) return;
 
     currentManualTopic = docEncontrado;
     manualEditId = null;
     document.getElementById('editor-area').classList.add('hidden');
+
+    // ATUALIZA A LINHA DE NAVEGAÇÃO NO TOPO
+    atualizarBreadcrumb();
 
     // --- LOGS DE INÍCIO ---
     console.group("🔍 FILTRANDO CONTEÚDO PARA O TÓPICO");
