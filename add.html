@@ -3,597 +3,104 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestor Master - Manual & Regras</title>
+    <title>Criar Tópico - Dark Mode</title>
     <style>
         :root { 
-            --primary: #1e293b; --accent: #6366f1; --bg: #0f172a; 
-            --white: #f8fafc; --border: #334155; --card-bg: #1e293b;
-            --danger: #ef4444; --success: #16a34a; --warning: #f59e0b;
+            --primary: #818cf8; 
+            --bg: #0f172a; 
+            --card-bg: #1e293b; 
+            --text: #f8fafc; 
+            --text-muted: #94a3b8;
+            --border: #334155; 
+            --input-bg: #0f172a;
         }
-body { 
-    font-family: 'Segoe UI', sans-serif; 
-    margin: 0; 
-    display: flex; 
-    height: 100vh; 
-    background: var(--bg); 
-    color: var(--white); 
-    overflow: hidden; 
-}
-
-        /* Sidebars */
-.sidebar { 
-    width: 280px; 
-    background: #1e293b; 
-    padding: 20px; 
-    overflow-y: auto; 
-    flex-shrink: 0; 
-    border-right: 1px solid var(--border); 
-    transition: 0.3s ease;
-    z-index: 1001;
-}
-
-        .sidebar-right { border-right: none; border-left: 1px solid var(--border); }
-        .main-content { 
-    flex: 1; 
-    overflow-y: auto; 
-    padding: 30px; 
-    scroll-behavior: smooth; 
-}
-        
-        /* Componentes */
-        .side-group { background: #0f172a; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid var(--border); }
-        .side-btn-row { display: flex; gap: 8px; margin-top: 10px; }
-        .btn { border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s; color: white; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
-        .btn-icon { width: 38px; height: 38px; font-size: 1.1rem; }
-        .btn-add { background: var(--success); }
-        .btn-view { background: #475569; }
-        .btn-edit { background: var(--warning); padding: 5px 10px; font-size: 0.7rem; }
-        .btn-delete { background: var(--danger); padding: 5px 10px; font-size: 0.7rem; }
-        .btn-save { background: var(--accent); width: 100%; padding: 12px; margin-top: 10px; }
-
-        /* Árvore */
-        .tree-node { margin-left: 15px; border-left: 1px dashed #475569; padding-left: 10px; }
-        .tree-label { padding: 5px; cursor: pointer; font-size: 0.85rem; display: block; border-radius: 4px; color: #cbd5e1; }
-        .tree-label:hover { background: #334155; color: var(--accent); }
-
-        /* Editor e Itens */
-        .editor-box { background: #1e293b; padding: 20px; border: 2px solid var(--accent); border-radius: 8px; margin-bottom: 30px; }
-        #editor { min-height: 120px; border: 1px solid var(--border); padding: 10px; margin: 10px 0; border-radius: 4px; background: #0f172a; color: white; outline: none; }
-        .post-card { background: var(--card-bg); border: 1px solid var(--border); padding: 15px; border-radius: 8px; margin-bottom: 15px; }
-        .item-row { background: #1e293b; padding: 15px; margin-bottom: 10px; border-radius: 8px; border-left: 4px solid var(--accent); display: flex; justify-content: space-between; align-items: center; }
-
-        /* Modal */
-        .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 1000; visibility: hidden; opacity: 0; transition: 0.3s; }
-        .modal-overlay.active { visibility: visible; opacity: 1; }
-        .modal-content { background: #1e293b; padding: 25px; border-radius: 12px; width: 650px; border: 1px solid var(--accent); max-height: 90vh; overflow-y: auto; }
-        
-        .vinculo-row { background: #0f172a; padding: 15px; border-radius: 8px; margin-bottom: 10px; border: 1px solid var(--border); position: relative; }
-        .btn-remove-link { position: absolute; top: 5px; right: 5px; background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.2rem; }
-        
-        label { font-size: 0.65rem; color: #94a3b8; text-transform: uppercase; margin-top: 8px; display: block; }
-        input, textarea, select { width: 100%; background: #0f172a; border: 1px solid var(--border); color: white; padding: 8px; margin-top: 4px; border-radius: 4px; box-sizing: border-box; }
-        select:disabled { opacity: 0.2; cursor: not-allowed; }
-
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        .container { background: var(--card-bg); padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); width: 100%; max-width: 700px; border: 1px solid var(--border); }
+        .nav-bar { display: flex; justify-content: space-between; margin-bottom: 20px; }
+        .btn-nav { text-decoration: none; background: var(--border); color: var(--text); padding: 8px 15px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; transition: 0.3s; }
+        .btn-nav:hover { background: #475569; }
+        h2 { margin: 0 0 20px 0; color: var(--primary); text-align: center; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .full-width { grid-column: span 2; }
+        .field-group { display: flex; flex-direction: column; }
+        label { font-size: 0.85rem; font-weight: 600; margin-bottom: 4px; color: var(--text-muted); }
+        input, select { padding: 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--input-bg); color: var(--text); outline: none; min-height: 38px; }
+        input:focus, select:focus { border-color: var(--primary); }
         .hidden { display: none; }
-
-
-        /* Estilos para a árvore colapsável */
-.tree-branch { display: none; margin-left: 15px; border-left: 1px dashed #475569; }
-.tree-branch.open { display: block; }
-.tree-node { position: relative; margin-bottom: 2px; }
-
-/* Indicador de expansão (setinha) */
-.toggle-icon { 
-    cursor: pointer; 
-    font-size: 0.7rem; 
-    margin-right: 5px; 
-    color: var(--accent);
-    display: inline-block;
-    width: 10px;
-}
-
-/* Estilos para o Check nos Cards de Gestão */
-.card-check { position: absolute; top: 10px; right: 10px; cursor: pointer; font-size: 1.2rem; z-index: 5; color: #475569; }
-.card-check.checked { color: var(--success); }
-.done-card { border: 2px solid var(--success) !important; background: rgba(22, 163, 74, 0.05) !important; }
-.post-card, .item-row { position: relative; }
-
-/* Modais de Usuários e Desfazer */
-.modal-check { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 2000; }
-.check-content { background: #1e293b; padding: 25px; border-radius: 12px; border: 1px solid var(--accent); width: 320px; text-align: center; }
-.user-opt { padding: 12px; margin-bottom: 8px; background: #0f172a; border-radius: 6px; cursor: pointer; border: 1px solid var(--border); transition: 0.2s; }
-.user-opt:hover { background: var(--accent); }
-
-/* Barra de Topo exclusiva para Mobile */
-.mobile-nav {
-    display: none;
-    background: #1e293b;
-    padding: 10px 15px;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid var(--border);
-    position: sticky;
-    top: 0;
-    z-index: 1002;
-}
-
-/* Responsividade Geral */
-@media (max-width: 1024px) {
-    .sidebar {
-        position: fixed;
-        top: 0;
-        bottom: 0;
-        left: -300px; /* Esconde a esquerda */
-        width: 260px;
-        box-shadow: 10px 0 20px rgba(0,0,0,0.5);
-    }
-    
-    .sidebar-right {
-        left: auto;
-        right: -300px; /* Esconde a direita */
-        border-right: none;
-        border-left: 1px solid var(--border);
-    }
-
-    .sidebar.active { left: 0; }
-    .sidebar-right.active { right: 0; }
-
-    .mobile-nav { display: flex; }
-    
-    .main-content { padding: 15px; }
-
-    /* Overlay para fechar menus ao clicar fora */
-    .overlay-screen {
-        display: none;
-        position: fixed;
-        top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.6);
-        z-index: 1000;
-    }
-    .overlay-screen.active { display: block; }
-
-    .modal-content { width: 95%; padding: 15px; }
-}
-
-/* Ajustes de toque */
-.btn-icon { width: 44px; height: 44px; } /* Botões maiores no mobile */
-.tree-label { padding: 10px 5px; font-size: 0.95rem; }
-
-
-:root { 
-    --primary: #1e293b; --accent: #6366f1; --bg: #0f172a; 
-    --white: #f8fafc; --border: #334155; --card-bg: #1e293b;
-    --danger: #ef4444; --success: #16a34a; --warning: #f59e0b;
-}
-
-* { box-sizing: border-box; }
-
-body { 
-    font-family: 'Segoe UI', system-ui, sans-serif; 
-    margin: 0; 
-    display: flex; 
-    flex-direction: row; /* Desktop padrão */
-    height: 100vh; 
-    background: var(--bg); 
-    color: var(--white); 
-    overflow: hidden; 
-}
-
-/* Barra de Topo Mobile */
-.mobile-nav {
-    display: none;
-    width: 100%;
-    background: var(--primary);
-    padding: 12px 15px;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid var(--border);
-    z-index: 1100;
-}
-
-/* Sidebars */
-.sidebar { 
-    width: 280px; 
-    background: var(--primary); 
-    padding: 20px; 
-    overflow-y: auto; 
-    flex-shrink: 0; 
-    border-right: 1px solid var(--border); 
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    z-index: 1001;
-}
-
-.sidebar-right { border-right: none; border-left: 1px solid var(--border); }
-
-.main-content { 
-    flex: 1; 
-    overflow-y: auto; 
-    padding: 30px; 
-    scroll-behavior: smooth; 
-    background: var(--bg);
-}
-
-/* Componentes */
-.side-group { background: #0f172a; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid var(--border); }
-.side-btn-row { display: flex; gap: 8px; margin-top: 10px; }
-.btn { border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; color: white; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; padding: 10px; }
-.btn-icon { width: 40px; height: 40px; font-size: 1.1rem; }
-.btn-add { background: var(--success); }
-.btn-view { background: #475569; }
-.btn-edit { background: var(--warning); padding: 6px 12px; font-size: 0.75rem; }
-.btn-delete { background: var(--danger); padding: 6px 12px; font-size: 0.75rem; }
-.btn-save { background: var(--accent); width: 100%; padding: 14px; margin-top: 10px; font-size: 1rem; }
-
-/* Árvore */
-.tree-node { margin-left: 10px; border-left: 1px dashed #475569; padding-left: 10px; }
-.tree-label { padding: 8px 5px; cursor: pointer; font-size: 0.9rem; display: block; border-radius: 4px; color: #cbd5e1; word-break: break-word; }
-.tree-label:hover { background: #334155; color: var(--accent); }
-
-/* Editor e Cards */
-.editor-box { background: #1e293b; padding: 15px; border: 2px solid var(--accent); border-radius: 8px; margin-bottom: 20px; }
-#editor { min-height: 150px; border: 1px solid var(--border); padding: 12px; margin: 10px 0; border-radius: 4px; background: #0f172a; color: white; outline: none; overflow-y: auto; }
-.post-card { background: var(--card-bg); border: 1px solid var(--border); padding: 18px; border-radius: 12px; margin-bottom: 15px; position: relative; }
-.item-row { background: #1e293b; padding: 15px; margin-bottom: 10px; border-radius: 8px; border-left: 4px solid var(--accent); display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-
-/* Modais */
-.modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 1200; visibility: hidden; opacity: 0; transition: 0.3s; padding: 15px; }
-.modal-overlay.active { visibility: visible; opacity: 1; }
-.modal-content { background: #1e293b; padding: 20px; border-radius: 12px; width: 100%; max-width: 600px; border: 1px solid var(--accent); max-height: 90vh; overflow-y: auto; }
-
-/* Estilos de Check */
-.card-check { cursor: pointer; font-size: 1.3rem; color: #475569; padding: 5px; transition: 0.2s; }
-.card-check.checked { color: var(--success); }
-.done-card { border: 2px solid var(--success) !important; background: rgba(22, 163, 74, 0.05) !important; }
-
-/* Overlay de fundo para mobile */
-.overlay-screen {
-    display: none;
-    position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.7);
-    z-index: 1000;
-    backdrop-filter: blur(2px);
-}
-
-/* RESPONSIVIDADE (MOBILE) */
-@media (max-width: 1024px) {
-    body { flex-direction: column; }
-
-    .mobile-nav { display: flex; }
-
-    .sidebar {
-        position: fixed;
-        top: 0;
-        bottom: 0;
-        left: 0;
-        width: 280px;
-        max-width: 85%;
-        transform: translateX(-100%); /* Escondido */
-        box-shadow: 10px 0 30px rgba(0,0,0,0.5);
-    }
-    
-    .sidebar-right {
-        left: auto;
-        right: 0;
-        transform: translateX(100%); /* Escondido */
-    }
-
-    .sidebar.active { transform: translateX(0); }
-    .overlay-screen.active { display: block; }
-
-    .main-content { padding: 15px; padding-bottom: 80px; }
-
-    .item-row { flex-wrap: wrap; }
-    .item-row .btn { flex: 1; text-align: center; }
-
-    .vinculo-row { padding: 10px; }
-    .vinculo-row div { grid-template-columns: 1fr !important; } /* Coluna única no mobile para vínculos */
-}
-
-/* Estilo para o botão X de fechar o modal */
-.modal-content {
-    position: relative; /* Necessário para posicionar o X em relação ao card */
-}
-
-.btn-close-modal {
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    background: none;
-    border: none;
-    color: #94a3b8;
-    font-size: 1.8rem;
-    line-height: 1;
-    cursor: pointer;
-    transition: 0.2s;
-}
-
-.btn-close-modal:hover {
-    color: var(--danger);
-}
-
-/* Submenu de Abas */
-.tabs-container {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 10px;
-    overflow-x: auto;
-}
-.tab-btn {
-    background: #1e293b;
-    border: 1px solid var(--border);
-    color: #94a3b8;
-    padding: 8px 16px;
-    border-radius: 20px;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: 0.3s;
-    font-size: 0.85rem;
-}
-.tab-btn.active {
-    background: var(--accent);
-    color: white;
-    border-color: var(--accent);
-}
-.tab-btn:hover:not(.active) {
-    background: #334155;
-}
-.badge-count {
-    background: rgba(0,0,0,0.3);
-    padding: 2px 6px;
-    border-radius: 10px;
-    margin-left: 5px;
-    font-size: 0.7rem;
-}
-
-/* RESPONSIVIDADE (MOBILE) */
-@media (max-width: 1024px) {
-    body { 
-        flex-direction: column; 
-    }
-
-    .mobile-nav { 
-        display: flex; 
-        position: fixed; /* Fixa no topo */
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 60px; /* Altura definida */
-        background: #1e293b;
-        border-bottom: 2px solid var(--accent);
-        padding: 0 15px;
-        justify-content: space-between;
-        align-items: center;
-        z-index: 1100; /* Garante que fique acima de tudo */
-        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-    }
-
-    /* Ajuste para o conteúdo não começar por baixo da barra fixa */
-    .main-content { 
-        margin-top: 60px; 
-        padding: 15px; 
-        padding-bottom: 100px; 
-        height: calc(100vh - 60px);
-    }
-
-    .sidebar {
-        z-index: 1200; /* Sidebar deve abrir por cima da barra */
-    }
-
-    /* Botões do topo mais parecidos com a imagem */
-    .mobile-nav .btn-view {
-        background: #334155;
-        border-radius: 8px;
-        font-size: 0.8rem;
-        padding: 8px 12px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 2px;
-        line-height: 1;
-    }
-}
-
-@media (max-width: 1024px) {
-    body { flex-direction: column; }
-
-    /* Estilo base para ambas as sidebars no mobile */
-    .sidebar {
-        position: fixed;
-        top: 0;
-        bottom: 0;
-        width: 280px;
-        max-width: 85%;
-        z-index: 1200;
-        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 0 0 20px rgba(0,0,0,0.5);
-    }
-
-    /* Painel da Esquerda (Menu) */
-    .sidebar:not(.sidebar-right) {
-        left: 0;
-        transform: translateX(-100%); /* Esconde para a esquerda */
-    }
-
-    /* Painel da Direita (Ferramentas) - O FIX ESTÁ AQUI */
-    .sidebar-right {
-        left: auto !important; /* Anula o left original */
-        right: 0 !important;   /* Fixa na direita */
-        transform: translateX(100%) !important; /* Esconde para a direita */
-        border-left: 1px solid var(--border);
-        border-right: none;
-    }
-
-    /* Quando qualquer uma estiver ativa, volta para a posição 0 */
-    .sidebar.active {
-        transform: translateX(0) !important;
-    }
-
-    /* Ajuste da barra do topo mobile para não sobrepor */
-    .mobile-nav {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        z-index: 1100;
-        height: 60px;
-    }
-
-    .main-content {
-        margin-top: 60px;
-    }
-}
-
+        .toolbar { display: flex; gap: 5px; background: #334155; border: 1px solid var(--border); border-bottom: none; padding: 5px; border-radius: 6px 6px 0 0; }
+        .toolbar button { cursor: pointer; border: 1px solid #475569; background: #1e293b; color: white; padding: 2px 10px; border-radius: 4px; font-weight: bold; }
+        #editor { min-height: 120px; border: 1px solid var(--border); border-radius: 0 0 6px 6px; padding: 10px; background: var(--input-bg); overflow-y: auto; }
+        .btn-submit { background: var(--primary); color: white; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 15px; transition: 0.3s; }
+        .btn-submit:hover { background: #6366f1; }
+        .auto-info { font-size: 0.7rem; color: #22c55e; margin-top: 4px; }
     </style>
 </head>
 <body>
-
-    <!-- Div para escurecer o fundo ao abrir menu no celular -->
-<div class="overlay-screen" id="overlay" onclick="closeAllMenus()"></div>
-
- <aside class="sidebar">
-   <div class="side-btn-row" style="margin-bottom:20px">
-    <a href="index.html" class="btn btn-view btn-icon" title="Visualizar">👁</a>
-    <a href="add.html" class="btn btn-add btn-icon" title="Adicionar Estrutura">＋</a>
-    <a href="worldedit.html" class="btn btn-icon" style="background: #8b5cf6;" title="World Edit">🌐</a>
-</div>
-
-    <!-- Cabeçalho com Ícone de Olho -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-        <h3 style="font-size:0.8rem; color:var(--accent); margin: 0;">ESTRUTURA MANUAL</h3>
-        <span id="btn-toggle-tree" style="cursor: pointer; font-size: 1.1rem;" title="Expandir/Recolher">👁️</span>
-    </div>
-
-    <!-- Barra de Pesquisa -->
-    <input type="text" id="search-manual" placeholder="Pesquisar tópico..." 
-           style="margin-bottom: 15px; height: 30px; font-size: 0.8rem; background: #0f172a; border: 1px solid var(--border); border-radius: 4px; color: white; padding: 0 10px;">
-    
-    <div id="tree-container">Carregando...</div>
-</aside>
-
-    <main class="main-content" id="main-scroll">
-        <div id="content-header">
-            <p style="color: #94a3b8;">Selecione um tópico ou use as ferramentas laterais.</p>
+    <div class="container">
+        <div class="nav-bar">
+            <a href="index.html" class="btn-nav">← Ver Manual</a>
+            <a href="gestor.html" class="btn-nav">Ir para Gestor →</a>
         </div>
+        <h2>Novo Tópico</h2>
+        <form id="meuFormulario">
+            <div class="form-grid">
+                <div class="field-group full-width">
+                    <label>Nome do Novo Tópico</label>
+                    <input type="text" id="nome" required placeholder="Ex: Ações de Patrulha">
+                </div>
 
-        <div id="editor-area" class="hidden">
-            <div class="editor-box">
-                <h3 id="editor-title">Nova Atualização</h3>
-                <div id="editor" contenteditable="true"></div>
-                <button onclick="salvarPost()" id="btnSalvar" class="btn btn-save">Publicar</button>
-                <button onclick="cancelarEdicaoManual()" class="btn btn-save" style="background:#475569; margin-top:5px">Cancelar</button>
+                <div class="field-group full-width">
+                    <label>Nível da Categoria</label>
+                    <select id="categoria" required>
+                        <option value="pai">Pai (Raiz)</option>
+                        <option value="filho">Filho</option>
+                        <option value="neto">Neto</option>
+                        <option value="bisneto">Bisneto</option>
+                    </select>
+                </div>
+
+                <!-- Dropdowns Dependentes -->
+                <div class="field-group hidden" id="group-pai">
+                    <label>Vincular ao Pai</label>
+                    <select id="catPai"><option value="">Selecione o Pai...</option></select>
+                </div>
+
+                <div class="field-group hidden" id="group-filho">
+                    <label>Vincular ao Filho</label>
+                    <select id="catFilho"><option value="">Selecione o Filho...</option></select>
+                </div>
+
+                <div class="field-group hidden" id="group-neto">
+                    <label>Vincular ao Neto</label>
+                    <select id="catNeto"><option value="">Selecione o Neto...</option></select>
+                </div>
+
+                <div class="field-group">
+                    <label>Ordem</label>
+                    <input type="number" id="ordem" placeholder="0">
+                    <span id="ordem-info" class="auto-info">Sugerido automaticamente</span>
+                </div>
+                
+                <div class="field-group"><label>Tags</label><input type="text" id="tags" placeholder="segurança, patrulha"></div>
+
+                <div class="field-group full-width">
+                    <label>Conteúdo Inicial</label>
+                    <div class="toolbar">
+                        <button type="button" onclick="formatDoc('bold')">B</button>
+                        <button type="button" onclick="formatDoc('italic')">I</button>
+                        <button type="button" onclick="formatDoc('formatBlock', 'h2')">Título</button>
+                    </div>
+                    <div id="editor" contenteditable="true"></div>
+                </div>
             </div>
-        </div>
-
-        <div id="dynamic-list"></div>
-    </main>
-
-<aside class="sidebar sidebar-right">
-    <div class="side-group">
-        <h4>1. LEGISLAÇÕES</h4>
-        <div class="side-btn-row">
-            <button class="btn btn-add btn-icon" onclick="abrirModalGestao('legislacoes')">+</button>
-            <button class="btn btn-view btn-icon" onclick="listarItensGestao('legislacoes')">!</button>
-        </div>
+            <button type="submit" class="btn-submit" id="btnGravar">Gravar no Firebase</button>
+        </form>
     </div>
-    <div class="side-group">
-        <h4>2. CONSTRUÇÕES</h4>
-        <div class="side-btn-row">
-            <button class="btn btn-add btn-icon" onclick="abrirModalGestao('construcoes')">+</button>
-            <button class="btn btn-view btn-icon" onclick="listarItensGestao('construcoes')">!</button>
-        </div>
-    </div>
-    <div class="side-group">
-        <h4>3. AÇÕES</h4>
-        <div class="side-btn-row">
-            <button class="btn btn-add btn-icon" onclick="abrirModalGestao('acoes')">+</button>
-            <button class="btn btn-view btn-icon" onclick="listarItensGestao('acoes')">!</button>
-        </div>
-    </div>
-
-    <!-- NOVA SEÇÃO ADICIONADA AQUI -->
-    <div class="side-group">
-        <h4>4. MÍDIA</h4>
-        <div class="side-btn-row">
-            <button class="btn btn-add btn-icon" onclick="abrirModalGestao('midia')">+</button>
-            <button class="btn btn-view btn-icon" onclick="listarItensGestao('midia')">!</button>
-        </div>
-    </div>
-</aside>
-
-
-  
-       <div class="modal-overlay" id="modal">
-        <div class="modal-content">
-            <!-- Botão X adicionado aqui -->
-            <button class="btn-close-modal" onclick="fecharModal()">&times;</button>
-            
-            <h3 id="modal-title">Item</h3>
-            <label>Nome</label>
-            <input type="text" id="m-nome">
-            <label>Descrição</label>
-            <textarea id="m-desc" rows="2"></textarea>
-
-            <div id="vinculos-container" style="margin-top: 20px; border-top: 1px solid var(--border); padding-top: 15px;">
-                <p style="font-size:0.75rem; color:var(--accent); font-weight:bold;">VÍNCULOS COM O MANUAL</p>
-            </div>
-            
-            <button class="btn btn-view" style="width:100%; margin-top:10px; font-size:0.7rem; height:30px;" onclick="addLinhaVinculo()">+ ADICIONAR OUTRO VÍNCULO</button>
-            <button class="btn btn-save" onclick="salvarItemGestao()">Gravar</button>
-            
-            <!-- Botão Cancelar removido daqui -->
-        </div>
-    </div>
-
-    <!-- Modal Seleção de Usuário -->
-<div id="user-modal" class="modal-check">
-    <div class="check-content">
-        <h3 style="margin-top:0; color:var(--accent)">Concluir como:</h3>
-        <div id="user-options-list"></div>
-        <button onclick="fecharModaisCheck()" style="background:none; border:none; color:gray; cursor:pointer; margin-top:10px;">Cancelar</button>
-    </div>
-</div>
-
-<!-- Modal Desfazer -->
-<div id="undo-modal" class="modal-check">
-    <div class="check-content">
-        <h3 style="color:var(--accent)">Desfazer Ação?</h3>
-        <p style="font-size:0.9rem; color:#94a3b8">Deseja remover a marcação de concluído?</p>
-        <div style="display:flex; gap:10px; margin-top:20px;">
-            <button onclick="confirmarDesfazer()" style="flex:1; padding:10px; background:var(--accent); border:none; border-radius:6px; color:white; cursor:pointer;">Sim</button>
-            <button onclick="fecharModaisCheck()" style="flex:1; padding:10px; background:#475569; border:none; border-radius:6px; color:white; cursor:pointer;">Não</button>
-        </div>
-    </div>
-</div>
-
-
-<div class="mobile-nav">
-    <button class="btn btn-view" onclick="toggleSidebar('left')">
-        <span style="font-size: 1.2rem;">☰</span>
-        <span></span>
-    </button>
-    
-    <div style="text-align: center;">
-        <div style="font-weight: bold; color: var(--accent); font-size: 0.7rem; letter-spacing: 1px;">GESTOR</div>
-        <div style="font-weight: bold; color: #fff; font-size: 0.9rem;">MASTER</div>
-    </div>
-    
-    <button class="btn btn-view" onclick="toggleSidebar('right')">
-        <span></span>
-        <span style="font-size: 1rem;">⚙️</span>
-    </button>
-</div>
-
-
-
 
     <script type="module">
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { getFirestore, collection, addDoc, getDocs, query, orderBy, where, serverTimestamp, doc, getDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        
         const firebaseConfig = {
             apiKey: "AIzaSyDPLJ4Ln3Ton-DxsJ0tEKeioWHnV01Plo0",
             authDomain: "politicalgame-30215.firebaseapp.com",
@@ -604,976 +111,133 @@ body {
         };
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-const auth = getAuth(app);
 
+        let localData = [];
+        const categoriaSelect = document.getElementById('categoria');
+        const ordemInput = document.getElementById('ordem');
+        const selects = {
+            pai: document.getElementById('catPai'),
+            filho: document.getElementById('catFilho'),
+            neto: document.getElementById('catNeto')
+        };
 
-   // --- BLOCO DE SEGURANÇA OBRIGATÓRIO ---
-    onAuthStateChanged(auth, async (user) => {
-        if (!user) {
-            // Se não estiver logado, vai para o login
-            window.location.href = "login.html";
-        } else {
-            // Se estiver logado, verifica o status no Firestore
-            const userRef = doc(db, "users", user.uid);
-            const userSnap = await getDoc(userRef);
-
-            if (userSnap.exists() && userSnap.data().status === true) {
-                // SÓ CARREGA OS DADOS SE STATUS FOR TRUE
-                carregarTudo(); 
-            } else {
-                alert("Acesso negado. A sua conta ainda não foi aprovada.");
-                await signOut(auth);
-                window.location.href = "login.html";
-            }
+        // 1. Carregar dados iniciais e popular o primeiro nível (Pai)
+        async function init() {
+            const querySnapshot = await getDocs(collection(db, "docs"));
+            localData = querySnapshot.docs.map(doc => doc.data());
+            
+            populateParents();
+            calculateOrdem();
         }
-    });
 
-        let allDocs = [];
-        let currentManualTopic = null;
-        let manualEditId = null;
-        let currentGestaoCol = "";
-        let gestaoEditId = null;
-let allUsers = [];
-let currentTaskRef = null;
-let currentViewData = { posts: [], legislacoes: [], construcoes: [], acoes: [], midia: [] };
+        function populateParents() {
+            const dropdown = selects.pai;
+            const nomesUnicos = [...new Set(localData.filter(d => d.categoria === 'pai').map(d => d.nome))];
+            dropdown.innerHTML = '<option value="">Selecione o Pai...</option>';
+            nomesUnicos.sort().forEach(nome => {
+                const opt = document.createElement('option');
+                opt.value = nome; opt.innerText = nome; dropdown.appendChild(opt);
+            });
+        }
 
-async function carregarTudo() {
-    // Busca os documentos do manual
-    const snapManual = await getDocs(query(collection(db, "docs"), orderBy("createdAt", "asc")));
-    allDocs = snapManual.docs.map(d => ({id: d.id, ...d.data()}));
-
-    // Busca os usuários para o check
-    const uSnap = await getDocs(collection(db, "users"));
-    allUsers = uSnap.docs.map(d => ({id: d.id, nome: d.data().nome}));
-
-    renderizarArvore();
-}
-
-        // --- LÓGICA DE PESQUISA ---
-document.getElementById('search-manual').addEventListener('input', (e) => {
-    const termo = e.target.value.toLowerCase();
-    if (termo.length > 0) {
-        renderizarArvore(termo); // Passa o termo para a função de renderização
-    } else {
-        renderizarArvore(); // Volta ao normal
-    }
-});
-
-// --- LÓGICA DE COLAPSAR LISTA ---
-document.getElementById('btn-toggle-tree').addEventListener('click', () => {
-    const container = document.getElementById('tree-container');
-    const btn = document.getElementById('btn-toggle-tree');
-    
-    if (container.style.display === "none") {
-        container.style.display = "block";
-        btn.innerText = "👁️";
-        btn.style.opacity = "1";
-    } else {
-        container.style.display = "none";
-        btn.innerText = "🙈";
-        btn.style.opacity = "0.5";
-    }
-});
-
-
-function renderizarArvore(filtro = "") {
-    const container = document.getElementById('tree-container');
-    container.innerHTML = '';
-
-    if (filtro !== "") {
-        const resultados = allDocs.filter(d => d.nome.toLowerCase().includes(filtro));
-        resultados.forEach(res => {
-            const div = document.createElement('div');
-            div.className = 'tree-node';
-            div.innerHTML = `<span class="tree-label" onclick="selecionarTopico('${res.id}')">🔍 ${res.nome}</span>`;
-            container.appendChild(div);
-        });
-        return;
-    }
-
-    // Nível 1: PAIS
-    const pais = allDocs.filter(d => d.categoria === 'pai').sort((a, b) => a.ordem - b.ordem);
-    pais.forEach(p => {
-        const pDiv = document.createElement('div');
-        pDiv.className = 'tree-node';
-        
-        // Contêiner para os filhos do Pai
-        const pBranch = document.createElement('div');
-        pBranch.className = 'tree-branch open'; // PAI E FILHO ABERTOS POR PADRÃO
-        
-        pDiv.innerHTML = `<span class="toggle-icon" onclick="toggleBranch(this)">▼</span>
-                          <span class="tree-label" style="display:inline" onclick="selecionarTopico('${p.id}')">📁 ${p.nome}</span>`;
-        
-        // Nível 2: FILHOS
-        const filhos = allDocs.filter(d => d.categoria === 'filho' && d.categoriaPai === p.nome).sort((a, b) => a.ordem - b.ordem);
-        filhos.forEach(f => {
-            const fDiv = document.createElement('div');
-            fDiv.className = 'tree-node';
+        // 2. Lógica de Dropdowns Dependentes (Filtro por Hierarquia)
+        selects.pai.addEventListener('change', () => {
+            const paiSelecionado = selects.pai.value;
+            const dropdown = selects.filho;
             
-            // Contêiner para os netos do Filho
-            const fBranch = document.createElement('div');
-            fBranch.className = 'tree-branch'; // NETO FECHADO POR PADRÃO
-            
-            fDiv.innerHTML = `<span class="toggle-icon" onclick="toggleBranch(this)">▶</span>
-                              <span class="tree-label" style="display:inline" onclick="selecionarTopico('${f.id}')">📄 ${f.nome}</span>`;
-            
-            // Nível 3: NETOS
-            const netos = allDocs.filter(d => d.categoria === 'neto' && d.categoriaFilho === f.nome && d.categoriaPai === p.nome).sort((a, b) => a.ordem - b.ordem);
-            netos.forEach(n => {
-                const nDiv = document.createElement('div');
-                nDiv.className = 'tree-node';
-                
-                const nBranch = document.createElement('div');
-                nBranch.className = 'tree-branch'; // BISNETO FECHADO POR PADRÃO
-                
-                nDiv.innerHTML = `<span class="toggle-icon" onclick="toggleBranch(this)">▶</span>
-                                  <span class="tree-label" style="display:inline" onclick="selecionarTopico('${n.id}')">📜 ${n.nome}</span>`;
-                
-                // Nível 4: BISNETOS
-                const bisnetos = allDocs.filter(d => d.categoria === 'bisneto' && d.categoriaNeto === n.nome).sort((a, b) => a.ordem - b.ordem);
-                bisnetos.forEach(b => {
-                    const bDiv = document.createElement('div');
-                    bDiv.className = 'tree-node';
-                    bDiv.style.marginLeft = "15px";
-                    bDiv.innerHTML = `<span class="tree-label" onclick="selecionarTopico('${b.id}')">└ ${b.nome}</span>`;
-                    nBranch.appendChild(bDiv);
-                });
+            // Filtra: apenas filhos cujo campo 'categoriaPai' seja o pai selecionado
+            const nomesFilhos = [...new Set(localData
+                .filter(d => d.categoria === 'filho' && d.categoriaPai === paiSelecionado)
+                .map(d => d.nome))];
 
-                if(bisnetos.length > 0) nDiv.appendChild(nBranch);
-                else nDiv.querySelector('.toggle-icon').style.visibility = 'hidden';
-                
-                fBranch.appendChild(nDiv);
+            dropdown.innerHTML = '<option value="">Selecione o Filho...</option>';
+            nomesFilhos.sort().forEach(nome => {
+                const opt = document.createElement('option');
+                opt.value = nome; opt.innerText = nome; dropdown.appendChild(opt);
             });
 
-            if(netos.length > 0) fDiv.appendChild(fBranch);
-            else fDiv.querySelector('.toggle-icon').style.visibility = 'hidden';
-
-            pBranch.appendChild(fDiv);
+            // Reseta o neto se o pai mudar
+            selects.neto.innerHTML = '<option value="">Selecione o Neto...</option>';
+            calculateOrdem();
         });
 
-        pDiv.appendChild(pBranch);
-        container.appendChild(pDiv);
-    });
-}
-
-function renderizarPaginaTopico(abaAtiva) {
-    const list = document.getElementById('dynamic-list');
-    
-    // Header
-    let html = `
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: #1e293b; padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
-            <div>
-                <h3 style="margin:0; color:var(--accent)">${currentManualTopic.nome}</h3>
-                <small style="color:gray">${currentManualTopic.categoria.toUpperCase()}</small>
-            </div>
-            <button class="btn btn-add" onclick="abrirEditorNovoPost()" style="padding: 8px 20px; height: auto;">+ POST</button>
-        </div>
-    `;
-
-    // Renderizar Submenu de Abas
-    html += `<div class="tabs-container">`;
-    html += `<button class="tab-btn ${abaAtiva === 'tudo' ? 'active' : ''}" onclick="renderizarPaginaTopico('tudo')">Tudo</button>`;
-    
-    const labels = { legislacoes: 'Leis', construcoes: 'Construções', acoes: 'Ações', midia: 'Mídia' };
-    
-    for (const key in labels) {
-        const qtd = currentViewData[key].length;
-        if (qtd > 0) {
-            html += `
-                <button class="tab-btn ${abaAtiva === key ? 'active' : ''}" onclick="renderizarPaginaTopico('${key}')">
-                    ${labels[key]} <span class="badge-count">${qtd}</span>
-                </button>`;
-        }
-    }
-    html += `</div><div id="tab-content"></div>`;
-    list.innerHTML = html;
-
-    renderizarConteudoAba(abaAtiva);
-}
-
-function renderizarConteudoAba(aba) {
-    const container = document.getElementById('tab-content');
-    container.innerHTML = "";
-
-    // Unificar o que será exibido
-    let itensParaExibir = [];
-
-    if (aba === 'tudo' || aba === 'posts') {
-        currentViewData.posts.forEach(p => itensParaExibir.push({ ...p, type: 'post' }));
-    }
-    
-    const colecoes = ['legislacoes', 'construcoes', 'acoes', 'midia'];
-    colecoes.forEach(col => {
-        if (aba === 'tudo' || aba === col) {
-            currentViewData[col].forEach(item => itensParaExibir.push({ ...item, type: 'gestao', colOrigem: col }));
-        }
-    });
-
-    // Renderizar na tela
-    itensParaExibir.forEach(item => {
-        const isDone = item.status === 'done';
-        const card = document.createElement('div');
-        
-        if (item.type === 'post') {
-            card.className = `post-card ${isDone ? 'done-card' : ''}`;
-            card.innerHTML = `
-                <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('docs', '${item.id}', ${isDone})">${isDone ? '✅' : '✔️'}</div>
-                <div style="margin-bottom:15px">${item.textoHtml || ''}</div>
-                <div style="display: flex; gap: 10px;">
-                    <button class="btn btn-edit" onclick="editarPostManual('${item.id}')">EDITAR</button>
-                </div>`;
-        } else {
-            card.className = `item-row ${isDone ? 'done-card' : ''}`;
-            card.style.flexDirection = "column";
-            card.style.alignItems = "flex-start";
-            card.innerHTML = `
-                <div style="display:flex; width:100%; justify-content:space-between; align-items:center">
-                    <div style="display:flex; align-items:center">
-                        <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('${item.colOrigem}', '${item.id}', ${isDone})">${isDone ? '✅' : '✔️'}</div>
-                        <strong style="color:var(--accent)">[${item.colOrigem.toUpperCase()}] ${item.nome}</strong>
-                    </div>
-                    <button class="btn btn-edit" onclick="abrirModalGestao('${item.colOrigem}', '${item.id}')">Ver Detalhes</button>
-                </div>
-                <p style="font-size:0.8rem; color:#94a3b8; margin: 10px 0 0 35px;">${item.descricao || ''}</p>
-            `;
-        }
-        container.appendChild(card);
-    });
-}
-
-// Função para abrir/fechar ramos individualmente clicando na setinha
-window.toggleBranch = (el) => {
-    const node = el.parentElement;
-    const branch = node.querySelector('.tree-branch');
-    if (branch) {
-        const isOpen = branch.classList.contains('open');
-        branch.classList.toggle('open');
-        el.innerText = isOpen ? "▶" : "▼";
-    }
-};
-
-// BOTÃO DO OLHO: Fecha TUDO, deixando apenas os Pais visíveis
-document.getElementById('btn-toggle-tree').addEventListener('click', () => {
-    // Busca todos os ramos da árvore
-    const allBranches = document.querySelectorAll('.tree-branch');
-    const allIcons = document.querySelectorAll('.toggle-icon');
-    
-    allBranches.forEach(b => b.classList.remove('open')); // Fecha tudo
-    allIcons.forEach(i => i.innerText = "▶"); // Reseta setinhas para "fechado"
-    
-    // Opcional: Se quiser dar um feedback visual no botão
-    const btn = document.getElementById('btn-toggle-tree');
-    btn.classList.add('pulse'); // Exemplo de efeito
-    setTimeout(() => btn.classList.remove('pulse'), 500);
-});
-
-  
-
-        window.editarPostManual = (id) => {
-            const p = allDocs.find(x => x.id === id);
-            manualEditId = id;
-            document.getElementById('editor').innerHTML = p.textoHtml;
-            document.getElementById('main-scroll').scrollTop = 0;
-        };
-
-window.salvarPost = async () => {
-    const html = document.getElementById('editor').innerHTML;
-    
-    // 1. Validação básica: não permitir post sem conteúdo
-    if (!html || html.trim() === "" || html === "<br>") {
-        alert("O conteúdo não pode estar vazio.");
-        return;
-    }
-
-    try {
-        if (manualEditId) {
-            // --- CASO A: EDITANDO UM POST EXISTENTE ---
-            await updateDoc(doc(db, "docs", manualEditId), { 
-                textoHtml: html 
-            });
-            console.log("Post atualizado com sucesso.");
-        } else {
-            // --- CASO B: CRIANDO UM NOVO POST ---
+        selects.filho.addEventListener('change', () => {
+            const filhoSelecionado = selects.filho.value;
+            const dropdown = selects.neto;
             
-            // Procuramos se já existe um documento "vazio" (placeholder) para esta categoria exata.
-            // Isso acontece quando você apaga o último post mas a categoria permanece na árvore.
-            const placeholder = allDocs.find(d =>
-                d.nome === currentManualTopic.nome &&
-                d.categoria === currentManualTopic.categoria &&
-                d.categoriaPai === (currentManualTopic.categoriaPai || null) &&
-                d.categoriaFilho === (currentManualTopic.categoriaFilho || null) &&
-                d.categoriaNeto === (currentManualTopic.categoriaNeto || null) &&
-                (!d.textoHtml || d.textoHtml.trim() === "")
-            );
+            // Filtra: apenas netos cujo campo 'categoriaFilho' seja o filho selecionado
+            const nomesNetos = [...new Set(localData
+                .filter(d => d.categoria === 'neto' && d.categoriaFilho === filhoSelecionado)
+                .map(d => d.nome))];
 
-            if (placeholder) {
-                // Se encontramos um documento vazio, apenas preenchemos ele.
-                await updateDoc(doc(db, "docs", placeholder.id), { 
-                    textoHtml: html, 
-                    createdAt: serverTimestamp(),
-                    status: '', // Reseta status se estiver salvando algo novo
-                    concluidoPor: ''
-                });
-                console.log("Documento existente preenchido.");
-            } else {
-                // Se não existe nenhum documento para essa categoria, cria um novo do zero.
-                const novoPost = {
-                    ...currentManualTopic, // Copia a hierarquia (pai, filho, etc)
-                    textoHtml: html,
-                    createdAt: serverTimestamp(),
-                    status: '',
-                    concluidoPor: ''
-                };
-                // Remove o ID do objeto de origem para o Firebase gerar um novo ID único
-                delete novoPost.id; 
-                
-                await addDoc(collection(db, "docs"), novoPost);
-                console.log("Novo documento criado.");
-            }
-        }
+            dropdown.innerHTML = '<option value="">Selecione o Neto...</option>';
+            nomesNetos.sort().forEach(nome => {
+                const opt = document.createElement('option');
+                opt.value = nome; opt.innerText = nome; dropdown.appendChild(opt);
+            });
 
-        // --- FINALIZAÇÃO ---
-        
-        // 1. Esconde a área do editor e limpa o campo
-        document.getElementById('editor-area').classList.add('hidden');
-        document.getElementById('editor').innerHTML = "";
-        manualEditId = null; // Reseta o estado de edição
-
-        // 2. Recarrega todos os documentos do banco para atualizar a árvore e a lista local
-        await carregarTudo();
-
-        // 3. Atualiza a visualização do tópico onde o usuário está
-        if (currentManualTopic) {
-            selecionarTopico(currentManualTopic.id);
-        }
-
-        alert("Gravado com sucesso!");
-
-    } catch (e) {
-        console.error("Erro ao salvar post:", e);
-        alert("Erro técnico ao salvar. Verifique o console.");
-    }
-};
-
-        // --- GESTÃO LEGISLAÇÕES (CORREÇÃO FILTROS) ---
-window.abrirModalGestao = (col, id = null) => {
-    currentGestaoCol = col;
-    gestaoEditId = id;
-    
-    // 1. Montar o título dinâmico com a hierarquia
-    let tituloBreadcrumb = "Item";
-    if (currentManualTopic) {
-        let partes = [];
-        // Adicionamos os nomes conforme a hierarquia existente
-        if (currentManualTopic.categoriaPai) partes.push(currentManualTopic.categoriaPai);
-        if (currentManualTopic.categoriaFilho) partes.push(currentManualTopic.categoriaFilho);
-        if (currentManualTopic.categoriaNeto) partes.push(currentManualTopic.categoriaNeto);
-        
-        // O nome do tópico atual (seja ele pai, filho, neto ou bisneto)
-        partes.push(currentManualTopic.nome);
-        
-        tituloBreadcrumb = "Item: " + partes.join(" > ");
-    }
-
-    // 2. Aplicar o título no HTML
-    const modalTitleEl = document.getElementById('modal-title');
-    modalTitleEl.innerText = tituloBreadcrumb;
-    modalTitleEl.style.fontSize = "0.85rem"; // Ajuste para caber nomes longos
-    modalTitleEl.style.color = "var(--accent)";
-
-    // 3. Abrir o modal e limpar/preencher campos
-    document.getElementById('modal').classList.add('active');
-    document.getElementById('vinculos-container').innerHTML = '';
-
-    if(!id) {
-        // NOVO ITEM
-        document.getElementById('m-nome').value = "";
-        document.getElementById('m-desc').value = "";
-
-        let vinculoInicial = null;
-        if (currentManualTopic) {
-            vinculoInicial = { pai: "", filho: "", neto: "", bisneto: "" };
-            const cat = currentManualTopic.categoria;
-            const nome = currentManualTopic.nome;
-
-            if (cat === 'pai') {
-                vinculoInicial.pai = nome;
-            } else if (cat === 'filho') {
-                vinculoInicial.pai = currentManualTopic.categoriaPai;
-                vinculoInicial.filho = nome;
-            } else if (cat === 'neto') {
-                vinculoInicial.pai = currentManualTopic.categoriaPai;
-                vinculoInicial.filho = currentManualTopic.categoriaFilho;
-                vinculoInicial.neto = nome;
-            } else if (cat === 'bisneto') {
-                vinculoInicial.pai = currentManualTopic.categoriaPai;
-                vinculoInicial.filho = currentManualTopic.categoriaFilho;
-                vinculoInicial.neto = currentManualTopic.categoriaNeto;
-                vinculoInicial.bisneto = nome;
-            }
-        }
-        addLinhaVinculo(vinculoInicial);
-    } else {
-        // EDIÇÃO
-        carregarParaEditarGestao(id);
-    }
-};
-
-        async function carregarParaEditarGestao(id) {
-            const snap = await getDocs(collection(db, currentGestaoCol));
-            const item = snap.docs.find(d => d.id === id).data();
-            document.getElementById('m-nome').value = item.nome;
-            document.getElementById('m-desc').value = item.descricao || "";
-            if(item.vinculos) item.vinculos.forEach(v => addLinhaVinculo(v));
-        }
-
-        window.addLinhaVinculo = (data = null) => {
-            const container = document.getElementById('vinculos-container');
-            const rowId = "row-" + Date.now() + Math.random();
-            const div = document.createElement('div');
-            div.className = 'vinculo-row';
-            div.id = rowId;
-            div.innerHTML = `
-                <button class="btn-remove-link" onclick="document.getElementById('${rowId}').remove()">×</button>
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
-                    <div><label>Pai</label><select class="s-p"><option value="">Selecione...</option></select></div>
-                    <div><label>Filho</label><select class="s-f" disabled><option value="">Selecione...</option></select></div>
-                    <div><label>Neto</label><select class="s-n" disabled><option value="">Selecione...</option></select></div>
-                    <div><label>Bisneto</label><select class="s-b" disabled><option value="">Selecione...</option></select></div>
-                </div>
-            `;
-            container.appendChild(div);
-
-            const sp = div.querySelector('.s-p'), sf = div.querySelector('.s-f'), sn = div.querySelector('.s-n'), sb = div.querySelector('.s-b');
-
-            // 1. Popular Pais (docs com categoria "pai")
-            const pais = allDocs.filter(d => d.categoria === 'pai').map(d => d.nome).sort();
-            pais.forEach(p => sp.innerHTML += `<option value="${p}">${p}</option>`);
-
-            sp.onchange = () => {
-                const valP = sp.value;
-                sf.innerHTML = '<option value="">Selecione...</option>';
-                sf.disabled = !valP;
-                if(valP) {
-                    // Filhos: documentos que têm categoria "filho" e categoriaPai == valP
-                    const filhos = allDocs.filter(d => d.categoria === 'filho' && d.categoriaPai === valP).map(d => d.nome).sort();
-                    filhos.forEach(f => sf.innerHTML += `<option value="${f}">${f}</option>`);
-                }
-                sf.onchange();
-            };
-
-            sf.onchange = () => {
-                const valP = sp.value, valF = sf.value;
-                sn.innerHTML = '<option value="">Selecione...</option>';
-                sn.disabled = !valF;
-                if(valF) {
-                    // Netos: documentos que têm categoria "neto", categoriaPai == valP e categoriaFilho == valF
-                    const netos = allDocs.filter(d => d.categoria === 'neto' && d.categoriaPai === valP && d.categoriaFilho === valF).map(d => d.nome).sort();
-                    netos.forEach(n => sn.innerHTML += `<option value="${n}">${n}</option>`);
-                }
-                sn.onchange();
-            };
-
-            sn.onchange = () => {
-                const valP = sp.value, valF = sf.value, valN = sn.value;
-                sb.innerHTML = '<option value="">Selecione...</option>';
-                sb.disabled = !valN;
-                if(valN) {
-                    // Bisnetos: categoria "bisneto" e todos os pais batem
-                    const bis = allDocs.filter(d => d.categoria === 'bisneto' && d.categoriaPai === valP && d.categoriaFilho === valF && d.categoriaNeto === valN).map(d => d.nome).sort();
-                    bis.forEach(b => sb.innerHTML += `<option value="${b}">${b}</option>`);
-                }
-            };
-
-            if(data) {
-                sp.value = data.pai || ""; sp.onchange();
-                sf.value = data.filho || ""; sf.onchange();
-                sn.value = data.neto || ""; sn.onchange();
-                sb.value = data.bisneto || "";
-            }
-        };
-
-  window.salvarItemGestao = async () => {
-    const nomeInput = document.getElementById('m-nome').value.trim();
-    const descInput = document.getElementById('m-desc').value.trim();
-
-    if (!nomeInput) {
-        alert("O nome é obrigatório.");
-        return;
-    }
-
-    // 1. VERIFICAÇÃO DE DUPLICIDADE
-    try {
-        // Buscamos na coleção atual se já existe alguém com esse nome
-        const q = query(collection(db, currentGestaoCol), where("nome", "==", nomeInput));
-        const querySnapshot = await getDocs(q);
-        
-        // Se encontrarmos documentos e o ID não for o mesmo que estamos editando...
-        const existeDuplicado = querySnapshot.docs.some(doc => doc.id !== gestaoEditId);
-
-        if (existeDuplicado) {
-            alert(`⚠️ Atenção: Já existe um item cadastrado com o nome "${nomeInput}" na categoria ${currentGestaoCol.toUpperCase()}. Por favor, use um nome diferente ou adicione um sufixo.`);
-            return; // Interrompe o salvamento
-        }
-    } catch (e) {
-        console.error("Erro ao verificar duplicidade:", e);
-    }
-
-    // 2. COLETA DE VÍNCULOS
-    const vinculos = [];
-    document.querySelectorAll('.vinculo-row').forEach(row => {
-        const p = row.querySelector('.s-p').value;
-        if(p) vinculos.push({
-            pai: p, 
-            filho: row.querySelector('.s-f').value,
-            neto: row.querySelector('.s-n').value, 
-            bisneto: row.querySelector('.s-b').value
+            calculateOrdem();
         });
-    });
 
-    // 3. SALVAMENTO
-    const payload = { 
-        nome: nomeInput, 
-        descricao: descInput, 
-        vinculos 
-    };
+        selects.neto.addEventListener('change', calculateOrdem);
 
-    try {
-        if(gestaoEditId) {
-            await updateDoc(doc(db, currentGestaoCol, gestaoEditId), payload);
-        } else {
-            await addDoc(collection(db, currentGestaoCol), {
-                ...payload, 
-                createdAt: serverTimestamp(),
-                status: '' // Novo item começa sem status
-            });
-        }
+        // 3. Lógica de Ordem Automática
+        function calculateOrdem() {
+            const level = categoriaSelect.value;
+            let count = 0;
 
-        fecharModal();
-
-        // 4. ATUALIZAR TELA SEM SAIR DA PÁGINA
-        if (currentManualTopic) {
-            await selecionarTopico(currentManualTopic.id);
-        } else {
-            listarItensGestao(currentGestaoCol);
-        }
-
-    } catch (e) {
-        console.error("Erro ao salvar:", e);
-        alert("Erro ao gravar dados.");
-    }
-};
-
-        window.listarItensGestao = async (col) => {
-            currentGestaoCol = col;
-            document.getElementById('editor-area').classList.add('hidden');
-            const listDiv = document.getElementById('dynamic-list');
-            listDiv.innerHTML = "Carregando...";
-            const snap = await getDocs(collection(db, col));
-            listDiv.innerHTML = `<h2>Lista: ${col}</h2>`;
-          snap.forEach(d => {
-    const item = d.data();
-    const isDone = item.status === 'done';
-    const div = document.createElement('div');
-    div.className = `item-row ${isDone ? 'done-card' : ''}`;
-    div.innerHTML = `
-        <div class="card-check ${isDone ? 'checked' : ''}" style="position:relative; top:0; right:0; margin-right:10px" 
-             onclick="openCheckModal('${col}', '${d.id}', ${isDone})">
-            ${isDone ? '✅' : '✔️'}
-        </div>
-        <div style="flex:1">${item.nome}</div>
-        <button class="btn btn-edit" onclick="abrirModalGestao('${col}', '${d.id}')">Editar</button>
-        <button class="btn btn-delete" onclick="excluirItemGestao('${col}', '${d.id}')">X</button>`;
-    listDiv.appendChild(div);
-});
-        };
-
-        window.excluirItemGestao = async (col, id) => {
-            if(confirm("Excluir?")) {
-                await deleteDoc(doc(db, col, id));
-                listarItensGestao(col);
+            if (level === 'pai') {
+                count = [...new Set(localData.filter(d => d.categoria === 'pai').map(d => d.nome))].length;
+            } else if (level === 'filho') {
+                const p = selects.pai.value;
+                count = [...new Set(localData.filter(d => d.categoria === 'filho' && d.categoriaPai === p).map(d => d.nome))].length;
+            } else if (level === 'neto') {
+                const f = selects.filho.value;
+                count = [...new Set(localData.filter(d => d.categoria === 'neto' && d.categoriaFilho === f).map(d => d.nome))].length;
+            } else if (level === 'bisneto') {
+                const n = selects.neto.value;
+                count = [...new Set(localData.filter(d => d.categoria === 'bisneto' && d.categoriaNeto === n).map(d => d.nome))].length;
             }
-        };
-
-        window.fecharModal = () => document.getElementById('modal').classList.remove('active');
-
-
-        // Abre o editor para criar um NOVO post
-window.abrirEditorNovoPost = () => {
-    manualEditId = null; // Garante que é uma nova inserção
-    document.getElementById('editor').innerHTML = "";
-    document.getElementById('editor-title').innerText = "Novo Post para: " + currentManualTopic.nome;
-    document.getElementById('editor-area').classList.remove('hidden');
-    
-    // Scroll suave para o editor
-    document.getElementById('main-scroll').scrollTo({ top: 0, behavior: 'smooth' });
-};
-
-// Abre o editor para EDITAR um post existente
-window.editarPostManual = (id) => {
-    const p = allDocs.find(x => x.id === id);
-    if(!p) return;
-
-    manualEditId = id; // Define qual documento estamos editando
-    document.getElementById('editor').innerHTML = p.textoHtml;
-    document.getElementById('editor-title').innerText = "Editando Conteúdo";
-    document.getElementById('editor-area').classList.remove('hidden');
-    
-    // Sobe a página para o usuário ver o editor
-    document.getElementById('main-scroll').scrollTo({ top: 0, behavior: 'smooth' });
-};
-
-// Função para cancelar (fechar o editor)
-window.cancelarEdicaoManual = () => {
-    document.getElementById('editor-area').classList.add('hidden');
-    document.getElementById('editor').innerHTML = "";
-    manualEditId = null;
-};
-
-// Função para excluir post (opcional, mas recomendada)
-window.excluirPostManual = async (id) => {
-    const docParaExcluir = allDocs.find(x => x.id === id);
-    if(!docParaExcluir) return;
-
-    if(confirm("Deseja excluir permanentemente este post do manual?")) {
-        // Busca todos os posts que pertencem a esta mesma categoria exata
-        const postsDaMesmaCategoria = allDocs.filter(d =>
-            d.nome === docParaExcluir.nome &&
-            d.categoria === docParaExcluir.categoria &&
-            d.categoriaPai === docParaExcluir.categoriaPai &&
-            d.categoriaFilho === docParaExcluir.categoriaFilho &&
-            d.categoriaNeto === docParaExcluir.categoriaNeto
-        );
-
-        try {
-            if (postsDaMesmaCategoria.length > 1) {
-                // Se existem outros posts para esta categoria, podemos apagar este documento
-                await deleteDoc(doc(db, "docs", id));
-                console.log("Documento removido (havia mais de um).");
-            } else {
-                // SE FOR O ÚLTIMO: Não apagamos o documento, apenas limpamos o conteúdo.
-                // Isso mantém a categoria visível na árvore lateral.
-                await updateDoc(doc(db, "docs", id), {
-                    textoHtml: "",
-                    status: "",
-                    concluidoPor: ""
-                });
-                console.log("Conteúdo limpo, mas categoria preservada na árvore.");
-            }
-
-            // Recarregar dados e atualizar a tela
-            await carregarTudo();
-            selecionarTopico(currentManualTopic.id);
-            
-        } catch (e) {
-            console.error("Erro ao excluir/limpar post:", e);
-            alert("Erro ao processar exclusão.");
-        }
-    }
-};
-
-window.openCheckModal = (col, docId, isAlreadyDone) => {
-    currentTaskRef = { col, docId };
-    if (isAlreadyDone) {
-        document.getElementById('undo-modal').style.display = 'flex';
-        return;
-    }
-    const list = document.getElementById('user-options-list');
-    list.innerHTML = '';
-    allUsers.forEach(u => {
-        const div = document.createElement('div');
-        div.className = 'user-opt';
-        div.innerText = u.nome;
-        div.onclick = () => processarCheck(u.nome);
-        list.appendChild(div);
-    });
-    document.getElementById('user-modal').style.display = 'flex';
-};
-
-window.processarCheck = async (userName) => {
-    const { col, docId } = currentTaskRef;
-    const novosDados = userName ? { status: 'done', concluidoPor: userName } : { status: '', concluidoPor: '' };
-
-    try {
-        // 1. Grava no Firebase
-        await updateDoc(doc(db, col, docId), novosDados);
-
-        // 2. Atualiza o dado na nossa lista local (sem precisar baixar tudo de novo)
-        const atualizarLocal = (lista) => {
-            const item = lista.find(d => d.id === docId);
-            if (item) {
-                item.status = novosDados.status;
-                item.concluidoPor = novosDados.concluidoPor;
-            }
-        };
-        atualizarLocal(allDocs);
-
-        // 3. Fecha os modais de check
-        fecharModaisCheck();
-        
-        // 4. Atualiza a visualização atual (sem recarregar a árvore)
-        // Se o que foi alterado foi um POST do manual (coleção docs)
-        if (col === 'docs' && currentManualTopic) {
-            selecionarTopico(currentManualTopic.id);
-        } 
-        // Se o que foi alterado foi um item das listas da direita (Leis, Obras, etc)
-        else if (currentGestaoCol === col) {
-            listarItensGestao(currentGestaoCol);
+            ordemInput.value = count + 1;
         }
 
-    } catch (e) {
-        console.error("Erro ao processar check:", e);
-        alert("Erro ao salvar alteração.");
-    }
-};
+        // Visibilidade dos campos
+        categoriaSelect.addEventListener('change', (e) => {
+            const v = e.target.value;
+            document.getElementById('group-pai').classList.toggle('hidden', v === 'pai');
+            document.getElementById('group-filho').classList.toggle('hidden', v === 'pai' || v === 'filho');
+            document.getElementById('group-neto').classList.toggle('hidden', v !== 'bisneto');
+            calculateOrdem();
+        });
 
-window.confirmarDesfazer = () => processarCheck(null);
-window.fecharModaisCheck = () => {
-    document.querySelectorAll('.modal-check').forEach(m => m.style.display = 'none');
-};
+        window.formatDoc = (cmd, val = null) => document.execCommand(cmd, false, val);
 
+        // 4. Submissão
+        document.getElementById('meuFormulario').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btnGravar');
+            btn.disabled = true;
 
-// Função para abrir/fechar menus no mobile
-window.toggleSidebar = (side) => {
-    const sidebar = side === 'left' ? document.querySelector('.sidebar') : document.querySelector('.sidebar-right');
-    const overlay = document.getElementById('overlay');
-    
-    sidebar.classList.toggle('active');
-    overlay.classList.toggle('active');
-};
+            const dados = {
+                nome: document.getElementById('nome').value,
+                categoria: categoriaSelect.value,
+                categoriaPai: selects.pai.value || null,
+                categoriaFilho: selects.filho.value || null,
+                categoriaNeto: selects.neto.value || null,
+                ordem: parseInt(ordemInput.value),
+                tags: document.getElementById('tags').value,
+                textoHtml: document.getElementById('editor').innerHTML,
+                createdAt: serverTimestamp()
+            };
 
-window.closeAllMenus = () => {
-    document.querySelectorAll('.sidebar').forEach(s => s.classList.remove('active'));
-    document.getElementById('overlay').classList.remove('active');
-};
+            try {
+                await addDoc(collection(db, "docs"), dados);
+                alert("Gravado com sucesso!");
+                location.reload();
+            } catch (err) { alert("Erro ao salvar!"); btn.disabled = false; }
+        });
 
-// Modifique sua função selecionarTopico para fechar o menu no mobile ao clicar
-const originalSelecionarTopico = window.selecionarTopico;
-window.selecionarTopico = (id) => {
-    originalSelecionarTopico(id);
-    if (window.innerWidth <= 1024) closeAllMenus();
-};
-
-// Modifique listarItensGestao para fechar o menu no mobile
-const originalListarItens = window.listarItensGestao;
-window.listarItensGestao = (col) => {
-    originalListarItens(col);
-    if (window.innerWidth <= 1024) closeAllMenus();
-};
-
-window.selecionarTopico = async (id) => {
-    const docEncontrado = allDocs.find(d => d.id === id);
-    if (!docEncontrado) return;
-
-    currentManualTopic = docEncontrado;
-    manualEditId = null;
-    document.getElementById('editor-area').classList.add('hidden');
-
-    // --- LOGS DE INÍCIO ---
-    console.group("🔍 FILTRANDO CONTEÚDO PARA O TÓPICO");
-    console.log("ID Selecionado:", id);
-    console.log("Nome:", docEncontrado.nome);
-    console.log("Categoria:", docEncontrado.categoria);
-    console.log("Hierarquia Completa:", {
-        pai: docEncontrado.categoriaPai || "N/A",
-        filho: docEncontrado.categoriaFilho || "N/A",
-        neto: docEncontrado.categoriaNeto || "N/A"
-    });
-
-    // 1. FILTRAR POSTS DO MANUAL (Docs)
-    // Filtramos para garantir que o post pertence EXATAMENTE a este nível e linhagem
-    currentViewData.posts = allDocs.filter(d => {
-        const matchesNome = d.nome === docEncontrado.nome;
-        const matchesCat = d.categoria === docEncontrado.categoria;
-        const matchesPai = d.categoriaPai === docEncontrado.categoriaPai;
-        const matchesFilho = d.categoriaFilho === docEncontrado.categoriaFilho;
-        const matchesNeto = d.categoriaNeto === docEncontrado.categoriaNeto;
-        return matchesNome && matchesCat && matchesPai && matchesFilho && matchesNeto;
-    });
-    console.log(`✅ Posts Encontrados (${currentViewData.posts.length}):`, currentViewData.posts);
-
-    // 2. BUSCAR ANEXOS (Leis, Obras, etc)
-    const colecoes = ['legislacoes', 'construcoes', 'acoes', 'midia'];
-    document.getElementById('dynamic-list').innerHTML = "<p style='padding:20px; color:gray;'>Buscando anexos...</p>";
-
- for (const col of colecoes) {
-        try {
-            const snap = await getDocs(collection(db, col));
-            const todosItensDaColecao = snap.docs.map(d => ({id: d.id, ...d.data()}));
-            
-            console.log(`--- Analisando coleção: ${col.toUpperCase()} ---`);
-
-            currentViewData[col] = todosItensDaColecao.filter(item => {
-                if (!item.vinculos || item.vinculos.length === 0) return false;
-
-                return item.vinculos.some(v => {
-                    let match = false;
-
-                    if (docEncontrado.categoria === 'pai') {
-                        match = (v.pai === docEncontrado.nome);
-                    } 
-                    else if (docEncontrado.categoria === 'filho') {
-                        match = (v.pai === docEncontrado.categoriaPai && v.filho === docEncontrado.nome);
-                    }
-                    else if (docEncontrado.categoria === 'neto') {
-                        // LOG DE DIAGNÓSTICO PARA NETO
-                        match = (v.pai === docEncontrado.categoriaPai && 
-                                 v.filho === docEncontrado.categoriaFilho && 
-                                 v.neto === docEncontrado.nome);
-                        
-                        // Se não bateu, vamos ver o que tem no banco vs o que clicamos
-                        if (!match && v.neto === docEncontrado.nome) {
-                            console.warn(`⚠️ Quase deu Match em ${item.nome}! Nome do Neto bate, mas Pai ou Filho são diferentes.`);
-                            console.log(`Esperado: Pai(${docEncontrado.categoriaPai}), Filho(${docEncontrado.categoriaFilho})`);
-                            console.log(`No Banco: Pai(${v.pai}), Filho(${v.filho})`);
-                        }
-                    }
-                    else if (docEncontrado.categoria === 'bisneto') {
-                        match = (v.pai === docEncontrado.categoriaPai && 
-                                 v.filho === docEncontrado.categoriaFilho && 
-                                 v.neto === docEncontrado.categoriaNeto && 
-                                 v.bisneto === docEncontrado.nome);
-                    }
-
-                    return match;
-                });
-            });
-
-            console.log(`✅ Finalizado ${col}: ${currentViewData[col].length} itens encontrados.`);
-
-        } catch (e) {
-            console.error(`❌ Erro em ${col}:`, e);
-            currentViewData[col] = [];
-        }
-    }
-
-    console.groupEnd();
-    window.renderizarPaginaTopico('tudo');
-};
-
-
-// EXPOSTA AO WINDOW PARA O ONCLICK FUNCIONAR
-window.renderizarPaginaTopico = (abaAtiva) => {
-    const list = document.getElementById('dynamic-list');
-    
-    let html = `
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: #1e293b; padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
-            <div>
-                <h3 style="margin:0; color:var(--accent)">${currentManualTopic.nome}</h3>
-                <small style="color:gray">${currentManualTopic.categoria.toUpperCase()}</small>
-            </div>
-            <button class="btn btn-add" onclick="abrirEditorNovoPost()" style="padding: 8px 20px; height: auto;">+ POST</button>
-        </div>
-    `;
-
-    // Submenu de Abas
-    html += `<div class="tabs-container" style="display:flex; gap:10px; margin-bottom:20px; border-bottom:1px solid #334155; padding-bottom:10px; overflow-x:auto;">`;
-    
-    // Aba Tudo sempre existe
-    const activeStyle = "background:var(--accent); color:white; border-color:var(--accent);";
-    const normalStyle = "background:#1e293b; color:#94a3b8; border:1px solid #334155;";
-    
-    html += `<button class="tab-btn" style="padding:8px 16px; border-radius:20px; cursor:pointer; font-size:0.8rem; ${abaAtiva === 'tudo' ? activeStyle : normalStyle}" onclick="renderizarPaginaTopico('tudo')">Tudo</button>`;
-    
-    const labels = { legislacoes: 'Leis', construcoes: 'Obras', acoes: 'Ações', midia: 'Mídia' };
-    
-    for (const key in labels) {
-        const qtd = currentViewData[key].length;
-        if (qtd > 0) {
-            html += `
-                <button class="tab-btn" style="padding:8px 16px; border-radius:20px; cursor:pointer; font-size:0.8rem; ${abaAtiva === key ? activeStyle : normalStyle}" onclick="renderizarPaginaTopico('${key}')">
-                    ${labels[key]} <span style="background:rgba(0,0,0,0.3); padding:2px 6px; border-radius:10px; font-size:0.7rem;">${qtd}</span>
-                </button>`;
-        }
-    }
-    html += `</div><div id="tab-content"></div>`;
-    list.innerHTML = html;
-
-    window.renderizarConteudoAba(abaAtiva);
-};
-
-// EXPOSTA AO WINDOW
-window.renderizarConteudoAba = (aba) => {
-    const container = document.getElementById('tab-content');
-    container.innerHTML = "";
-
-    let itensParaExibir = [];
-
-    // 1. Coleta os Posts do Manual
-    if (aba === 'tudo') {
-        currentViewData.posts.forEach(p => itensParaExibir.push({ ...p, type: 'post' }));
-    }
-
-    // 2. Coleta os itens das outras coleções (Leis, Obras, etc)
-    const colecoes = ['legislacoes', 'construcoes', 'acoes', 'midia'];
-    colecoes.forEach(col => {
-        if (aba === 'tudo' || aba === col) {
-            currentViewData[col].forEach(item => itensParaExibir.push({ ...item, type: 'gestao', colOrigem: col }));
-        }
-    });
-
-    // --- LOGICA DE ORDENAÇÃO: MAIS ANTIGO PARA O MAIS NOVO ---
-    itensParaExibir.sort((a, b) => {
-        // Pega o tempo em segundos ou usa 0 se não houver data definida
-        const timeA = a.createdAt?.seconds || 0;
-        const timeB = b.createdAt?.seconds || 0;
-        
-        // Ordem crescente (Antigo -> Novo)
-        return timeA - timeB;
-    });
-
-    if (itensParaExibir.length === 0) {
-        container.innerHTML = "<p style='color:gray; padding:20px;'>Nenhum item encontrado nesta categoria.</p>";
-        return;
-    }
-
-    // 3. Renderização dos Cards (agora ordenados)
-    itensParaExibir.forEach(item => {
-        const isDone = item.status === 'done';
-        const card = document.createElement('div');
-        
-        if (item.type === 'post') {
-            // Se o post estiver vazio (placeholder para a árvore), não renderiza o card
-            if (!item.textoHtml || item.textoHtml.trim() === "") return;
-
-            card.className = `post-card ${isDone ? 'done-card' : ''}`;
-            card.innerHTML = `
-                <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('docs', '${item.id}', ${isDone})">${isDone ? '✅' : '✔️'}</div>
-                <div style="margin-bottom:15px">${item.textoHtml || ''}</div>
-                <div style="display: flex; gap: 10px; border-top:1px solid #334155; padding-top:10px;">
-                    <button class="btn btn-edit" onclick="editarPostManual('${item.id}')">EDITAR</button>
-                    <button class="btn btn-delete" onclick="excluirPostManual('${item.id}')">EXCLUIR</button>
-                </div>`;
-        } else {
-            // CARD DE GESTÃO (Leis, Obras, etc)
-            card.className = `item-row ${isDone ? 'done-card' : ''}`;
-            card.style.display = "block";
-            
-            const cores = { legislacoes: '#6366f1', construcoes: '#f59e0b', acoes: '#16a34a', midia: '#ec4899' };
-            const corBadge = cores[item.colOrigem] || 'var(--accent)';
-
-            card.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:center">
-                    <div style="display:flex; align-items:center">
-                        <div class="card-check ${isDone ? 'checked' : ''}" onclick="openCheckModal('${item.colOrigem}', '${item.id}', ${isDone})">${isDone ? '✅' : '✔️'}</div>
-                        <span style="background: ${corBadge}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; margin: 0 12px; text-transform: uppercase;">
-                            ${item.colOrigem === 'legislacoes' ? 'LEI' : item.colOrigem === 'construcoes' ? 'OBRA' : item.colOrigem.toUpperCase()}
-                        </span>
-                        <strong style="color:var(--white); font-size: 0.9rem;">${item.nome}</strong>
-                    </div>
-                    <button class="btn btn-edit" style="padding: 5px 15px; font-size: 0.7rem;" onclick="abrirModalGestao('${item.colOrigem}', '${item.id}')">EDITAR</button>
-                </div>
-                <div style="margin: 8px 0 0 45px; color:#94a3b8; font-size:0.8rem; font-style: italic;">
-                    ${item.descricao || 'Sem descrição definida.'}
-                </div>
-            `;
-        }
-        container.appendChild(card);
-    });
-};
-
-
-
+        init();
     </script>
 </body>
 </html>
