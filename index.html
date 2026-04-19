@@ -480,6 +480,31 @@
     font-size: 1.1rem; /* Aumenta um pouco o quadrado para ficar visível */
 }
 
+
+.main-workspace {
+    flex: 1;
+    background: radial-gradient(circle at top left, #0f172a, #05080f);
+    overflow-y: auto;
+    /* Altere de 40px para o valor abaixo */
+    padding: 10px 40px 40px 40px; /* 10px no topo, 40px nas laterais/baixo */
+    display: flex;
+    flex-direction: column;
+}
+
+.workspace-header {
+    margin-top: 0;      /* Garante que não haja margem acima */
+    margin-bottom: 10px; /* Reduz o espaço entre a linha e os botões de baixo */
+    padding: 0 0 5px 0;  /* Reduz o padding interno */
+    border-bottom: 1px solid var(--border);
+}
+
+.back-container {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 5px; /* Reduzi de 10px para 5px */
+}
+
     </style>
 </head>
 <body>
@@ -575,9 +600,9 @@ onAuthStateChanged(auth, async (user) => {
 
 // 2. Ouvinte Global para os cliques na tabela
 document.getElementById('posts-container').addEventListener('click', async (e) => {
-    // Agora ele procura por ⬜ ou pelo ícone antigo ✔️ para manter compatibilidade
+    // Agora ele procura por ⬜ ou pelo ícone antigo ⬜ para manter compatibilidade
     const cell = e.target.closest('.td-check') || 
-                 (e.target.tagName === 'TD' && (e.target.innerText.includes('⬜') || e.target.innerText.includes('✔️')));
+                 (e.target.tagName === 'TD' && (e.target.innerText.includes('⬜') || e.target.innerText.includes('⬜')));
     
     const isDone = e.target.innerText.includes('✅');
 
@@ -611,7 +636,8 @@ document.getElementById('posts-container').addEventListener('click', async (e) =
         let state = {
             pai: null,
             filho: null,
-            neto: null
+            neto: null,
+             bisneto: null
         };
 
         async function init() {
@@ -716,40 +742,35 @@ window.selecionarFilho = (filhoNome) => {
 function renderPosts() {
     const container = document.getElementById('posts-container');
     
-    // Filtra os documentos corretos
-    const posts = allDocs.filter(d => 
-        d.categoriaPai === state.pai && 
-        d.categoriaFilho === state.filho && 
-        (state.neto ? (d.categoriaNeto === state.neto || d.nome === state.neto) : true)
-    );
+    const posts = allDocs.filter(d => {
+        const matchesPai = d.categoriaPai === state.pai;
+        const matchesFilho = d.categoriaFilho === state.filho;
+        const matchesNeto = d.categoriaNeto === state.neto || d.nome === state.neto;
+        
+        // Se houver um bisneto selecionado, filtra por ele. 
+        // Se não, mostra tudo o que pertence ao neto.
+        if (state.bisneto) {
+            return matchesPai && matchesFilho && d.categoriaBisneto === state.bisneto;
+        }
+        
+        return matchesPai && matchesFilho && matchesNeto;
+    });
 
     container.innerHTML = posts.filter(p => p.textoHtml).map(p => {
-        // --- LIMPEZA DE SEGURANÇA ---
-        // Criamos um elemento temporário para limpar botões indesejados
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = p.textoHtml;
-        
-        // Remove qualquer botão ou container de ferramentas que veio do banco de dados
-        const tools = tempDiv.querySelector('#table-tools-container');
-        if (tools) tools.remove();
         tempDiv.querySelectorAll('button').forEach(btn => btn.remove());
         
-        const htmlLimpo = tempDiv.innerHTML;
-
         return `
             <div class="post-card" data-id="${p.id}">
-                <div class="post-content-body">
-                    ${htmlLimpo}
-                </div>
+                <div class="post-content-body">${tempDiv.innerHTML}</div>
             </div>
         `;
     }).join('');
 }
 
-   function atualizarNavegacao() {
+function atualizarNavegacao() {
     const header = document.querySelector('.workspace-header');
-    
-    // Só mostra o botão voltar se houver algum estado selecionado (Pai ou Filho)
     const showBack = state.pai ? '' : 'hidden';
 
     let html = `
@@ -771,7 +792,17 @@ function renderPosts() {
     }
     
     if (state.neto) {
-        html += `<span class="separator">></span><span class="current">${state.neto}</span>`;
+        // Se houver bisneto, o Neto vira um link clicável. Se não, ele é o "atual".
+        if (state.bisneto) {
+            html += `<span class="separator">></span><span class="path-item" onclick="filtrarPorNeto('${state.neto}')">${state.neto}</span>`;
+        } else {
+            html += `<span class="separator">></span><span class="current">${state.neto}</span>`;
+        }
+    }
+
+    // NOVA PARTE: Adiciona o Bisneto na trilha
+    if (state.bisneto) {
+        html += `<span class="separator">></span><span class="current">${state.bisneto}</span>`;
     }
     
     html += `</div></div>`;
@@ -781,16 +812,14 @@ function renderPosts() {
 
     window.filtrarPorNeto = (netoNome) => {
     state.neto = netoNome;
+    state.bisneto = null; // Reseta o bisneto ao trocar de neto
     
-    // Atualiza a navegação para mostrar o neto atual
     atualizarNavegacao();
 
-    // Atualizar visual dos botões (quem está ativo)
     document.querySelectorAll('.neto-btn').forEach(b => {
         b.classList.toggle('active', b.innerText === netoNome);
     });
 
-    // Lógica para Bisnetos (sub-filtros), se houver
     const bisArea = document.getElementById('bisneto-area');
     const bisnetos = allDocs
         .filter(d => d.categoria === 'bisneto' && d.categoriaNeto === netoNome)
@@ -798,8 +827,11 @@ function renderPosts() {
     
     if(bisnetos.length > 0) {
         bisArea.classList.remove('hidden');
+        // ADICIONADO O ONCLICK ABAIXO
         bisArea.innerHTML = bisnetos.map(b => `
-            <div style="background: #1e293b; padding: 5px 12px; border-radius: 4px; font-size: 0.6rem; border: 1px solid var(--accent); cursor: pointer;">
+            <div onclick="filtrarPorBisneto('${b.nome}')" 
+                 class="bisneto-tag"
+                 style="background: #1e293b; padding: 5px 12px; border-radius: 4px; font-size: 0.6rem; border: 1px solid var(--border); cursor: pointer; transition: 0.2s;">
                 ${b.nome}
             </div>
         `).join('');
@@ -809,6 +841,27 @@ function renderPosts() {
 
     renderPosts();
 };
+
+
+window.filtrarPorBisneto = (bisnetoNome) => {
+    state.bisneto = bisnetoNome;
+    
+    atualizarNavegacao(); // <--- Adicione esta linha aqui!
+
+    // Restante do seu código de destaque visual...
+    document.querySelectorAll('.bisneto-tag').forEach(tag => {
+        if(tag.innerText.trim() === bisnetoNome) {
+            tag.style.borderColor = 'var(--accent)';
+            tag.style.color = 'var(--accent)';
+        } else {
+            tag.style.borderColor = 'var(--border)';
+            tag.style.color = 'var(--text-dim)';
+        }
+    });
+
+    renderPosts();
+};
+
 
 window.goBack = () => {
     if (state.neto && state.filho) {
