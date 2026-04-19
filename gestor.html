@@ -45,11 +45,16 @@ body {
         .side-btn-row { display: flex; gap: 8px; margin-top: 10px; }
         .btn { border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s; color: white; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
         .btn-icon { width: 38px; height: 38px; font-size: 1.1rem; }
-        .btn-add { background: var(--success); }
+        .btn-add { background: var(--warning) !important;  }
         .btn-view { background: #475569; }
         .btn-edit { background: var(--warning); padding: 5px 10px; font-size: 0.7rem; }
         .btn-delete { background: var(--danger); padding: 5px 10px; font-size: 0.7rem; }
-        .btn-save { background: var(--accent); width: 100%; padding: 12px; margin-top: 10px; }
+        .btn-save { 
+    background: var(--success) !important; 
+    width: 100%; 
+    padding: 12px; 
+    margin-top: 10px; 
+}
 
         /* Árvore */
         .tree-node { margin-left: 15px; border-left: 1px dashed #475569; padding-left: 10px; }
@@ -721,6 +726,49 @@ table td {
     cursor: text;
 }
 
+/* Reduz o recuo da árvore para ganhar espaço à esquerda */
+.tree-node { 
+    margin-left: 8px; /* Reduzido de 15px */
+    border-left: 1px solid #334155; /* Linha mais sutil */
+    padding-left: 4px; 
+    margin-bottom: 2px;
+}
+
+.tree-branch { 
+    display: none; 
+    margin-left: 5px; /* Reduzido de 15px */
+}
+
+.tree-label { 
+    padding: 4px 6px; 
+    cursor: pointer; 
+    font-size: 0.8rem; /* Fonte levemente menor para caber mais */
+    display: flex; /* Flexbox para alinhar ícone e texto na mesma linha */
+    align-items: center;
+    gap: 4px;
+    border-radius: 4px; 
+    color: #cbd5e1; 
+    white-space: nowrap; /* Evita quebra de linha agressiva */
+    overflow: hidden;
+    text-overflow: ellipsis; /* Coloca "..." se o nome for gigante */
+}
+
+.tree-label:hover { 
+    background: #334155; 
+    color: var(--accent); 
+}
+
+/* Ajuste do ícone de seta */
+.toggle-icon { 
+    cursor: pointer; 
+    font-size: 0.6rem; 
+    width: 12px;
+    text-align: center;
+    color: var(--accent);
+    flex-shrink: 0;
+}
+
+
     </style>
 </head>
 <body>
@@ -1043,7 +1091,11 @@ function renderizarArvore(filtro = "") {
         resultados.forEach(res => {
             const div = document.createElement('div');
             div.className = 'tree-node';
-            div.innerHTML = `<span class="tree-label" onclick="selecionarTopico('${res.id}')">🔍 ${res.nome}</span>`;
+            div.style.border = "none";
+            div.innerHTML = `
+                <div style="display: flex; align-items: center;">
+                    <span class="tree-label" onclick="selecionarTopico('${res.id}')">🔍 ${res.nome}</span>
+                </div>`;
             container.appendChild(div);
         });
         return;
@@ -1055,12 +1107,14 @@ function renderizarArvore(filtro = "") {
         const pDiv = document.createElement('div');
         pDiv.className = 'tree-node';
         
-        // Contêiner para os filhos do Pai
         const pBranch = document.createElement('div');
-        pBranch.className = 'tree-branch open'; // PAI E FILHO ABERTOS POR PADRÃO
-        
-        pDiv.innerHTML = `<span class="toggle-icon" onclick="toggleBranch(this)">▼</span>
-                          <span class="tree-label" style="display:inline" onclick="selecionarTopico('${p.id}')">📁 ${p.nome}</span>`;
+        pBranch.className = 'tree-branch open'; 
+
+        pDiv.innerHTML = `
+            <div style="display: flex; align-items: center;">
+                <span class="toggle-icon" onclick="toggleBranch(this)">▼</span>
+                <span class="tree-label" onclick="selecionarTopico('${p.id}')">📂 ${p.nome}</span>
+            </div>`;
         
         // Nível 2: FILHOS
         const filhos = allDocs.filter(d => d.categoria === 'filho' && d.categoriaPai === p.nome).sort((a, b) => a.ordem - b.ordem);
@@ -1068,12 +1122,14 @@ function renderizarArvore(filtro = "") {
             const fDiv = document.createElement('div');
             fDiv.className = 'tree-node';
             
-            // Contêiner para os netos do Filho
             const fBranch = document.createElement('div');
-            fBranch.className = 'tree-branch'; // NETO FECHADO POR PADRÃO
-            
-            fDiv.innerHTML = `<span class="toggle-icon" onclick="toggleBranch(this)">▶</span>
-                              <span class="tree-label" style="display:inline" onclick="selecionarTopico('${f.id}')">📄 ${f.nome}</span>`;
+            fBranch.className = 'tree-branch'; 
+
+            fDiv.innerHTML = `
+                <div style="display: flex; align-items: center;">
+                    <span class="toggle-icon" onclick="toggleBranch(this)">▶</span>
+                    <span class="tree-label" onclick="selecionarTopico('${f.id}')">📄 ${f.nome}</span>
+                </div>`;
             
             // Nível 3: NETOS
             const netos = allDocs.filter(d => d.categoria === 'neto' && d.categoriaFilho === f.nome && d.categoriaPai === p.nome).sort((a, b) => a.ordem - b.ordem);
@@ -1082,18 +1138,24 @@ function renderizarArvore(filtro = "") {
                 nDiv.className = 'tree-node';
                 
                 const nBranch = document.createElement('div');
-                nBranch.className = 'tree-branch'; // BISNETO FECHADO POR PADRÃO
-                
-                nDiv.innerHTML = `<span class="toggle-icon" onclick="toggleBranch(this)">▶</span>
-                                  <span class="tree-label" style="display:inline" onclick="selecionarTopico('${n.id}')">📜 ${n.nome}</span>`;
+                nBranch.className = 'tree-branch';
+
+                nDiv.innerHTML = `
+                    <div style="display: flex; align-items: center;">
+                        <span class="toggle-icon" onclick="toggleBranch(this)">▶</span>
+                        <span class="tree-label" onclick="selecionarTopico('${n.id}')">📜 ${n.nome}</span>
+                    </div>`;
                 
                 // Nível 4: BISNETOS
                 const bisnetos = allDocs.filter(d => d.categoria === 'bisneto' && d.categoriaNeto === n.nome).sort((a, b) => a.ordem - b.ordem);
                 bisnetos.forEach(b => {
                     const bDiv = document.createElement('div');
                     bDiv.className = 'tree-node';
-                    bDiv.style.marginLeft = "15px";
-                    bDiv.innerHTML = `<span class="tree-label" onclick="selecionarTopico('${b.id}')">└ ${b.nome}</span>`;
+                    bDiv.style.borderLeft = "none";
+                    bDiv.innerHTML = `
+                        <div style="display: flex; align-items: center; padding-left: 12px;">
+                            <span class="tree-label" onclick="selecionarTopico('${b.id}')">└ ${b.nome}</span>
+                        </div>`;
                     nBranch.appendChild(bDiv);
                 });
 
@@ -1109,7 +1171,9 @@ function renderizarArvore(filtro = "") {
             pBranch.appendChild(fDiv);
         });
 
-        pDiv.appendChild(pBranch);
+        if(filhos.length > 0) pDiv.appendChild(pBranch);
+        else pDiv.querySelector('.toggle-icon').style.visibility = 'hidden';
+
         container.appendChild(pDiv);
     });
 }
@@ -1229,12 +1293,19 @@ async function executarToggleFinal(cell, novoEstado) {
 
 // Função para abrir/fechar ramos individualmente clicando na setinha
 window.toggleBranch = (el) => {
-    const node = el.parentElement;
+    // Agora buscamos o .tree-branch dentro do .tree-node mais próximo
+    const node = el.closest('.tree-node');
     const branch = node.querySelector('.tree-branch');
+    
     if (branch) {
         const isOpen = branch.classList.contains('open');
-        branch.classList.toggle('open');
-        el.innerText = isOpen ? "▶" : "▼";
+        if (isOpen) {
+            branch.classList.remove('open');
+            el.innerText = "▶";
+        } else {
+            branch.classList.add('open');
+            el.innerText = "▼";
+        }
     }
 };
 
@@ -1962,7 +2033,7 @@ window.renderizarPaginaTopico = (abaAtiva) => {
         </div>
         <div style="display:flex; gap:5px;">
             <button class="btn btn-add" onclick="abrirEditorNovoPost()" style="padding: 8px 15px; height: auto;">+ POST</button>
-            <button class="btn" onclick="abrirEditorNovaTabela()" style="background: #0ea5e9; padding: 8px 15px; height: auto; font-weight:bold;">+ TABLE</button>
+<button class="btn" onclick="abrirEditorNovaTabela()" style="background: var(--warning); padding: 8px 15px; height: auto; font-weight:bold;">+ TABLE</button>
         </div>
     </div>
 `;
