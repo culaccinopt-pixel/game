@@ -755,25 +755,21 @@ table td {
         </div>
 
 <div id="editor-area" class="hidden">
-    <div class="editor-box">
-        <button class="btn-close-editor" onclick="cancelarEdicaoManual()">&times;</button>
-        
-        <!-- Título Blindado -->
-        <h3 id="editor-title" contenteditable="false" spellcheck="false">Nova Atualização</h3>
-        
-        <!-- Ferramentas Blindadas -->
-        <div id="table-tools-container" contenteditable="false" spellcheck="false" style="margin-bottom: 10px; display: none; gap: 10px;">
-            <button class="btn" onclick="adicionarLinhaTabela()" contenteditable="false" spellcheck="false" tabindex="-1" style="background:#16a34a;">
-                + Adicionar Linha
-            </button>
-            <button class="btn" onclick="removerLinhaTabela()" contenteditable="false" spellcheck="false" tabindex="-1" style="background:#ef4444;">
-                - Remover Última Linha
-            </button>
-        </div>
-
-        <div id="editor" contenteditable="true"></div>
-        <button onclick="salvarPost()" id="btnSalvar" class="btn btn-save">Publicar</button>
+<div class="editor-box">
+    <button class="btn-close-editor" onclick="cancelarEdicaoManual()">&times;</button>
+    <h3 id="editor-title" contenteditable="false" spellcheck="false">Nova Atualização</h3>
+    
+    <!-- O LUGAR CORRETO É AQUI -->
+    <div id="table-tools-container" contenteditable="false" style="display: none; gap: 8px; margin: 10px 0; flex-wrap: wrap;">
+        <button class="btn" onclick="adicionarLinhaTopo()" style="background:#16a34a; font-size:0.7rem; padding:8px 12px; border-radius:6px; flex:none; width:auto;">+ LINHA TOPO</button>
+        <button class="btn" onclick="adicionarLinhaFundo()" style="background:#16a34a; font-size:0.7rem; padding:8px 12px; border-radius:6px; flex:none; width:auto;">+ LINHA FUNDO</button>
+        <button class="btn" onclick="removerLinhaTopo()" style="background:#ef4444; font-size:0.7rem; padding:8px 12px; border-radius:6px; flex:none; width:auto;">- LINHA TOPO</button>
+        <button class="btn" onclick="removerLinhaFundo()" style="background:#ef4444; font-size:0.7rem; padding:8px 12px; border-radius:6px; flex:none; width:auto;">- LINHA BAIXO</button>
     </div>
+
+    <div id="editor" contenteditable="true"></div>
+    <button onclick="salvarPost()" id="btnSalvar" class="btn btn-save">Publicar</button>
+</div>
 </div>
 
 
@@ -869,23 +865,12 @@ table td {
 </div>
 
 <!-- Procure esta parte no seu código e substitua por esta versão blindada -->
-<div id="table-tools-container" contenteditable="false" style="margin-bottom: 10px; display: none; gap: 10px; user-select: none;">
-    <button class="btn" onclick="adicionarLinhaTabela()" 
-            contenteditable="false" 
-            tabindex="-1"
-            onfocus="this.blur()"
-            spellcheck="false" 
-            style="background:#16a34a; font-size:0.7rem; padding:8px 12px; cursor: pointer; user-select: none;">
-        + Adicionar Linha
-    </button>
-    <button class="btn" onclick="removerLinhaTabela()" 
-            contenteditable="false" 
-            tabindex="-1"
-            onfocus="this.blur()"
-            spellcheck="false" 
-            style="background:#ef4444; font-size:0.7rem; padding:8px 12px; cursor: pointer; user-select: none;">
-        - Remover Última Linha
-    </button>
+<!-- Ferramentas da Tabela Atualizadas -->
+<div id="table-tools-container" contenteditable="false" style="margin-bottom: 15px; display: none; gap: 10px; flex-wrap: wrap; user-select: none;">
+    <button class="btn" onclick="adicionarLinhaTopo()" style="background:#16a34a; font-size:0.75rem; padding:10px 15px; border-radius: 8px;">+ LINHA TOPO</button>
+    <button class="btn" onclick="adicionarLinhaFundo()" style="background:#16a34a; font-size:0.75rem; padding:10px 15px; border-radius: 8px;">+ LINHA FUNDO</button>
+    <button class="btn" onclick="removerLinhaTopo()" style="background:#ef4444; font-size:0.75rem; padding:10px 15px; border-radius: 8px;">- LINHA TOPO</button>
+    <button class="btn" onclick="removerLinhaFundo()" style="background:#ef4444; font-size:0.75rem; padding:10px 15px; border-radius: 8px;">- LINHA BAIXO</button>
 </div>
 
     <script type="module">
@@ -978,6 +963,51 @@ document.getElementById('btn-toggle-tree').addEventListener('click', () => {
     }
 });
 
+
+// Template das células (Tarefa, Responsável, Prazo, Status)
+const HTML_NOVA_LINHA = `
+    <td contenteditable="true" style="border: 1px solid #334155; padding: 18px 12px; color: white; min-width: 50px;"></td>
+    <td contenteditable="true" style="border: 1px solid #334155; padding: 18px 12px; color: white; min-width: 50px;"></td>
+    <td contenteditable="true" style="border: 1px solid #334155; padding: 18px 12px; color: white; min-width: 50px;"></td>
+    <td class="td-check" onclick="toggleRowCheck(this)" contenteditable="false" 
+        style="border: 1px solid #334155; text-align: center; cursor: pointer; user-select: none;">⬜</td>
+`;
+
+// 1. + LINHA TOPO (Abaixo do cabeçalho)
+window.adicionarLinhaTopo = () => {
+    const tbody = document.querySelector("#editor table tbody");
+    if (tbody) {
+        const row = document.createElement('tr');
+        row.innerHTML = HTML_NOVA_LINHA;
+        tbody.prepend(row); // Insere no início
+    }
+};
+
+// 2. + LINHA FUNDO
+window.adicionarLinhaFundo = () => {
+    const tbody = document.querySelector("#editor table tbody");
+    if (tbody) {
+        const row = document.createElement('tr');
+        row.innerHTML = HTML_NOVA_LINHA;
+        tbody.appendChild(row); // Insere no fim
+    }
+};
+
+// 3. - LINHA TOPO (Remove a primeira linha abaixo do cabeçalho)
+window.removerLinhaTopo = () => {
+    const tbody = document.querySelector("#editor table tbody");
+    if (tbody && tbody.rows.length > 0) {
+        tbody.deleteRow(0); 
+    }
+};
+
+// 4. - LINHA BAIXO (Remove a última linha)
+window.removerLinhaFundo = () => {
+    const tbody = document.querySelector("#editor table tbody");
+    if (tbody && tbody.rows.length > 0) {
+        tbody.deleteRow(tbody.rows.length - 1);
+    }
+};
 
 // Função para bloquear qualquer tentativa de escrita nos controles
 const bloquearEdicaoInterface = (e) => {
@@ -1211,87 +1241,94 @@ window.toggleBranch = (el) => {
 // Função para abrir o editor com uma tabela predefinida
 window.abrirEditorNovaTabela = () => {
     manualEditId = null; 
+    const editor = document.getElementById('editor');
+    
+    // TRANCA o editor principal (impede digitar fora da tabela)
+    editor.contentEditable = "false";
+    
     document.getElementById('editor-title').innerText = "Nova Tabela para: " + currentManualTopic.nome;
     
-    // 1. Exibe a barra de ferramentas de edição da tabela (Botões de Adicionar/Remover Linha)
     const tools = document.getElementById('table-tools-container');
     if (tools) tools.style.display = 'flex';
 
-    // 2. Monta a estrutura da tabela
-    // table contenteditable="false" impede que a tabela seja tratada como um bloco de texto único
+    // Monta a tabela (as TDs continuam editáveis individualmente)
     let tableHtml = `
-    <table contenteditable="false" style="width:100%; border-collapse: collapse; margin-top:10px; border: 1px solid #334155; background: #0f172a;">
-        <thead contenteditable="false" style="user-select: none; -webkit-user-select: none; background: #1e293b;">
-            <tr contenteditable="false">
-                <th contenteditable="false" style="border: 1px solid #475569; color: #6366f1; padding: 15px 12px; text-align: left; cursor: default;">Tarefa</th>
-                <th contenteditable="false" style="border: 1px solid #475569; color: #6366f1; padding: 15px 12px; text-align: left; cursor: default;">Responsável</th>
-                <th contenteditable="false" style="border: 1px solid #475569; color: #6366f1; padding: 15px 12px; text-align: left; cursor: default;">Prazo</th>
-                <th contenteditable="false" style="border: 1px solid #475569; color: #6366f1; padding: 15px 12px; text-align: center; width: 80px; cursor: default;">Status</th>
+    <table style="width:100%; border-collapse: collapse; margin-top:10px; border: 1px solid #334155; background: #0f172a;">
+        <thead style="background: #1e293b; user-select: none;">
+            <tr>
+                <th style="border: 1px solid #475569; color: #6366f1; padding: 15px 12px; text-align: left;">Tarefa</th>
+                <th style="border: 1px solid #475569; color: #6366f1; padding: 15px 12px; text-align: left;">Responsável</th>
+                <th style="border: 1px solid #475569; color: #6366f1; padding: 15px 12px; text-align: left;">Prazo</th>
+                <th style="border: 1px solid #475569; color: #6366f1; padding: 15px 12px; text-align: center; width: 80px;">Status</th>
             </tr>
         </thead>
-        <tbody contenteditable="false">`; 
+        <tbody>`; 
     
-    // Criar as 10 linhas iniciais
-    // Apenas as células de texto (TD) recebem contenteditable="true"
     for (let i = 0; i < 10; i++) {
         tableHtml += `
-        <tr contenteditable="false">
-            <td contenteditable="true" style="border: 1px solid #334155; padding: 18px 12px; color: white; min-width: 50px;"></td>
-            <td contenteditable="true" style="border: 1px solid #334155; padding: 18px 12px; color: white; min-width: 50px;"></td>
-            <td contenteditable="true" style="border: 1px solid #334155; padding: 18px 12px; color: white; min-width: 50px;"></td>
+        <tr>
+            <td contenteditable="true" style="border: 1px solid #334155; padding: 18px 12px; color: white;"></td>
+            <td contenteditable="true" style="border: 1px solid #334155; padding: 18px 12px; color: white;"></td>
+            <td contenteditable="true" style="border: 1px solid #334155; padding: 18px 12px; color: white;"></td>
             <td class="td-check" onclick="toggleRowCheck(this)" contenteditable="false" 
-                style="border: 1px solid #334155; text-align: center; cursor: pointer; user-select: none; -webkit-user-select: none;">⬜</td>
+                style="border: 1px solid #334155; text-align: center; cursor: pointer;">⬜</td>
         </tr>`;
     }
     
-    tableHtml += `</tbody></table><br>`;
+    tableHtml += `</tbody></table>`;
 
-    // 3. Insere no editor e limpa o estado anterior
-    const editor = document.getElementById('editor');
     editor.innerHTML = tableHtml;
-    
-    // 4. Mostra a área do editor e faz scroll para o topo
     document.getElementById('editor-area').classList.remove('hidden');
     document.getElementById('main-scroll').scrollTo({ top: 0, behavior: 'smooth' });
-
-    console.log("%c📊 TABELA CRIADA: Cabeçalho blindado e células de dados editáveis.", "color: cyan; font-weight: bold;");
 };
     
  
 
-window.adicionarLinhaTabela = () => {
-    // Busca o corpo da tabela dentro do editor
+// Template padrão para novas linhas da tabela
+const templateNovaLinha = `
+    <td contenteditable="true" style="border: 1px solid #334155; padding: 18px 12px; color: white; min-width: 50px;"></td>
+    <td contenteditable="true" style="border: 1px solid #334155; padding: 18px 12px; color: white; min-width: 50px;"></td>
+    <td contenteditable="true" style="border: 1px solid #334155; padding: 18px 12px; color: white; min-width: 50px;"></td>
+    <td class="td-check" onclick="toggleRowCheck(this)" contenteditable="false" 
+        style="border: 1px solid #334155; text-align: center; cursor: pointer; user-select: none;">⬜</td>
+`;
+
+// 1. Adicionar Linha no Topo (abaixo do cabeçalho)
+window.adicionarLinhaTopo = () => {
     const tbody = document.querySelector("#editor table tbody");
-    
     if (tbody) {
         const row = document.createElement('tr');
-        
-        // Mantém as mesmas regras: células de texto editáveis e check bloqueado
-        row.innerHTML = `
-            <td contenteditable="true" style="border: 1px solid #334155; padding: 18px 12px; color: white; min-width: 50px;"></td>
-            <td contenteditable="true" style="border: 1px solid #334155; padding: 18px 12px; color: white; min-width: 50px;"></td>
-            <td contenteditable="true" style="border: 1px solid #334155; padding: 18px 12px; color: white; min-width: 50px;"></td>
-            <td class="td-check" onclick="toggleRowCheck(this)" contenteditable="false" 
-                style="border: 1px solid #334155; text-align: center; cursor: pointer; user-select: none;">⬜</td>
-        `;
-        
-        tbody.appendChild(row);
-        
-        // Opcional: Faz scroll para a nova linha
-        row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    } else {
-        console.warn("Nenhuma tabela encontrada no editor para adicionar linha.");
+        row.innerHTML = templateNovaLinha;
+        tbody.prepend(row); // Insere no início do tbody
     }
 };
 
-
-// Função para remover a última linha
-window.removerLinhaTabela = () => {
-    const table = document.querySelector("#editor table tbody");
-    if (table && table.rows.length > 0) {
-        table.deleteRow(table.rows.length - 1);
+// 2. Adicionar Linha no Fundo
+window.adicionarLinhaFundo = () => {
+    const tbody = document.querySelector("#editor table tbody");
+    if (tbody) {
+        const row = document.createElement('tr');
+        row.innerHTML = templateNovaLinha;
+        tbody.appendChild(row); // Insere no fim do tbody
     }
 };
+
+// 3. Remover Linha do Topo (primeira linha após o cabeçalho)
+window.removerLinhaTopo = () => {
+    const tbody = document.querySelector("#editor table tbody");
+    if (tbody && tbody.rows.length > 0) {
+        tbody.deleteRow(0); // Remove a linha de índice 0
+    }
+};
+
+// 4. Remover Linha do Fundo
+window.removerLinhaFundo = () => {
+    const tbody = document.querySelector("#editor table tbody");
+    if (tbody && tbody.rows.length > 0) {
+        tbody.deleteRow(tbody.rows.length - 1); // Remove a última linha
+    }
+};
+
 
 // BOTÃO DO OLHO: Fecha TUDO, deixando apenas os Pais visíveis
 document.getElementById('btn-toggle-tree').addEventListener('click', () => {
@@ -1632,12 +1669,16 @@ window.abrirModalGestao = (col, id = null) => {
 
         // Abre o editor para criar um NOVO post
 window.abrirEditorNovoPost = () => {
-    manualEditId = null; // Garante que é uma nova inserção
-    document.getElementById('editor').innerHTML = "";
+    manualEditId = null; 
+    const editor = document.getElementById('editor');
+    
+    // REATIVA a edição para texto livre
+    editor.contentEditable = "true";
+    
+    editor.innerHTML = "";
     document.getElementById('editor-title').innerText = "Novo Post para: " + currentManualTopic.nome;
     document.getElementById('editor-area').classList.remove('hidden');
-    
-    // Scroll suave para o editor
+    document.getElementById('table-tools-container').style.display = 'none';
     document.getElementById('main-scroll').scrollTo({ top: 0, behavior: 'smooth' });
 };
 
@@ -1646,12 +1687,21 @@ window.editarPostManual = (id) => {
     const p = allDocs.find(x => x.id === id);
     if(!p) return;
 
-    manualEditId = id; // Define qual documento estamos editando
-    document.getElementById('editor').innerHTML = p.textoHtml;
+    manualEditId = id;
+    const editor = document.getElementById('editor');
+    editor.innerHTML = p.textoHtml;
+
+    // Se o conteúdo possuir uma tabela, trancamos a edição externa
+    if (p.textoHtml.includes('<table')) {
+        editor.contentEditable = "false";
+        document.getElementById('table-tools-container').style.display = 'flex';
+    } else {
+        editor.contentEditable = "true";
+        document.getElementById('table-tools-container').style.display = 'none';
+    }
+
     document.getElementById('editor-title').innerText = "Editando Conteúdo";
     document.getElementById('editor-area').classList.remove('hidden');
-    
-    // Sobe a página para o usuário ver o editor
     document.getElementById('main-scroll').scrollTo({ top: 0, behavior: 'smooth' });
 };
 
@@ -2236,18 +2286,7 @@ document.getElementById('editor').addEventListener('keydown', (e) => {
     }
 }, true);
 
-// Log especial para o botão oficial de remover
-const originalRemoverLinha = window.removerLinhaTabela;
-window.removerLinhaTabela = () => {
-    console.log("%c🗑️ AÇÃO OFICIAL: Removendo última linha via botão", "color: blue; font-weight: bold;");
-    
-    const table = document.querySelector("#editor table tbody");
-    if (table && table.rows.length > 0) {
-        table.deleteRow(table.rows.length - 1);
-    } else {
-        console.log("%c⚠️ AVISO: Não há mais linhas para remover.", "color: gray;");
-    }
-};
+
 
 // Reforço: Impede recortar (Ctrl+X) se a seleção envolver a estrutura da tabela
 document.getElementById('editor').addEventListener('cut', (e) => {
