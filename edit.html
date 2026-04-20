@@ -209,21 +209,69 @@
         }
 
         // AÇÃO: ATUALIZAR
-        document.getElementById('editForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if(!currentDocId) return;
-            const btn = document.getElementById('btnSalvar');
-            btn.disabled = true;
-            try {
-                await updateDoc(doc(db, "docs", currentDocId), {
-                    nome: document.getElementById('nome').value,
-                    ordem: parseInt(document.getElementById('ordem').value),
-                    tags: document.getElementById('tags').value
-                });
-                alert("Atualizado com sucesso!");
-                location.reload();
-            } catch (error) { alert("Erro ao atualizar."); btn.disabled = false; }
+   document.getElementById('editForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!currentDocId) return;
+
+    const btn = document.getElementById('btnSalvar');
+    btn.disabled = true;
+
+    // 1. Obter dados antigos e novos
+    const docOriginal = localData.find(d => d.id === currentDocId);
+    const novoNome = document.getElementById('nome').value;
+    const nomeAntigo = docOriginal.nome;
+    const categoriaAtual = docOriginal.categoria; // pai, filho, neto ou bisneto
+
+    try {
+        // 2. Atualizar o documento principal
+        await updateDoc(doc(db, "docs", currentDocId), {
+            nome: novoNome,
+            ordem: parseInt(document.getElementById('ordem').value),
+            tags: document.getElementById('tags').value
         });
+
+        // 3. Lógica de Cascata: Se o nome mudou, atualizar os dependentes
+        if (novoNome !== nomeAntigo) {
+            let campoParaAtualizar = "";
+            let valorFiltro = "";
+
+            // Definir qual campo nos filhos referencia este nível
+            if (categoriaAtual === 'pai') {
+                campoParaAtualizar = "categoriaPai";
+            } else if (categoriaAtual === 'filho') {
+                campoParaAtualizar = "categoriaFilho";
+            } else if (categoriaAtual === 'neto') {
+                campoParaAtualizar = "categoriaNeto";
+            }
+
+            // Se for um nível que possui dependentes (pai, filho ou neto)
+            if (campoParaAtualizar !== "") {
+                // Filtrar localmente quais documentos precisam de atualização
+                const dependentes = localData.filter(d => d[campoParaAtualizar] === nomeAntigo);
+                
+                if (dependentes.length > 0) {
+                    console.log(`Atualizando ${dependentes.length} dependentes...`);
+                    
+                    // Criar uma lista de promessas para atualizar todos os filhos
+                    const updates = dependentes.map(dep => 
+                        updateDoc(doc(db, "docs", dep.id), {
+                            [campoParaAtualizar]: novoNome
+                        })
+                    );
+                    
+                    await Promise.all(updates);
+                }
+            }
+        }
+
+        alert("Atualizado com sucesso (inclusive dependentes)!");
+        location.reload();
+    } catch (error) { 
+        console.error(error);
+        alert("Erro ao atualizar."); 
+        btn.disabled = false; 
+    }
+});
 
         // AÇÃO: ELIMINAR
         document.getElementById('btnEliminar').addEventListener('click', async () => {
