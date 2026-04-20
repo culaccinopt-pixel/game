@@ -716,11 +716,16 @@ window.selecionarPai = (paiNome) => {
     state.pai = paiNome;
     state.filho = null;
     state.neto = null;
-    state.bisneto = null; // Adicione isso para resetar bisnetos ao trocar de categoria
+    state.bisneto = null; 
     
-    // ATUALIZA O DESTAQUE NA ESQUERDA
+    // LIMPEZA DO BUG: Garante que as tags da tela anterior sumam
+    const bisArea = document.getElementById('bisneto-area');
+    if (bisArea) {
+        bisArea.innerHTML = '';
+        bisArea.classList.add('hidden');
+    }
+
     renderPais(); 
-    
     atualizarNavegacao();
     
     const filhos = allDocs
@@ -745,6 +750,11 @@ window.selecionarPai = (paiNome) => {
 window.selecionarFilho = (filhoNome) => {
     state.filho = filhoNome;
     
+    // LIMPEZA DO BUG: Limpa os bisnetos antes de carregar o novo conteúdo
+    const bisArea = document.getElementById('bisneto-area');
+    bisArea.innerHTML = '';
+    bisArea.classList.add('hidden');
+
     const grid = document.getElementById('filho-grid');
     const content = document.getElementById('content-view');
     grid.classList.add('hidden');
@@ -990,8 +1000,13 @@ window.filtrarPorBisneto = (bisnetoNome) => {
 
 
 window.goBack = () => {
+    // Reseta o estado
+    state.bisneto = null;
+    const bisArea = document.getElementById('bisneto-area');
+    bisArea.innerHTML = '';
+    bisArea.classList.add('hidden');
+
     if (state.neto && state.filho) {
-        // Se está vendo o conteúdo (Neto), volta para o grid de pastas (Filho)
         selecionarPai(state.pai);
     } else if (state.filho || state.pai) {
         // Se está no grid de pastas, volta para a tela inicial limpa
