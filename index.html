@@ -797,61 +797,57 @@ function renderPosts() {
     const posts = allDocs.filter(d => {
         if (!d.textoHtml) return false;
 
-        const docPai = (d.categoriaPai || "").toUpperCase().trim();
-        const docFilho = (d.categoriaFilho || "").toUpperCase().trim();
-        const docNeto = (d.categoriaNeto || "").toUpperCase().trim();
+        // --- NORMALIZAÇÃO DA HIERARQUIA DO DOCUMENTO ---
         
-        let docBis = "";
-        if (d.categoriaBisneto) {
-            docBis = d.categoriaBisneto.toUpperCase().trim();
-        } else if (d.categoria === 'bisneto') {
-            docBis = (d.nome || "").toUpperCase().trim();
-        }
+        // Se o doc é categoria 'pai', o nome dele é o Pai. Senão, usamos categoriaPai.
+        const docPai = (d.categoria === 'pai' ? d.nome : d.categoriaPai || "").toUpperCase().trim();
+        
+        // Se o doc é categoria 'filho', o nome dele é o Filho. Senão, usamos categoriaFilho.
+        const docFilho = (d.categoria === 'filho' ? d.nome : d.categoriaFilho || "").toUpperCase().trim();
+        
+        // Se o doc é categoria 'neto', o nome dele é o Neto. Senão, usamos categoriaNeto.
+        const docNeto = (d.categoria === 'neto' ? d.nome : d.categoriaNeto || "").toUpperCase().trim();
+        
+        // Se o doc é categoria 'bisneto', o nome dele é o Bisneto. Senão, usamos categoriaBisneto.
+        const docBis = (d.categoria === 'bisneto' ? d.nome : d.categoriaBisneto || "").toUpperCase().trim();
 
+        // --- VALORES SELECIONADOS NO SISTEMA ---
         const statePai = (state.pai || "").toUpperCase().trim();
         const stateFilho = (state.filho || "").toUpperCase().trim();
         const stateNeto = (state.neto || "").toUpperCase().trim();
         const stateBis = (state.bisneto || "").toUpperCase().trim();
 
+        // --- CONDIÇÕES DE FILTRO ---
         const mPai = docPai === statePai;
         const mFilho = docFilho === stateFilho;
         const mNeto = docNeto === stateNeto;
         
         let mBisneto = false;
         if (stateBis !== "") {
+            // Se o usuário selecionou um Bisneto, o doc deve bater exatamente com esse Bisneto
             mBisneto = docBis === stateBis;
         } else {
-            mBisneto = docBis === "" && d.categoria !== 'bisneto';
+            // Se NÃO há bisneto selecionado, mostramos apenas posts que pertencem ao Neto 
+            // e que NÃO sejam de nenhum Bisneto específico
+            mBisneto = docBis === "";
         }
 
-        return mPai && mFilho && mNeto && mBisneto;
+        const passes = mPai && mFilho && mNeto && mBisneto;
+        return passes;
     });
 
+    console.log(`Filtro atual: ${state.pai} > ${state.filho} > ${state.neto} > ${state.bisneto || '(Nenhum)'}`);
+    console.log(`Documentos encontrados: ${posts.length}`);
+
     if (posts.length === 0) {
-        container.innerHTML = `<p style="color: var(--text-dim); padding: 20px; text-align: center;">Nenhum conteúdo encontrado.</p>`;
+        container.innerHTML = `<p style="color: var(--text-dim); padding: 20px; text-align: center;">Nenhum conteúdo disponível para esta categoria.</p>`;
     } else {
         container.innerHTML = posts.map(p => {
-            // --- BLOQUEIO DE EDIÇÃO ---
+            // BLOQUEIO DE EDIÇÃO (LEITURA APENAS)
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = p.textoHtml;
-
-            // 1. Força todas as células e elementos a NÃO serem editáveis
-            tempDiv.querySelectorAll('*').forEach(el => {
-                if (el.hasAttribute('contenteditable')) {
-                    el.setAttribute('contenteditable', 'false');
-                }
-            });
-
-            // 2. Garante que as linhas concluídas mantenham o visual (caso venham do banco)
-            tempDiv.querySelectorAll('tr').forEach(tr => {
-                if (tr.innerText.includes('✅')) {
-                    tr.classList.add('row-done');
-                }
-            });
-
-            // 3. Remove quaisquer botões perdidos que possam ter sido salvos por erro
-            tempDiv.querySelectorAll('button').forEach(btn => btn.remove());
-
+            tempDiv.querySelectorAll('*').forEach(el => el.setAttribute('contenteditable', 'false'));
+            
             return `
                 <div class="post-card" data-id="${p.id}">
                     <div class="post-content-body">${tempDiv.innerHTML}</div>
