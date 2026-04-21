@@ -555,6 +555,92 @@
     box-shadow: 0 0 10px var(--accent-glow);
 }
 
+/* --- RESPONSIVIDADE MOBILE --- */
+
+/* Botão hambúrguer escondido por padrão no desktop */
+.mobile-menu-btn {
+    display: none;
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--accent);
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1.2rem;
+}
+
+@media (max-width: 768px) {
+    /* Ajuste da Coluna Esquerda */
+    .sidebar-pai {
+        width: 75px;
+    }
+    .dept-btn {
+        width: 65px;
+        height: 45px;
+    }
+    .dept-btn span {
+        display: none; /* Esconde texto dos departamentos no mobile para caber mais */
+    }
+    .dept-btn i {
+        font-size: 1.2rem;
+        margin: 0;
+    }
+
+    /* Transformação da Sidebar Direita em Drawer */
+    .sidebar-right {
+        position: fixed;
+        right: -100%; /* Escondida fora da tela */
+        top: 0;
+        height: calc(100% - 60px); /* Acima da barra inferior */
+        z-index: 1000;
+        transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+        width: 280px;
+    }
+
+    .sidebar-right.active {
+        right: 0; /* Desliza para dentro */
+    }
+
+    /* Workspace */
+    .main-workspace {
+        padding: 10px 15px;
+    }
+
+    /* Barra Inferior Mobile */
+    .bottom-nav {
+        padding: 0 10px;
+        gap: 5px;
+    }
+
+    /* Esconde itens de texto menos importantes da nav para dar espaço aos ícones */
+    .nav-item {
+        display: none; 
+    }
+    .nav-item.active {
+        display: block; /* Mantém apenas o selecionado */
+        padding: 8px 10px;
+        font-size: 0.7rem;
+    }
+
+    /* Garante que os ícones da direita fiquem visíveis */
+    .nav-group {
+        gap: 5px;
+    }
+    
+    .nav-icon-link {
+        padding: 8px 10px;
+        font-size: 1rem;
+    }
+
+    /* Mostra o botão hambúrguer */
+    .mobile-menu-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+}
+
     </style>
 </head>
 <body>
@@ -598,23 +684,27 @@
     </div>
 
     <!-- BARRA INFERIOR -->
- <nav class="bottom-nav">
+<nav class="bottom-nav">
     <!-- LADO ESQUERDO: NAVEGAÇÃO PRINCIPAL -->
     <div class="nav-group">
+        <!-- Botão hambúrguer para abrir a Agenda/Sidebar Direita -->
+        <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+            <i class="fas fa-bars"></i>
+        </button>
+
         <div class="nav-item active">Escritório</div>
         <div class="nav-item">Agenda</div>
         <div class="nav-item">Imprensa</div>
-        <div class="nav-item">Classificado</div>
-        <div class="nav-item">Vida Pessoal</div>
     </div>
 
-    <!-- LADO DIREITO: ATALHOS RÁPIDOS -->
+    <!-- LADO DIREITO: ATALHOS RÁPIDOS (Sempre visíveis) -->
     <div class="nav-group">
         <a href="diary.html" class="nav-icon-link" title="Diário">📖</a>
         <a href="worldedit.html" class="nav-icon-link" title="Editor de Mundo">🌐</a>
         <a href="gestor.html" class="nav-icon-link btn-add" title="Gestor">+</a>
     </div>
 </nav>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -1087,6 +1177,25 @@ function getIcon(name) {
 }
 
         init();
+
+        // Função para abrir/fechar a sidebar de agenda no mobile
+window.toggleMobileMenu = () => {
+    const sidebar = document.querySelector('.sidebar-right');
+    sidebar.classList.toggle('active');
+    
+    // Opcional: muda o ícone de barras para "X" quando aberto
+    const btnIcon = document.querySelector('.mobile-menu-btn i');
+    if(sidebar.classList.contains('active')) {
+        btnIcon.classList.replace('fa-bars', 'fa-times');
+    } else {
+        btnIcon.classList.replace('fa-times', 'fa-bars');
+    }
+};
+
+// Fechar o menu ao clicar em qualquer item da sidebar (opcional)
+document.getElementById('sidebar-info').addEventListener('click', () => {
+    if(window.innerWidth <= 768) toggleMobileMenu();
+});
 
         
     </script>
