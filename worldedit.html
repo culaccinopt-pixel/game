@@ -539,6 +539,20 @@ async function loadPosts() {
     window.format = (cmd) => document.execCommand(cmd, false, null);
     window.execCommand = (cmd, val) => document.execCommand(cmd, false, val);
 
+// Impede a formatação ao colar no editor
+const editor = document.getElementById('post-editor');
+
+editor.addEventListener('paste', (e) => {
+    // Cancela o comportamento padrão de colar (que traz o HTML)
+    e.preventDefault();
+
+    // Pega apenas o texto puro da área de transferência
+    const text = (e.originalEvent || e).clipboardData.getData('text/plain');
+
+    // Insere o texto puro no local onde o cursor está
+    document.execCommand('insertText', false, text);
+});
+
 </script>
 
 </body>
