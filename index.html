@@ -641,14 +641,96 @@
     }
 }
 
+/* Container dos novos botões na lateral */
+.sidebar-utils {
+    margin-top: 20px; /* O "gap" após o último departamento */
+    padding-top: 15px;
+    border-top: 1px solid var(--border); /* Linha sutil separando */
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+    width: 100%;
+}
+
+/* Ajuste dos links para caberem na barra lateral */
+.sidebar-utils .nav-icon-link {
+    width: 45px;
+    height: 45px;
+    padding: 0;
+    font-size: 1.2rem;
+    background: var(--bg-card);
+    border-radius: 8px;
+}
+
+/* No mobile, reduzir o gap se necessário */
+@media (max-width: 768px) {
+    .sidebar-utils {
+        margin-top: 10px;
+        padding-top: 10px;
+        gap: 8px;
+    }
+    .sidebar-utils .nav-icon-link {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+    }
+}
+
+/* Ajuste para a sidebar permitir scroll nos departamentos mas manter os utils visíveis ou ao fim */
+.sidebar-pai {
+    justify-content: flex-start;
+    overflow-y: auto;
+    padding-bottom: 20px;
+}
+
     </style>
 </head>
 <body>
 
     <div class="app-container">
         <!-- COLUNA 1: CATEGORIA PAI -->
-        <aside class="sidebar-pai" id="sidebar-pais">
-            <!-- Gerado dinamicamente -->
+        <aside class="sidebar-pai">
+            <div id="sidebar-pais">
+                <!-- Gerado dinamicamente -->
+            </div>
+
+            <!-- BOTÕES UTILITÁRIOS: VISÍVEIS APENAS NO MOBILE -->
+            <style>
+                /* Escondido por padrão (PC) */
+                .sidebar-utils-mobile {
+                    display: none;
+                }
+
+                /* Visível apenas quando a tela for menor que 768px (Mobile) */
+                @media (max-width: 768px) {
+                    .sidebar-utils-mobile {
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        gap: 8px;
+                        margin-top: 15px; /* O gap separando dos departamentos */
+                        padding-top: 10px;
+                        border-top: 1px solid var(--border);
+                        width: 100%;
+                    }
+                    .sidebar-utils-mobile .nav-icon-link {
+                        width: 45px;
+                        height: 40px;
+                        font-size: 1rem;
+                    }
+                    /* Esconde os botões da direita na barra inferior no mobile */
+                    .nav-group.desktop-only {
+                        display: none !important;
+                    }
+                }
+            </style>
+
+            <div class="sidebar-utils-mobile">
+                <a href="diary.html" class="nav-icon-link" title="Diário">📖</a>
+                <a href="worldedit.html" class="nav-icon-link" title="Editor de Mundo">🌐</a>
+                <a href="gestor.html" class="nav-icon-link btn-add" title="Gestor">+</a>
+            </div>
         </aside>
 
         <!-- COLUNA 2: WORKSPACE PRINCIPAL -->
@@ -684,26 +766,27 @@
     </div>
 
     <!-- BARRA INFERIOR -->
-<nav class="bottom-nav">
-    <!-- LADO ESQUERDO: NAVEGAÇÃO PRINCIPAL -->
-    <div class="nav-group">
-        <!-- Botão hambúrguer para abrir a Agenda/Sidebar Direita -->
-        <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
-            <i class="fas fa-bars"></i>
-        </button>
+    <nav class="bottom-nav">
+        <!-- LADO ESQUERDO: NAVEGAÇÃO PRINCIPAL -->
+        <div class="nav-group">
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+                <i class="fas fa-bars"></i>
+            </button>
 
-        <div class="nav-item active">Escritório</div>
-        <div class="nav-item">Agenda</div>
-        <div class="nav-item">Imprensa</div>
-    </div>
+            <div class="nav-item active">Escritório</div>
+            <div class="nav-item">Agenda</div>
+            <div class="nav-item">Imprensa</div>
+        </div>
 
-    <!-- LADO DIREITO: ATALHOS RÁPIDOS (Sempre visíveis) -->
-    <div class="nav-group">
-        <a href="diary.html" class="nav-icon-link" title="Diário">📖</a>
-        <a href="worldedit.html" class="nav-icon-link" title="Editor de Mundo">🌐</a>
-        <a href="gestor.html" class="nav-icon-link btn-add" title="Gestor">+</a>
-    </div>
-</nav>
+        <!-- LADO DIREITO: VISÍVEL APENAS NO PC (desktop-only) -->
+        <div class="nav-group desktop-only">
+            <a href="diary.html" class="nav-icon-link" title="Diário">📖</a>
+            <a href="worldedit.html" class="nav-icon-link" title="Editor de Mundo">🌐</a>
+            <a href="gestor.html" class="nav-icon-link btn-add" title="Gestor">+</a>
+        </div>
+    </nav>
+
+
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -788,7 +871,8 @@ document.getElementById('posts-container').addEventListener('click', async (e) =
 
         // 1. RENDERIZA OS BOTÕES DA ESQUERDA (PAI)
 function renderPais() {
-    const container = document.getElementById('sidebar-pais');
+    // Agora apontamos para o container interno 'sidebar-pais' em vez de 'sidebar-pai' diretamente
+    const container = document.getElementById('sidebar-pais'); 
     const pais = allDocs
         .filter(d => d.categoria === 'pai')
         .sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
