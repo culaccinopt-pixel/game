@@ -1513,87 +1513,65 @@ document.getElementById('btn-toggle-tree').addEventListener('click', () => {
 window.salvarPost = async () => {
     const html = document.getElementById('editor').innerHTML;
     
-    // Validação básica: não permite salvar post vazio
     if (!html || html.trim() === "" || html === "<br>") {
         alert("O conteúdo não pode estar vazio.");
         return;
     }
 
     try {
+        // 1. Se estamos editando um post que já tinha conteúdo (manualEditId preenchido)
         if (manualEditId) {
-            // --- MODO EDIÇÃO ---
             await updateDoc(doc(db, "docs", manualEditId), { 
                 textoHtml: html,
-                updatedBy: currentUserId // Registra quem editou por último
+                updatedBy: currentUserId 
             });
-        } else {
-            // --- MODO NOVO POST ---
-            // Verifica se existe um "placeholder" (item na árvore que ainda não tem conteúdo)
-            const placeholder = allDocs.find(d =>
-                d.nome === currentManualTopic.nome &&
-                d.categoria === currentManualTopic.categoria &&
-                d.categoriaPai === (currentManualTopic.categoriaPai || null) &&
-                d.categoriaFilho === (currentManualTopic.categoriaFilho || null) &&
-                d.categoriaNeto === (currentManualTopic.categoriaNeto || null) &&
-                (!d.textoHtml || d.textoHtml.trim() === "")
-            );
-
-            if (placeholder) {
-                // Atualiza o placeholder existente
-                await updateDoc(doc(db, "docs", placeholder.id), { 
-                    textoHtml: html, 
-                    createdAt: serverTimestamp(),
-                    userId: currentUserId 
-                });
-            } else {
-                // Cria um documento totalmente novo se necessário
-                const novoPost = {
-                    ...currentManualTopic,
-                    textoHtml: html,
-                    createdAt: serverTimestamp(),
-                    userId: currentUserId
-                };
-                delete novoPost.id; // Remove o ID antigo para o Firebase gerar um novo
-                await addDoc(collection(db, "docs"), novoPost);
-            }
+        } 
+        // 2. Se clicamos em um item da árvore que estava vazio (currentManualTopic)
+        // Vamos atualizar o documento existente em vez de criar um novo
+        else if (currentManualTopic && currentManualTopic.id) {
+            await updateDoc(doc(db, "docs", currentManualTopic.id), { 
+                textoHtml: html,
+                userId: currentUserId,
+                createdAt: serverTimestamp() // Atualiza a data para subir na lista
+            });
+        } 
+        // 3. Caso de segurança: Se não houver ID (muito raro aqui), cria um novo
+        else {
+            const novoPost = {
+                ...currentManualTopic,
+                textoHtml: html,
+                createdAt: serverTimestamp(),
+                userId: currentUserId
+            };
+            delete novoPost.id; 
+            await addDoc(collection(db, "docs"), novoPost);
         }
 
-        // --- LIMPEZA DA INTERFACE ---
-        
-        // 1. Esconde a área do editor
+        // Limpeza da interface
         document.getElementById('editor-area').classList.add('hidden');
         document.getElementById('editor').innerHTML = "";
         manualEditId = null; 
 
-        // 2. Esconde as ferramentas de tabela (Topo e Fundo)
         document.getElementById('table-tools-container').style.display = 'none';
         if (document.getElementById('table-bottom-tools-container')) {
             document.getElementById('table-bottom-tools-container').style.display = 'none';
         }
 
-        // --- ATUALIZAÇÃO E SINCRONIZAÇÃO ---
-
-        // 3. Recarrega todos os documentos do banco para atualizar a árvore e a lista local
+        // Recarregar dados
         await carregarTudo();
-
-        // 4. Sincroniza o currentManualTopic com a nova versão baixada do banco
         if (currentManualTopic) {
-            const versaoNova = allDocs.find(d => d.id === currentManualTopic.id);
-            if (versaoNova) {
-                currentManualTopic = versaoNova; // Atualiza a referência local
-            }
-            
-            // 5. Re-seleciona o tópico para atualizar os posts na tela e manter o destaque na árvore
             selecionarTopico(currentManualTopic.id);
         }
 
-        console.log("Post publicado e interface sincronizada.");
+        console.log("Conteúdo salvo com sucesso!");
 
     } catch (e) {
-        console.error("Erro ao salvar post:", e);
-        alert("Erro técnico ao salvar. Verifique o console.");
+        console.error("Erro ao salvar:", e);
+        alert("Erro técnico ao salvar.");
     }
 };
+
+      
 
         // --- GESTÃO LEGISLAÇÕES (CORREÇÃO FILTROS) ---
 window.abrirModalGestao = (col, id = null) => {
