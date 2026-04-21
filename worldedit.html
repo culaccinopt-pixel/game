@@ -322,10 +322,18 @@ async function loadTemas() {
 // --- ATUALIZAÇÃO DA CARGA DE PÁGINAS ---
 async function loadPages() {
     if(!currentTemaId) return;
-    const q = query(collection(db, "world_pages"), where("temaId", "==", currentTemaId), orderBy("createdAt", "asc"));
+    
+    // Mudamos "asc" para "desc" aqui:
+    const q = query(
+        collection(db, "world_pages"), 
+        where("temaId", "==", currentTemaId), 
+        orderBy("createdAt", "desc") 
+    );
+    
     const snap = await getDocs(q);
     const container = document.getElementById('lista-paginas');
     container.innerHTML = '';
+    
     snap.forEach(d => {
         const page = d.data();
         const isDone = page.feito === 'yes';
