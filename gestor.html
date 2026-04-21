@@ -2054,12 +2054,18 @@ window.selecionarTopico = async (id) => {
 
     // 1. FILTRAR POSTS DO MANUAL (Docs)
     // Filtramos para garantir que o post pertence EXATAMENTE a este nível e linhagem
-    currentViewData.posts = allDocs.filter(d => {
+ currentViewData.posts = allDocs.filter(d => {
+        // Verifica se o textoHtml não está vazio (ignora documentos que são apenas estrutura da árvore)
+        if (!d.textoHtml || d.textoHtml.trim() === "") return false;
+
         const matchesNome = d.nome === docEncontrado.nome;
         const matchesCat = d.categoria === docEncontrado.categoria;
-        const matchesPai = d.categoriaPai === docEncontrado.categoriaPai;
-        const matchesFilho = d.categoriaFilho === docEncontrado.categoriaFilho;
-        const matchesNeto = d.categoriaNeto === docEncontrado.categoriaNeto;
+        
+        // Compara garantindo que strings vazias e campos nulos sejam tratados como iguais
+        const matchesPai = (d.categoriaPai || "") === (docEncontrado.categoriaPai || "");
+        const matchesFilho = (d.categoriaFilho || "") === (docEncontrado.categoriaFilho || "");
+        const matchesNeto = (d.categoriaNeto || "") === (docEncontrado.categoriaNeto || "");
+        
         return matchesNome && matchesCat && matchesPai && matchesFilho && matchesNeto;
     });
     console.log(`✅ Posts Encontrados (${currentViewData.posts.length}):`, currentViewData.posts);
