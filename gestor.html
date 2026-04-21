@@ -1519,31 +1519,28 @@ window.salvarPost = async () => {
     }
 
     try {
-        // 1. Se estamos editando um post que já tinha conteúdo (manualEditId preenchido)
+        // 1. SE FOR EDIÇÃO: Atualiza o post existente
         if (manualEditId) {
             await updateDoc(doc(db, "docs", manualEditId), { 
                 textoHtml: html,
                 updatedBy: currentUserId 
             });
         } 
-        // 2. Se clicamos em um item da árvore que estava vazio (currentManualTopic)
-        // Vamos atualizar o documento existente em vez de criar um novo
-        else if (currentManualTopic && currentManualTopic.id) {
-            await updateDoc(doc(db, "docs", currentManualTopic.id), { 
-                textoHtml: html,
-                userId: currentUserId,
-                createdAt: serverTimestamp() // Atualiza a data para subir na lista
-            });
-        } 
-        // 3. Caso de segurança: Se não houver ID (muito raro aqui), cria um novo
+        // 2. SE FOR NOVO (Post ou Tabela): Cria um NOVO documento na coleção "docs"
+        // Em vez de dar updateDoc no ID do tópico, damos addDoc para criar um novo card
         else {
             const novoPost = {
-                ...currentManualTopic,
+                nome: currentManualTopic.nome,
+                categoria: currentManualTopic.categoria,
+                categoriaPai: currentManualTopic.categoriaPai || "",
+                categoriaFilho: currentManualTopic.categoriaFilho || "",
+                categoriaNeto: currentManualTopic.categoriaNeto || "",
                 textoHtml: html,
                 createdAt: serverTimestamp(),
-                userId: currentUserId
+                userId: currentUserId,
+                status: "" // Começa em aberto
             };
-            delete novoPost.id; 
+            
             await addDoc(collection(db, "docs"), novoPost);
         }
 
@@ -1557,9 +1554,10 @@ window.salvarPost = async () => {
             document.getElementById('table-bottom-tools-container').style.display = 'none';
         }
 
-        // Recarregar dados
+        // Recarregar dados e atualizar a visualização
         await carregarTudo();
         if (currentManualTopic) {
+            // Isso vai atualizar a lista e mostrar o novo card junto com os antigos
             selecionarTopico(currentManualTopic.id);
         }
 
