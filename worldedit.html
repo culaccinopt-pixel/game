@@ -77,7 +77,20 @@
         .btn { border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; color: white; padding: 10px 12px; text-decoration: none; font-size: 0.85rem; display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
         .btn-accent { background: var(--accent); }
         .btn-gray { background: #334155; }
-        .btn-add { background: var(--success); width: 100%; margin-bottom: 15px; padding: 12px; flex-shrink: 0; }
+.btn-add { 
+    background: #8b5cf6; /* Roxo vibrante */
+    width: 100%; 
+    margin-bottom: 15px; 
+    padding: 12px; 
+    flex-shrink: 0;
+    transition: background 0.3s ease;
+}
+
+/* Efeito de hover para o roxo */
+.btn-add:hover {
+    background: #7c3aed; /* Roxo um pouco mais escuro ao passar o mouse */
+}
+
         .btn-mobile-back { background: transparent; border: 1px solid var(--border); width: fit-content; margin-bottom: 15px; }
 
         .list-item { 
@@ -114,7 +127,23 @@
         .modal.active { display: flex; }
         .modal-content { background: var(--card-bg); padding: 20px; border-radius: 12px; width: 100%; max-width: 400px; border: 1px solid var(--accent); }
         input { width: 100%; background: #0f172a; border: 1px solid var(--border); color: white; padding: 12px; margin: 10px 0; border-radius: 8px; }
-    </style>
+  /* Classe para itens concluídos */
+.list-item.done {
+    background-color: #16a34a !important; /* Verde var(--success) */
+    border-color: #22c55e;
+}
+/* Cor de fundo para posts concluídos */
+.post-card.done {
+    background: #16a34a !important; /* Verde */
+    border-color: #22c55e;
+}
+
+/* Ajuste opcional para o texto dentro de posts verdes (para melhor contraste) */
+.post-card.done * {
+    color: white !important;
+}
+
+  </style>
 </head>
 <body>
 
@@ -227,24 +256,7 @@
         document.getElementById(`view-${view}`).classList.add('active');
     };
 
-    // --- TEMAS ---
-    async function loadTemas() {
-        const q = query(collection(db, "temas"), orderBy("createdAt", "desc"));
-        const snap = await getDocs(q);
-        const container = document.getElementById('lista-temas');
-        container.innerHTML = '';
-        snap.forEach(d => {
-            const tema = d.data();
-            const div = document.createElement('div');
-            div.className = 'list-item';
-            div.id = `tema-${d.id}`;
-            div.innerHTML = `
-                <span class="item-name" onclick="selectTema('${d.id}', '${tema.nome}')">${tema.nome}</span>
-                <button class="btn-edit-small" onclick="openModal('tema', '${d.id}', '${tema.nome}')">✏️</button>
-            `;
-            container.appendChild(div);
-        });
-    }
+   
 
     window.selectTema = (id, nome) => {
         currentTemaId = id;
@@ -255,25 +267,7 @@
         changeView('pages');
     };
 
-    // --- PÁGINAS ---
-    async function loadPages() {
-        if(!currentTemaId) return;
-        const q = query(collection(db, "world_pages"), where("temaId", "==", currentTemaId), orderBy("createdAt", "asc"));
-        const snap = await getDocs(q);
-        const container = document.getElementById('lista-paginas');
-        container.innerHTML = '';
-        snap.forEach(d => {
-            const page = d.data();
-            const div = document.createElement('div');
-            div.className = 'list-item';
-            div.id = `page-${d.id}`;
-            div.innerHTML = `
-                <span class="item-name" onclick="selectPage('${d.id}', '${page.titulo}')">${page.titulo}</span>
-                <button class="btn-edit-small" onclick="openModal('page', '${d.id}', '${page.titulo}')">✏️</button>
-            `;
-            container.appendChild(div);
-        });
-    }
+ 
 
     window.selectPage = (id, titulo) => {
         currentPageId = id;
@@ -285,40 +279,116 @@
         document.getElementById('view-content').scrollTo(0,0);
     };
 
-    // --- POSTS ---
- async function loadPosts() {
-        if(!currentPageId) return;
-        const q = query(collection(db, "world_posts"), where("pageId", "==", currentPageId), orderBy("createdAt", "desc"));
-        const snap = await getDocs(q);
-        const container = document.getElementById('lista-posts');
-        container.innerHTML = '';
+    // --- FUNÇÃO PARA MARCAR COMO FEITO (GENÉRICA) ---
+window.toggleFeito = async (colecao, id, statusAtual) => {
+    try {
+        const novoStatus = statusAtual === 'yes' ? 'no' : 'yes';
+        const docRef = doc(db, colecao, id);
+        await updateDoc(docRef, { feito: novoStatus });
         
-        snap.forEach(d => {
-            const post = d.data();
-            const card = document.createElement('div');
-            card.className = 'post-card';
-            
-            // Verifica se o utilizador logado é o autor
-            const isAuthor = post.userId === currentUserId;
-
-            // Só cria o HTML dos botões se for o autor
-            let botoesAcao = '';
-            if (isAuthor) {
-                botoesAcao = `
-                    <div style="margin-top:10px; text-align:right">
-                        <button style="background:none; border:none; color:var(--accent); font-size:12px; cursor:pointer; margin-right:10px" onclick="editPost('${d.id}')">Editar</button>
-                        <button style="background:none; border:none; color:var(--danger); font-size:12px; cursor:pointer" onclick="deletePost('${d.id}')">Excluir</button>
-                    </div>
-                `;
-            }
-
-            card.innerHTML = `
-                <div style="font-size:0.95rem">${post.contentHtml}</div>
-                ${botoesAcao}
-            `;
-            container.appendChild(card);
-        });
+        // Recarrega a lista apropriada
+        if (colecao === 'temas') loadTemas();
+        else loadPages();
+    } catch (e) {
+        console.error("Erro ao atualizar status:", e);
     }
+};
+
+// --- ATUALIZAÇÃO DA CARGA DE TEMAS ---
+async function loadTemas() {
+    const q = query(collection(db, "temas"), orderBy("createdAt", "desc"));
+    const snap = await getDocs(q);
+    const container = document.getElementById('lista-temas');
+    container.innerHTML = '';
+    snap.forEach(d => {
+        const tema = d.data();
+        const isDone = tema.feito === 'yes';
+        const div = document.createElement('div');
+        div.className = `list-item ${isDone ? 'done' : ''}`;
+        div.id = `tema-${d.id}`;
+        div.innerHTML = `
+            <span class="item-name" onclick="selectTema('${d.id}', '${tema.nome}')">${tema.nome}</span>
+            <div style="display:flex; gap:5px">
+                <button class="btn-edit-small" onclick="toggleFeito('temas', '${d.id}', '${tema.feito}')">
+                    ${isDone ? '✅' : '✔️'}
+                </button>
+                <button class="btn-edit-small" onclick="openModal('tema', '${d.id}', '${tema.nome}')">✏️</button>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+// --- ATUALIZAÇÃO DA CARGA DE PÁGINAS ---
+async function loadPages() {
+    if(!currentTemaId) return;
+    const q = query(collection(db, "world_pages"), where("temaId", "==", currentTemaId), orderBy("createdAt", "asc"));
+    const snap = await getDocs(q);
+    const container = document.getElementById('lista-paginas');
+    container.innerHTML = '';
+    snap.forEach(d => {
+        const page = d.data();
+        const isDone = page.feito === 'yes';
+        const div = document.createElement('div');
+        div.className = `list-item ${isDone ? 'done' : ''}`;
+        div.id = `page-${d.id}`;
+        div.innerHTML = `
+            <span class="item-name" onclick="selectPage('${d.id}', '${page.titulo}')">${page.titulo}</span>
+            <div style="display:flex; gap:5px">
+                <button class="btn-edit-small" onclick="toggleFeito('world_pages', '${d.id}', '${page.feito}')">
+                    ${isDone ? '✅' : '✔️'}
+                </button>
+                <button class="btn-edit-small" onclick="openModal('page', '${d.id}', '${page.titulo}')">✏️</button>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+    // --- POSTS ---
+async function loadPosts() {
+    if(!currentPageId) return;
+    const q = query(collection(db, "world_posts"), where("pageId", "==", currentPageId), orderBy("createdAt", "desc"));
+    const snap = await getDocs(q);
+    const container = document.getElementById('lista-posts');
+    container.innerHTML = '';
+    
+    snap.forEach(d => {
+        const post = d.data();
+        const card = document.createElement('div');
+        
+        // Verifica se está marcado como feito
+        const isDone = post.feito === true;
+        card.className = `post-card ${isDone ? 'done' : ''}`;
+        
+        const isAuthor = post.userId === currentUserId;
+
+        let botoesAcao = '';
+        if (isAuthor) {
+            botoesAcao = `
+                <div style="margin-top:10px; text-align:right">
+                    <!-- Botão Feito -->
+                    <button style="background:none; border:none; color:${isDone ? '#fff' : 'var(--accent)'}; font-size:12px; cursor:pointer; margin-right:10px; font-weight:bold" 
+                            onclick="togglePostFeito('${d.id}', ${isDone})">
+                        ${isDone ? '✅ Concluído' : '✔️ Marcar Feito'}
+                    </button>
+                    
+                    <button style="background:none; border:none; color:${isDone ? '#fff' : 'var(--accent)'}; font-size:12px; cursor:pointer; margin-right:10px" 
+                            onclick="editPost('${d.id}')">Editar</button>
+                    
+                    <button style="background:none; border:none; color:${isDone ? '#ffcccc' : 'var(--danger)'}; font-size:12px; cursor:pointer" 
+                            onclick="deletePost('${d.id}')">Excluir</button>
+                </div>
+            `;
+        }
+
+        card.innerHTML = `
+            <div style="font-size:0.95rem">${post.contentHtml}</div>
+            ${botoesAcao}
+        `;
+        container.appendChild(card);
+    });
+}
 
     // Função para carregar o post no editor
     window.editPost = async (id) => {
@@ -368,6 +438,18 @@
             alert("Erro ao salvar post.");
         }
     };
+
+    window.togglePostFeito = async (id, statusAtual) => {
+    try {
+        const novoStatus = !statusAtual; // Inverte entre true e false
+        await updateDoc(doc(db, "world_posts", id), { 
+            feito: novoStatus 
+        });
+        loadPosts(); // Recarrega a lista
+    } catch (e) {
+        console.error("Erro ao atualizar post:", e);
+    }
+};
 
     window.deletePost = async (id) => {
         // Busca o documento para validar o autor antes de apagar (segurança)
