@@ -234,20 +234,17 @@
     // --- BLOCO DE SEGURANÇA ---
  onAuthStateChanged(auth, async (user) => {
         if (!user) {
+            console.log("❌ [Auth] Nenhum utilizador logado.");
             window.location.href = "login.html";
         } else {
-            const userRef = doc(db, "users", user.uid);
-            const userSnap = await getDoc(userRef);
-
-            if (userSnap.exists() && userSnap.data().status === true) {
-                currentUserId = user.uid;
-                await loadTemas(); // Espera os temas carregarem
-                checkDeepLink();   // Verifica se há uma página na URL para abrir
-            } else {
-                alert("Acesso negado.");
-                await signOut(auth);
-                window.location.href = "login.html";
-            }
+            console.log("✅ [Auth] Utilizador logado:", user.uid);
+            currentUserId = user.uid;
+            
+            console.log("⏳ [Load] A carregar temas...");
+            await loadTemas(); 
+            
+            console.log("🔍 [DeepLink] A verificar se existe link direto na URL...");
+            checkDeepLink(); 
         }
     });
 
@@ -270,14 +267,31 @@
 
  
 
-    window.selectPage = (id, titulo) => {
+  window.selectPage = (id, titulo) => {
         currentPageId = id;
+        
+        // Remove active de todos
         document.querySelectorAll('.col-pages .list-item').forEach(el => el.classList.remove('active'));
-        document.getElementById(`page-${id}`).classList.add('active');
-        document.getElementById('content-header').innerHTML = `<h2 style="margin:0; font-size:1.1rem">${titulo}</h2>`;
+        
+        // Tenta encontrar o elemento na lista lateral
+        const itemNaLista = document.getElementById(`page-${id}`);
+        if (itemNaLista) {
+            itemNaLista.classList.add('active');
+        } else {
+            // Se não encontrou, guarda para a função loadPages marcar quando carregar
+            window.pendingPageTarget = id;
+            console.log("⏳ [UI] Item ainda não existe na lista, será marcado ao carregar.");
+        }
+
+        // Continua o carregamento dos posts (isso não depende do HTML da lista)
+        const header = document.getElementById('content-header');
+        if(header) header.innerHTML = `<h2 style="margin:0; font-size:1.1rem">${titulo}</h2>`;
+        
         loadPosts();
         changeView('content');
-        document.getElementById('view-content').scrollTo(0,0);
+        
+        const viewContent = document.getElementById('view-content');
+        if(viewContent) viewContent.scrollTo(0,0);
     };
 
     // --- FUNÇÃO PARA MARCAR COMO FEITO (GENÉRICA) ---
@@ -322,37 +336,54 @@ async function loadTemas() {
 
 
 // --- FUNÇÃO PARA ABRIR PÁGINA VIA URL ---
-  async function checkDeepLink() {
+ async function checkDeepLink() {
         const urlParams = new URLSearchParams(window.location.search);
         const targetPageId = urlParams.get('pageId');
 
         if (targetPageId) {
+            console.log("📍 [DeepLink] ID detetado na URL:", targetPageId);
+            
             try {
-                // 1. Busca os dados da página para saber o Tema pai
-                const pageRef = doc(db, "world_pages", targetPageId);
-                const pageSnap = await getDoc(pageRef);
-
+                console.log("📡 [Firestore] A buscar dados da página...");
+                const pageSnap = await getDoc(doc(db, "world_pages", targetPageId));
+                
                 if (pageSnap.exists()) {
                     const pageData = pageSnap.data();
+                    console.log("📄 [DeepLink] Página encontrada:", pageData.titulo);
                     
-                    // 2. Busca o nome do Tema
-                    const temaRef = doc(db, "temas", pageData.temaId);
-                    const temaSnap = await getDoc(temaRef);
+                    console.log("📡 [Firestore] A buscar tema pai...");
+                    const temaSnap = await getDoc(doc(db, "temas", pageData.temaId));
 
                     if (temaSnap.exists()) {
-                        // 3. Define a página alvo globalmente para o loadPages usar depois
+                        const temaNome = temaSnap.data().nome;
+                        console.log("📁 [DeepLink] Tema pai encontrado:", temaNome);
+
+                        // Define para a lista de páginas destacar o item quando carregar
                         window.pendingPageTarget = targetPageId;
 
-                        // 4. Seleciona o Tema (isso vai disparar o loadPages)
-                        window.selectTema(pageData.temaId, temaSnap.data().nome);
+                        console.log("⚙️ [DeepLink] A disparar seleções automáticas...");
                         
-                        // 5. Seleciona a Página (carrega os posts e muda a visão)
+                        // 1. Seleciona o tema (carrega a 2ª coluna)
+                        window.selectTema(pageData.temaId, temaNome);
+                        
+                        // 2. Seleciona a página (carrega a 3ª coluna - Posts)
                         window.selectPage(targetPageId, pageData.titulo);
+                        
+                        // 3. Muda a visão (crítico para telemóvel aparecer a 3ª coluna)
+                        window.changeView('content');
+                        
+                        console.log("🚀 [DeepLink] Sucesso! A página correta deve estar visível.");
+                    } else {
+                        console.error("⚠️ [DeepLink] Erro: Tema pai não existe no banco de dados.");
                     }
+                } else {
+                    console.error("⚠️ [DeepLink] Erro: O ID da página na URL é inválido ou foi excluído.");
                 }
             } catch (e) {
-                console.error("Erro no Deep Link:", e);
+                console.error("🔥 [DeepLink] Erro crítico ao processar o link:", e);
             }
+        } else {
+            console.log("ℹ️ [DeepLink] Nenhum parâmetro 'pageId' encontrado na URL. A carregar normalmente.");
         }
     }
 
@@ -378,8 +409,8 @@ async function loadPages() {
             div.className = `list-item ${isDone ? 'done' : ''}`;
             div.id = `page-${d.id}`;
             
-            // Se esta for a página vinda do link direto, marca como ativa
-            if (window.pendingPageTarget === d.id) {
+            // VERIFICAÇÃO CRÍTICA: Se este ID é o que estamos a tentar abrir via link
+            if (d.id === window.pendingPageTarget || d.id === currentPageId) {
                 div.classList.add('active');
             }
 
@@ -395,7 +426,7 @@ async function loadPages() {
             container.appendChild(div);
         });
 
-        // Limpa o alvo pendente após carregar
+        // Limpa o alvo pendente pois já foi renderizado
         window.pendingPageTarget = null;
 
     } catch (error) {
