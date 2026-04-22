@@ -3,27 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Diário - Gestor Master</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <title>Gestor Master - Diário & Tarefas</title>
     <style>
         :root { 
             --primary: #1e293b; --accent: #6366f1; --bg: #0f172a; 
-            --white: #f8fafc; --border: #334155; --card-bg: #1e293b;
-            --danger: #ef4444; --success: #16a34a; --warning: #f59e0b;
+            --white: #ffffff; --border: #334155; --card-bg: #1e293b;
+            --danger: #ef4444; --success: #22c55e; --warning: #f59e0b;
         }
         
         * { box-sizing: border-box; }
-
-        body { 
-            font-family: 'Segoe UI', system-ui, sans-serif; 
-            margin: 0; background: var(--bg); color: var(--white); 
-            display: flex; flex-direction: column; height: 100vh; overflow: hidden; 
-        }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; background: var(--bg); color: var(--white); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
-        header { 
-            background: var(--primary); padding: 10px 15px; border-bottom: 1px solid var(--border); 
-            display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
-        }
-        .nav-btns { display: flex; gap: 8px; }
+        header { background: var(--primary); padding: 10px 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+        .btn-home { background: #334155; color: white; text-decoration: none; padding: 8px 15px; border-radius: 8px; font-size: 0.8rem; font-weight: bold; }
 
         .diary-container {
             max-width: 800px; margin: 20px auto; width: 95%; flex: 1;
@@ -32,182 +26,252 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
 
+        /* NAVEGAÇÃO POR TABS */
         .tabs-main { display: flex; background: #161e2e; border-bottom: 1px solid var(--border); }
-        .tab-btn { 
-            flex: 1; padding: 15px; border: none; background: transparent; color: #94a3b8;
-            cursor: pointer; font-weight: bold; font-size: 0.9rem; transition: 0.3s;
-            border-bottom: 3px solid transparent;
-        }
+        .tab-btn { flex: 1; padding: 15px; border: none; background: transparent; color: #94a3b8; cursor: pointer; font-weight: bold; font-size: 0.8rem; border-bottom: 3px solid transparent; }
         .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); background: rgba(99, 102, 241, 0.05); }
 
         .content-section { display: none; flex: 1; flex-direction: column; padding: 20px; overflow-y: auto; }
         .content-section.active { display: flex; }
 
-        .toolbar { 
-            display: flex; gap: 8px; padding: 10px; background: #0f172a; 
-            border: 1px solid var(--border); border-radius: 8px 8px 0 0; flex-wrap: wrap; align-items: center;
+        /* --- DESIGN DAS TAREFAS --- */
+        .task-card { 
+            display: flex; flex-direction: column; background: #1e293b; 
+            border: 1px solid var(--border); border-radius: 10px; margin-bottom: 20px; padding: 15px;
         }
-        .toolbar button { 
-            background: #1e293b; border: 1px solid var(--border); color: white; 
-            padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.8rem;
-        }
-        
-        .btn-status-feito { border: 2px solid var(--success) !important; color: var(--success) !important; background: transparent; }
-        .btn-status-feito.active { background: var(--success) !important; color: white !important; }
-        
-        .btn-status-ideia { border: 2px solid var(--warning) !important; color: var(--warning) !important; background: transparent; }
-        .btn-status-ideia.active { background: var(--warning) !important; color: white !important; }
-        
-        #editor { 
-            flex: 1; min-height: 250px; background: #0f172a; border: 1px solid var(--border); 
-            border-top: none; padding: 20px; border-radius: 0 0 8px 8px; outline: none; 
-            color: white; line-height: 1.6; overflow-y: auto;
-        }
+        .task-card.doing { border-color: var(--warning); border-left: 4px solid var(--warning); background: #2d2010; }
 
-        /* Badges e Cards */
-        .badge-container { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-        .badge-container.editable { cursor: pointer; }
-        .badge-container.editable:hover { opacity: 0.8; transform: scale(1.02); }
+        .task-header { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
+        .task-order { color: var(--accent); font-weight: 900; font-size: 0.85rem; }
+        .task-title { font-weight: bold; font-size: 1.1rem; color: var(--white); flex: 1; }
+        .task-separator { height: 1px; background: rgba(255,255,255,0.1); width: 100%; margin: 8px 0; }
 
-        .badge { 
-            padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: bold; 
-            text-transform: uppercase; display: inline-block; transition: 0.2s;
+        .task-time-display h3 { margin: 0 0 10px 0; font-size: 0.9rem; color: var(--white); opacity: 0.7; font-weight: bold; }
+
+        /* Zona visível aumentada para 150px */
+        .task-desc-wrapper { max-height: 150px; overflow: hidden; position: relative; transition: max-height 0.3s ease; }
+        .task-desc-wrapper.expanded { max-height: 5000px; }
+        .task-desc { font-size: 0.9rem; color: var(--white); opacity: 0.9; line-height: 1.5; text-align: justify; white-space: pre-wrap; word-break: break-word; }
+        .task-desc h3 { display: none; } 
+
+        .task-footer { 
+            display: flex; justify-content: space-between; align-items: center; margin-top: 15px; 
+            padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); flex-wrap: wrap; gap: 10px;
         }
-        .badge-author { background: #334155; color: #cbd5e1; border: 1px solid var(--border); }
-        .badge-feito { background: rgba(22, 163, 74, 0.2); color: #4ade80; border: 1px solid var(--success); }
-        .badge-ideia { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid var(--warning); }
-        .badge-none { background: rgba(148, 163, 184, 0.1); color: #94a3b8; border: 1px solid #475569; }
+        .footer-left, .footer-right { display: flex; gap: 15px; align-items: center; }
+
+        .footer-link { font-size: 0.75rem; font-weight: bold; color: var(--accent); cursor: pointer; text-decoration: none; display: none; }
+        .footer-link:hover { text-decoration: underline; }
+
+        .action-btn {
+            background: none; border: none; font-size: 0.8rem; font-weight: bold;
+            cursor: pointer; display: flex; align-items: center; gap: 5px; padding: 5px 8px; border-radius: 4px;
+        }
+        .btn-doing { color: var(--warning); }
+        .btn-done { color: var(--success); }
+
+        /* --- EDITOR / ABA ESCREVER --- */
+        .toolbar { display: flex; gap: 8px; padding: 10px; background: #0f172a; border: 1px solid var(--border); border-radius: 8px 8px 0 0; flex-wrap: wrap; }
+        .toolbar button { background: #1e293b; border: 1px solid var(--border); color: white; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+        .toolbar button.active { background: var(--accent); border-color: var(--accent); font-weight: bold; }
+
+        #editor { flex: 1; min-height: 200px; background: #0f172a; border: 1px solid var(--border); border-top: none; padding: 20px; border-radius: 0 0 8px 8px; outline: none; line-height: 1.6; overflow-y: auto; }
+        .btn-save { background: var(--accent); color: white; border: none; border-radius: 8px; padding: 15px; font-weight: bold; cursor: pointer; margin-top: 10px; font-size: 1rem; }
+
+        /* --- FEED --- */
+        .sub-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .sub-btn { padding: 8px 15px; border-radius: 20px; border: 1px solid var(--border); background: #1e293b; color: #94a3b8; cursor: pointer; font-size: 0.8rem; }
+        .sub-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
 
         .diary-card { background: #0f172a; border: 1px solid var(--border); padding: 15px; border-radius: 10px; margin-bottom: 15px; }
-        .diary-card .meta { margin-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-start; }
-        .diary-card .text { font-size: 0.9rem; line-height: 1.5; color: #cbd5e1; }
+        .badge-container { display: flex; gap: 6px; margin-bottom: 10px; }
+        .badge { padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; }
+        .badge-author { background: #334155; color: #cbd5e1; }
+        .badge-feito { background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid var(--success); }
+        .badge-ideia { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid var(--warning); }
 
-        /* MODAL POPUP */
-        .modal { 
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center;
-        }
-        .modal-content { 
-            background: var(--card-bg); padding: 25px; border-radius: 15px; width: 90%; max-width: 350px; 
-            border: 1px solid var(--border); text-align: center;
-        }
-        .modal-btns { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
-        .modal-btns button { padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; border: none; font-size: 1rem; }
-
-        .btn { border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; color: white; padding: 10px 15px; text-decoration: none; font-size: 0.8rem; }
-        .btn-accent { background: var(--accent); width: 100%; margin-top: 15px; padding: 15px; font-size: 1rem; }
-        .btn-gray { background: #334155; }
-
-        /* Container das Sub-abas */
-.sub-tabs { 
-    display: flex; 
-    gap: 12px; 
-    margin-bottom: 25px; 
-    padding: 10px 5px;
-    border-bottom: 1px solid rgba(51, 65, 85, 0.5); /* Linha sutil separando do feed */
+        /* MODAL */
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
+        .modal-content { background: var(--card-bg); width: 100%; max-width: 600px; max-height: 80vh; border-radius: 15px; border: 1px solid var(--border); overflow: hidden; display: flex; flex-direction: column; }
+  
+  /* Efeito de seleção ao passar o rato nos botões de ação */
+.action-btn {
+    transition: all 0.2s ease; /* Suaviza a transição */
+    border: 1px solid transparent;
 }
 
-/* Estilo Base dos Botões de Relatos */
-.sub-btn { 
-    padding: 10px 20px; 
-    border-radius: 50px; /* Formato pílula */
-    border: 1px solid var(--border);
-    background: #1e293b; 
-    color: #94a3b8; 
-    cursor: pointer; 
-    font-size: 0.85rem;
-    font-weight: 600;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    display: flex;
+.action-btn.btn-doing:hover {
+    background: rgba(245, 158, 11, 0.15); /* Fundo suave cor de aviso */
+    border-color: var(--warning);         /* Borda realçada */
+    color: #ffb833;                       /* Texto mais brilhante */
+}
+
+.action-btn.btn-done:hover {
+    background: rgba(34, 197, 94, 0.15);  /* Fundo suave cor de sucesso */
+    border-color: var(--success);         /* Borda realçada */
+    color: #4ade80;                       /* Texto mais brilhante */
+}
+
+/* Estilização do Timestamp (Data) */
+.task-time-display h3 { 
+    margin: 0; 
+    padding-bottom: 4px; /* Espaço entre o texto e a linha */
+    font-size: 0.9rem; 
+    color: #fef08a; /* Amarelo claro (Tailwind yellow-200) */
+    font-weight: bold;
+    font-style: italic; /* Itálico solicitado */
+    border-bottom: 1px solid rgba(254, 240, 138, 0.3); /* Linha amarela clara subtil */
+    display: block;
+    width: 100%;
+    margin-bottom: 8px; /* Espaço reduzido para o texto de baixo se aproximar */
+}
+
+/* Garante que a descrição não tenha margens extras no topo */
+.task-desc { 
+    font-size: 0.9rem; 
+    color: var(--white); 
+    opacity: 0.9; 
+    line-height: 1.5; 
+    text-align: justify; 
+    white-space: pre-wrap; 
+    word-break: break-word;
+    margin-top: 0 !important; /* Força a aproximação do separador */
+}
+
+/* Remove estilos padrão que o Firebase possa trazer no h3 */
+.task-time-display h3 b, .task-time-display h3 {
+    all: inherit;
+    display: block;
+    border-bottom: 1px solid rgba(254, 240, 138, 0.3);
+    padding-bottom: 4px;
+    margin-bottom: 8px;
+    color: #fef08a;
+    font-weight: bold;
+    font-style: italic;
+}
+
+/* Estilo solicitado para o Timestamp */
+.task-time-display h3 { 
+    margin: 0 !important;
+    padding-bottom: 5px;
+    font-size: 0.95rem;
+    color: #fef08a !important; /* Amarelo Claro */
+    font-weight: bold !important;
+    font-style: italic !important;
+    border-bottom: 1px solid rgba(254, 240, 138, 0.4); /* Linha separadora */
+    margin-bottom: 10px !important; /* Espaço para o texto seguinte */
+}
+
+/* Garante que o texto se aproxime do separador */
+.task-desc { 
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+  
+/* Estilo para o Timestamp (Topo e dentro do texto) */
+.task-time-display h3, 
+.task-desc h3 { 
+    margin: 0 !important;
+    padding-bottom: 5px;
+    font-size: 0.95rem;
+    color: #7dd3fc !important; /* Azul Claro (Sky 300) */
+    font-weight: bold !important;
+    font-style: italic !important;
+    border-bottom: 1px solid rgba(125, 211, 252, 0.3); /* Linha azul clara */
+    display: block;
+    width: 100%;
+}
+
+/* Espaçamento específico para o do topo */
+.task-time-display h3 { margin-bottom: 10px !important; }
+
+/* Espaçamento para timestamps que apareçam no meio do texto */
+.task-desc h3 { 
+    margin-top: 15px !important; 
+    margin-bottom: 8px !important; 
+}
+
+/* Garante que o texto se aproxime do separador */
+.task-desc { margin-top: 0 !important; padding-top: 0 !important; }
+
+.tab-btn, .sub-btn {
+    display: inline-flex;
     align-items: center;
-    gap: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    justify-content: center;
 }
 
-/* Efeito ao passar o mouse */
-.sub-btn:hover { 
-    border-color: var(--accent);
-    color: var(--white);
-    background: rgba(99, 102, 241, 0.1);
-    transform: translateY(-1px);
+.tab-btn i, .sub-btn i {
+    font-size: 0.9rem; /* Tamanho do ícone */
 }
 
-/* Estado Ativo (Selecionado) */
-.sub-btn.active { 
-    background: var(--accent); 
-    color: white; 
-    border-color: var(--accent);
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-}
-
-/* Ajuste no card do diário para não ficar colado */
-#feed-lista {
-    padding-top: 10px;
-}
-
-    </style>
+  </style>
 </head>
 <body>
 
     <header>
-        <div class="nav-btns">
-            <a href="index.html" class="btn btn-gray">🏠 Home</a>
-            <a href="gestor.html" class="btn btn-gray">⚙️ Gestor</a>
-        </div>
-        <span style="font-weight: bold; color: var(--accent);">DIÁRIO MASTER</span>
+        <a href="index.html" class="btn-home">🏠 Home</a>
+        <span style="font-weight: bold; color: var(--accent);">GESTOR MASTER</span>
     </header>
 
     <div class="diary-container">
-        <div class="tabs-main">
-            <button class="tab-btn active" onclick="switchTab('escrever')">✎ ESCREVER</button>
-            <button class="tab-btn" onclick="switchTab('feed')">📖 FEED</button>
+       <div class="tabs-main">
+    <button id="tab-tarefas" class="tab-btn active" onclick="switchTab('tarefas')">
+        <i class="fa-solid fa-list-check" style="color: white; margin-right: 5px;"></i> TAREFAS
+    </button>
+    <button id="tab-escrever" class="tab-btn" onclick="switchTab('escrever')">
+        <i class="fa-solid fa-pen-fancy" style="color: white; margin-right: 5px;"></i> ESCREVER
+    </button>
+    <button id="tab-feed" class="tab-btn" onclick="switchTab('feed')">
+        <i class="fa-solid fa-book-open" style="color: white; margin-right: 5px;"></i> FEED
+    </button>
+</div>
+
+        <!-- ABA TAREFAS -->
+        <div id="sec-tarefas" class="content-section active">
+            <div id="tarefas-lista"></div>
         </div>
 
-        <div id="sec-escrever" class="content-section active">
+        <!-- ABA ESCREVER -->
+        <div id="sec-escrever" class="content-section">
             <div class="toolbar">
                 <button onclick="format('bold')">B</button>
                 <button onclick="format('italic')">I</button>
-                <button onclick="format('insertUnorderedList')">Bullet</button>
-                <button onclick="addCheckbox()">[ ] Check</button>
-                <div style="width: 1px; height: 20px; background: var(--border); margin: 0 5px;"></div>
-                <button id="btn-feito" class="btn-status-feito" onclick="setStatus('feito')">✓ Feito</button>
-                <button id="btn-ideia" class="btn-status-ideia" onclick="setStatus('ideia')">💡 Ideia</button>
+                <button onclick="format('insertUnorderedList')">• Lista</button>
+                <button id="btn-feito" style="color:var(--success)" onclick="setStatus('feito')">✓ Feito</button>
+                <button id="btn-ideia" style="color:var(--warning)" onclick="setStatus('ideia')">💡 Ideia</button>
             </div>
-            <div id="editor" contenteditable="true" placeholder="Comece a escrever seu dia..."></div>
-            <button class="btn btn-accent" onclick="saveDiary()">Gravar no Diário</button>
+            <div id="editor" contenteditable="true"></div>
+            <button class="btn-save" onclick="saveDiary()">Gravar no Diário</button>
         </div>
 
-      <div id="sec-feed" class="content-section">
-    <div class="sub-tabs">
-        <button class="sub-btn active" id="sub-meus" onclick="loadFeed('meus')">
-            👤 Meus Relatos
-        </button>
-        <button class="sub-btn" id="sub-outros" onclick="loadFeed('outros')">
-            🌎 Outros Usuários
-        </button>
-    </div>
-    <div id="feed-lista">
-        <!-- Posts aparecerão aqui -->
-    </div>
+        <!-- ABA FEED -->
+        <div id="sec-feed" class="content-section">
+         <div class="sub-tabs">
+    <button class="sub-btn active" id="sub-meus" onclick="loadFeed('meus')">
+        <i class="fa-solid fa-user-check" style="color: white; margin-right: 5px;"></i> Meus Relatos
+    </button>
+    <button class="sub-btn" id="sub-outros" onclick="loadFeed('outros')">
+        <i class="fa-solid fa-users" style="color: white; margin-right: 5px;"></i> Outros
+    </button>
 </div>
+            <div id="feed-lista"></div>
+        </div>
+    </div>
 
-    <!-- Modal de Mudança de Estado -->
-    <div id="statusModal" class="modal" onclick="closeModal(event)">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <h3 style="margin-top:0">Mudar Estado</h3>
-            <p style="font-size:0.8rem; color: #94a3b8">Selecione o novo status deste post:</p>
-            <div class="modal-btns">
-                <button class="badge-feito" onclick="updatePostStatus('feito')">✓ Marcar como Feito</button>
-                <button class="badge-ideia" onclick="updatePostStatus('ideia')">💡 Marcar como Ideia</button>
-                <button style="background:#334155; color:white" onclick="updatePostStatus(null)">Limpar Estado</button>
-                <button style="background:transparent; color: #94a3b8; border: 1px solid var(--border)" onclick="document.getElementById('statusModal').style.display='none'">Cancelar</button>
+    <!-- MODAL DE ANEXOS -->
+    <div id="anexosModal" class="modal">
+        <div class="modal-content">
+            <div style="padding:15px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+                <b>📎 Anexos</b>
+                <button onclick="closeAnexos()" style="background:var(--danger); border:none; color:white; padding:5px 10px; border-radius:4px; cursor:pointer;">Fechar</button>
             </div>
+            <div id="anexos-body" style="padding:20px; overflow-y:auto; display:flex; flex-direction:column; gap:15px;"></div>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, serverTimestamp, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         
         const firebaseConfig = {
@@ -225,150 +289,224 @@
 
         let currentUser = null;
         let userData = null;
+        let activeTasks = {};
         let selectedStatus = null;
-        let currentEditingPostId = null;
 
         onAuthStateChanged(auth, async (user) => {
-            if (!user) {
-                window.location.href = "login.html";
-            } else {
-                const userRef = doc(db, "users", user.uid);
-                const userSnap = await getDoc(userRef);
-                if (userSnap.exists() && userSnap.data().status === true) {
-                    currentUser = user;
-                    userData = userSnap.data();
-                } else {
-                    await signOut(auth);
-                    window.location.href = "login.html";
-                }
-            }
+            if (user) { 
+                currentUser = user; 
+                const uSnap = await getDoc(doc(db, "users", user.uid));
+                if(uSnap.exists()) userData = uSnap.data();
+                loadTasks(); 
+            } else { window.location.href = "login.html"; }
         });
 
         window.switchTab = (tab) => {
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
-            if(tab === 'escrever') {
-                document.querySelector('.tab-btn:nth-child(1)').classList.add('active');
-                document.getElementById('sec-escrever').classList.add('active');
-            } else {
-                document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
-                document.getElementById('sec-feed').classList.add('active');
-                loadFeed('meus');
-            }
+            document.querySelectorAll('.tab-btn, .content-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            document.getElementById(`sec-${tab}`).classList.add('active');
+            if(tab === 'tarefas') loadTasks();
+            if(tab === 'feed') loadFeed('meus');
         };
 
-        window.setStatus = (status) => {
-            const btnFeito = document.getElementById('btn-feito');
-            const btnIdeia = document.getElementById('btn-ideia');
-            if (selectedStatus === status) {
-                selectedStatus = null;
-                btnFeito.classList.remove('active');
-                btnIdeia.classList.remove('active');
-            } else {
-                selectedStatus = status;
-                btnFeito.classList.toggle('active', status === 'feito');
-                btnIdeia.classList.toggle('active', status === 'ideia');
-            }
+        // --- TAREFAS ---
+        window.loadTasks = async () => {
+            const container = document.getElementById('tarefas-lista');
+            container.innerHTML = "<p style='text-align:center; opacity:0.5'>A carregar tarefas...</p>";
+            
+            const q = query(collection(db, "tarefas"), where("para", "==", currentUser.uid), orderBy("ordem", "asc"));
+            const snap = await getDocs(q);
+            container.innerHTML = "";
+            
+            activeTasks = {};
+snap.forEach(d => {
+            const t = d.data();
+            if(t.estado === 'feito') return;
+            activeTasks[d.id] = t;
+
+            // 1. Criar um elemento temporário para manipular o HTML
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = t.descricao;
+
+            // 2. Extrair o PRIMEIRO h3 para o topo
+            const firstH3 = tempDiv.querySelector('h3');
+            const timeHtml = firstH3 ? firstH3.outerHTML : "";
+
+            // 3. Limpeza inteligente: 
+            // Removemos apenas a PRIMEIRA ocorrência do H3 para não duplicar no topo,
+            // mas mantemos os outros H3 que existirem no resto da descrição.
+            let cleanDesc = t.descricao.replace(/<h3.*?>.*?<\/h3>/i, ''); // Sem o 'g', remove só o primeiro
+            cleanDesc = cleanDesc.replace(/<b>\s*<\/b>/gi, '').trim(); // Limpa negritos vazios
+
+            const card = document.createElement('div');
+            card.className = `task-card ${t.estado === 'a-fazer' ? 'doing' : ''}`;
+            
+            card.innerHTML = `
+                <div class="task-header">
+                    <span class="task-order">#${t.ordem}</span>
+                    <div class="task-title">${t.nome}</div>
+                </div>
+                
+                <div class="task-separator"></div>
+                
+                <div class="task-time-display">${timeHtml}</div>
+
+                <div id="wrap-${d.id}" class="task-desc-wrapper">
+                    <div id="text-${d.id}" class="task-desc">${cleanDesc}</div>
+                </div>
+
+                <div class="task-footer">
+                    <div class="footer-left">
+                        <span id="btn-more-${d.id}" class="footer-link" onclick="toggleText('${d.id}')">Ver mais</span>
+                        ${t.links && t.links.length > 0 ? `<span class="footer-link" style="display:block" onclick="openAnexos('${d.id}')">Ver anexos (${t.links.length})</span>` : ''}
+                    </div>
+                    <div class="footer-right">
+                        <button class="action-btn btn-doing" onclick="updateTaskState('${d.id}', 'a-fazer')">🚧 A fazer</button>
+                        <button class="action-btn btn-done" onclick="completeTask('${d.id}')">✅ Concluído</button>
+                    </div>
+                </div>
+            `;
+            container.appendChild(card);
+
+            setTimeout(() => {
+                const textEl = document.getElementById(`text-${d.id}`);
+                const btnEl = document.getElementById(`btn-more-${d.id}`);
+                if (textEl && textEl.scrollHeight > 150) { btnEl.style.display = "block"; }
+            }, 100);
+        });
         };
 
+        window.toggleText = (id) => {
+            const wrap = document.getElementById(`wrap-${id}`);
+            const btn = document.getElementById(`btn-more-${id}`);
+            const isExpanded = wrap.classList.toggle('expanded');
+            btn.innerText = isExpanded ? "Ver menos" : "Ver mais";
+        };
+
+     window.updateTaskState = async (id, state) => {
+    // Busca o estado atual no objeto activeTasks que já temos na memória
+    const currentState = activeTasks[id].estado;
+    
+    // Se clicar em 'a-fazer' e já estiver 'a-fazer', muda para 'não-feito'
+    // Caso contrário, aplica o novo estado (state)
+    const newState = (state === 'a-fazer' && currentState === 'a-fazer') ? 'não-feito' : state;
+
+    await updateDoc(doc(db, "tarefas", id), { estado: newState });
+    loadTasks();
+};
+
+     window.completeTask = async (id) => {
+    const task = activeTasks[id];
+    await updateDoc(doc(db, "tarefas", id), { 
+        estado: 'feito',
+        concluido_por: currentUser.uid, // Guarda o ID de quem fez
+        concluido_em: serverTimestamp()  // Guarda a data para o Feed
+    });
+    loadTasks();
+};
+
+        // --- DIÁRIO / ESCREVER ---
         window.format = (cmd) => document.execCommand(cmd, false, null);
-        window.addCheckbox = () => {
-            const checkboxHtml = "<div><input type='checkbox'> </div>";
-            document.execCommand('insertHTML', false, checkboxHtml);
+        
+        window.setStatus = (s) => {
+            selectedStatus = (selectedStatus === s) ? null : s;
+            document.getElementById('btn-feito').classList.toggle('active', selectedStatus === 'feito');
+            document.getElementById('btn-ideia').classList.toggle('active', selectedStatus === 'ideia');
         };
 
         window.saveDiary = async () => {
             const content = document.getElementById('editor').innerHTML;
-            if(!content || content.trim() === "" || content === "<br>") {
-                alert("Escreva algo antes de gravar!");
-                return;
-            }
-            try {
-                await addDoc(collection(db, "diario"), {
-                    userId: currentUser.uid,
-                    userName: userData.nome,
-                    contentHtml: content,
-                    status: selectedStatus,
-                    createdAt: serverTimestamp()
-                });
-                document.getElementById('editor').innerHTML = "";
-                selectedStatus = null;
-                document.querySelectorAll('.toolbar button').forEach(b => b.classList.remove('active'));
-                switchTab('feed');
-            } catch (e) { console.error(e); alert("Erro ao gravar."); }
+            if(!content || content === "<br>") return;
+            await addDoc(collection(db, "diario"), {
+                userId: currentUser.uid, userName: userData?.nome || "Utilizador",
+                contentHtml: content, status: selectedStatus, createdAt: serverTimestamp()
+            });
+            document.getElementById('editor').innerHTML = "";
+            selectedStatus = null;
+            document.getElementById('btn-feito').classList.remove('active');
+            document.getElementById('btn-ideia').classList.remove('active');
+            switchTab('feed');
         };
 
-        // --- FUNÇÕES DO MODAL ---
-        window.openEditStatus = (postId) => {
-            currentEditingPostId = postId;
-            document.getElementById('statusModal').style.display = 'flex';
+        // --- FEED ---
+     window.loadFeed = async (type) => {
+    document.querySelectorAll('.sub-btn').forEach(b => b.classList.toggle('active', b.id === `sub-${type}`));
+    const container = document.getElementById('feed-lista');
+    container.innerHTML = "<p style='text-align:center; opacity:0.5'>A carregar relatos e tarefas...</p>";
+    
+    let combinedFeed = [];
+
+    // 1. Puxar Anotações da coleção "diario"
+    const qDiario = query(collection(db, "diario"), orderBy("createdAt", "desc"));
+    const snapDiario = await getDocs(qDiario);
+    snapDiario.forEach(d => {
+        const data = d.data();
+        if(type === 'meus' && data.userId !== currentUser.uid) return;
+        if(type === 'outros' && data.userId === currentUser.uid) return;
+        
+        combinedFeed.push({
+            ...data,
+            tipo: 'anotacao',
+            timestamp: data.createdAt?.toDate() || new Date()
+        });
+    });
+
+    // 2. Puxar Tarefas Concluídas da coleção "tarefas"
+    const qTarefas = query(collection(db, "tarefas"), where("estado", "==", "feito"), orderBy("concluido_em", "desc"));
+    const snapTarefas = await getDocs(qTarefas);
+    snapTarefas.forEach(d => {
+        const data = d.data();
+        if(type === 'meus' && data.concluido_por !== currentUser.uid) return;
+        if(type === 'outros' && data.concluido_por === currentUser.uid) return;
+
+        combinedFeed.push({
+            userName: type === 'meus' ? (userData?.nome || "Eu") : "Outro Usuário",
+            contentHtml: `<b>✅ Tarefa Concluída:</b> ${data.nome}<br><small>${data.descricao}</small>`,
+            status: 'feito',
+            tipo: 'tarefa',
+            timestamp: data.concluido_em?.toDate() || new Date()
+        });
+    });
+
+    // 3. Ordenar tudo por data (mais recente primeiro)
+    combinedFeed.sort((a, b) => b.timestamp - a.timestamp);
+
+    // 4. Renderizar no HTML
+    container.innerHTML = combinedFeed.length ? "" : "<p style='text-align:center; opacity:0.5'>Nada para mostrar.</p>";
+    combinedFeed.forEach(post => {
+        const card = document.createElement('div');
+        card.className = 'diary-card';
+        card.innerHTML = `
+            <div class="badge-container">
+                <span class="badge badge-author">${post.userName}</span>
+                ${post.status ? `<span class="badge badge-${post.status}">${post.status}</span>` : ''}
+            </div>
+            <div style="font-size:0.9rem">${post.contentHtml}</div>
+            <div style="font-size:0.7rem; opacity:0.4; margin-top:10px; text-align:right;">
+                ${post.timestamp.toLocaleDateString()} ${post.timestamp.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+            </div>
+        `;
+        container.appendChild(card);
+    });
+};
+
+
+
+        // ANEXOS
+        window.openAnexos = (id) => {
+            const task = activeTasks[id];
+            const body = document.getElementById('anexos-body');
+            body.innerHTML = "";
+            task.links.forEach(url => {
+                if (url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) body.innerHTML += `<img src="${url}" style="width:100%; border-radius:8px">`;
+                else if (url.includes("youtube.com") || url.includes("youtu.be")) {
+                    const vid = url.split('v=')[1]?.split('&')[0] || url.split('/').pop();
+                    body.innerHTML += `<iframe style="width:100%; aspect-ratio:16/9; border:none; border-radius:8px" src="https://www.youtube.com/embed/${vid}" allowfullscreen></iframe>`;
+                } else body.innerHTML += `<a href="${url}" target="_blank" style="display:block; background:#0f172a; padding:15px; border-radius:8px; color:white; text-decoration:none; border:1px solid var(--accent)">🌐 Link: ${url}</a>`;
+            });
+            document.getElementById('anexosModal').style.display = 'flex';
         };
-
-        window.closeModal = (e) => {
-            document.getElementById('statusModal').style.display = 'none';
-        };
-
-        window.updatePostStatus = async (newStatus) => {
-            if(!currentEditingPostId) return;
-            try {
-                const postRef = doc(db, "diario", currentEditingPostId);
-                await updateDoc(postRef, {
-                    status: newStatus,
-                    dataEditado: serverTimestamp()
-                });
-                document.getElementById('statusModal').style.display = 'none';
-                loadFeed(document.getElementById('sub-meus').classList.contains('active') ? 'meus' : 'outros');
-            } catch (e) { console.error(e); alert("Erro ao atualizar status."); }
-        };
-
-        window.loadFeed = async (type) => {
-            const container = document.getElementById('feed-lista');
-            container.innerHTML = "<p style='text-align:center; color:gray'>Carregando...</p>";
-            document.getElementById('sub-meus').classList.toggle('active', type === 'meus');
-            document.getElementById('sub-outros').classList.toggle('active', type === 'outros');
-
-            try {
-                let q = query(collection(db, "diario"), orderBy("createdAt", "desc"));
-                const snap = await getDocs(q);
-                container.innerHTML = "";
-
-                if(snap.empty) {
-                    container.innerHTML = "<p style='text-align:center; color:gray; margin-top:20px'>Nada encontrado.</p>";
-                    return;
-                }
-
-                snap.forEach(d => {
-                    const post = d.data();
-                    const postId = d.id;
-                    if(type === 'meus' && post.userId !== currentUser.uid) return;
-                    if(type === 'outros' && post.userId === currentUser.uid) return;
-
-                    const date = post.createdAt ? post.createdAt.toDate().toLocaleDateString('pt-br') : "...";
-                    const editDate = post.dataEditado ? `<br><span style="font-size:0.6rem; opacity:0.6">Alt: ${post.dataEditado.toDate().toLocaleDateString('pt-br')}</span>` : "";
-                    
-                    let statusHtml = "";
-                    if (post.status === 'feito') statusHtml = `<span class="badge badge-feito">✓ Feito</span>`;
-                    else if (post.status === 'ideia') statusHtml = `<span class="badge badge-ideia">💡 Ideia</span>`;
-                    else if (post.userId === currentUser.uid) statusHtml = `<span class="badge badge-none">+ Status</span>`;
-
-                    const isMine = post.userId === currentUser.uid;
-
-                    const card = document.createElement('div');
-                    card.className = 'diary-card';
-                    card.innerHTML = `
-                        <div class="meta">
-                            <div class="badge-container ${isMine ? 'editable' : ''}" ${isMine ? `onclick="openEditStatus('${postId}')"` : ''}>
-                                <span class="badge badge-author">Por: ${post.userName}</span>
-                                ${statusHtml}
-                            </div>
-                            <span style="font-size: 0.7rem; color: #64748b; text-align:right">${date}${editDate}</span>
-                        </div>
-                        <div class="text">${post.contentHtml}</div>
-                    `;
-                    container.appendChild(card);
-                });
-            } catch (e) { console.error(e); container.innerHTML = "<p style='color:red'>Erro ao carregar o feed.</p>"; }
-        };
+        window.closeAnexos = () => document.getElementById('anexosModal').style.display = 'none';
     </script>
 </body>
 </html>
