@@ -527,7 +527,8 @@ snap.forEach(d => {
                     </div>
                 `;
                 // Se quiser que ao clicar ele vá para o gestor do world:
-                item.onclick = () => window.location.href = `worldedit.html`; 
+                item.onclick = () => window.location.href = `world.html?pageId=${ref.id}`;
+
                 body.appendChild(item);
             });
             
