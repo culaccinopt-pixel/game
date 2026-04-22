@@ -54,10 +54,15 @@
         .task-desc { font-size: 0.9rem; color: var(--white); opacity: 0.9; line-height: 1.5; text-align: justify; white-space: pre-wrap; word-break: break-word; }
         .task-desc h3 { display: none; } 
 
-        .task-footer { 
-            display: flex; justify-content: space-between; align-items: center; margin-top: 15px; 
-            padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); flex-wrap: wrap; gap: 10px;
-        }
+    .task-footer { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    margin-top: 15px; 
+    padding-top: 12px; 
+    border-top: 1px solid rgba(255,255,255,0.05); 
+}
+
         .footer-left, .footer-right { display: flex; gap: 15px; align-items: center; }
 
         .footer-link { font-size: 0.75rem; font-weight: bold; color: var(--accent); cursor: pointer; text-decoration: none; display: none; }
@@ -204,6 +209,37 @@
     font-size: 0.9rem; /* Tamanho do ícone */
 }
 
+/* Estilo para links de referência dentro do texto */
+.ref-inline-link {
+    color: var(--accent);
+    text-decoration: underline;
+    font-weight: bold;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+.ref-inline-link:hover {
+    opacity: 0.8;
+}
+
+
+.footer-left { flex: 1; display: flex; justify-content: flex-start; }
+.footer-center { flex: 2; display: flex; justify-content: center; gap: 15px; } /* Centraliza e dá espaço entre os dois */
+.footer-right { flex: 1; display: flex; justify-content: flex-end; gap: 10px; }
+
+/* Melhoria visual nos links de anexo para parecerem mini-botões */
+.footer-link { 
+    font-size: 0.75rem; 
+    font-weight: bold; 
+    padding: 4px 8px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 5px;
+    transition: 0.2s;
+}
+.footer-link:hover { 
+    background: rgba(255,255,255,0.08); 
+    text-decoration: none; 
+}
+
   </style>
 </head>
 <body>
@@ -322,7 +358,7 @@
         };
 
         // --- TAREFAS ---
-        window.loadTasks = async () => {
+    window.loadTasks = async () => {
             const container = document.getElementById('tarefas-lista');
             container.innerHTML = "<p style='text-align:center; opacity:0.5'>A carregar tarefas...</p>";
             
@@ -331,66 +367,73 @@
             container.innerHTML = "";
             
             activeTasks = {};
-snap.forEach(d => {
-            const t = d.data();
-            if(t.estado === 'feito') return;
-            activeTasks[d.id] = t;
+            snap.forEach(d => {
+                const t = d.data();
+                if(t.estado === 'feito') return;
+                activeTasks[d.id] = t;
 
-            // 1. Criar um elemento temporário para manipular o HTML
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = t.descricao;
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = t.descricao;
 
-            // 2. Extrair o PRIMEIRO h3 para o topo
-            const firstH3 = tempDiv.querySelector('h3');
-            const timeHtml = firstH3 ? firstH3.outerHTML : "";
+                const firstH3 = tempDiv.querySelector('h3');
+                const timeHtml = firstH3 ? firstH3.outerHTML : "";
 
-            // 3. Limpeza inteligente: 
-            // Removemos apenas a PRIMEIRA ocorrência do H3 para não duplicar no topo,
-            // mas mantemos os outros H3 que existirem no resto da descrição.
-            let cleanDesc = t.descricao.replace(/<h3.*?>.*?<\/h3>/i, ''); // Sem o 'g', remove só o primeiro
-            cleanDesc = cleanDesc.replace(/<b>\s*<\/b>/gi, '').trim(); // Limpa negritos vazios
+                let cleanDesc = t.descricao.replace(/<h3.*?>.*?<\/h3>/i, ''); 
+                cleanDesc = cleanDesc.replace(/<b>\s*<\/b>/gi, '').trim();
 
-            const card = document.createElement('div');
-            card.className = `task-card ${t.estado === 'a-fazer' ? 'doing' : ''}`;
-            
-            card.innerHTML = `
-                <div class="task-header">
-                    <span class="task-order">#${t.ordem}</span>
-                    <div class="task-title">${t.nome}</div>
-                </div>
+                // --- LÓGICA DE REFERÊNCIAS INLINE ---
+                if (t.referencias && t.referencias.length > 0) {
+                    t.referencias.forEach((ref, index) => {
+                        const numRef = index + 1;
+                        const placeholder = `[Referência ${numRef}]`;
+                        
+                        // Criamos o HTML do link (abre em nova aba para não perder a tarefa)
+                        const linkUrl = `worldedit.html?pageId=${ref.id}`;
+                        const linkHtml = `<a href="${linkUrl}" target="_blank" class="ref-inline-link" title="Abrir: ${ref.titulo}">${placeholder}</a>`;
+                        
+                        // Substituímos todas as ocorrências deste placeholder específico
+                        // Usamos split/join para substituir todas as instâncias sem regex complexa
+                        cleanDesc = cleanDesc.split(placeholder).join(linkHtml);
+                    });
+                }
+
+                const card = document.createElement('div');
+                card.className = `task-card ${t.estado === 'a-fazer' ? 'doing' : ''}`;
                 
-                <div class="task-separator"></div>
-                
-                <div class="task-time-display">${timeHtml}</div>
-
-                <div id="wrap-${d.id}" class="task-desc-wrapper">
-                    <div id="text-${d.id}" class="task-desc">${cleanDesc}</div>
-                </div>
-
-                <div class="task-footer">
-                <div class="footer-left">
-    <span id="btn-more-${d.id}" class="footer-link" onclick="toggleText('${d.id}')">Ver mais</span>
-    
-    ${t.links && t.links.length > 0 ? 
-        `<span class="footer-link" style="display:block" onclick="openAnexos('${d.id}')">Ver anexos (${t.links.length})</span>` : ''}
-    
-    ${t.referencias && t.referencias.length > 0 ? 
-        `<span class="footer-link" style="display:block; color:var(--accent)" onclick="openRefs('${d.id}')">📚 Referências (${t.referencias.length})</span>` : ''}
-</div>
-                    <div class="footer-right">
-                        <button class="action-btn btn-doing" onclick="updateTaskState('${d.id}', 'a-fazer')">🚧 A fazer</button>
-                        <button class="action-btn btn-done" onclick="completeTask('${d.id}')">✅ Concluído</button>
+                card.innerHTML = `
+                    <div class="task-header">
+                        <span class="task-order">#${t.ordem}</span>
+                        <div class="task-title">${t.nome}</div>
                     </div>
-                </div>
-            `;
-            container.appendChild(card);
+                    
+                    <div class="task-separator"></div>
+                    
+                    <div class="task-time-display">${timeHtml}</div>
 
-            setTimeout(() => {
-                const textEl = document.getElementById(`text-${d.id}`);
-                const btnEl = document.getElementById(`btn-more-${d.id}`);
-                if (textEl && textEl.scrollHeight > 150) { btnEl.style.display = "block"; }
-            }, 100);
-        });
+                    <div id="wrap-${d.id}" class="task-desc-wrapper">
+                        <div id="text-${d.id}" class="task-desc">${cleanDesc}</div>
+                    </div>
+
+                    <div class="task-footer">
+                        <div class="footer-left">
+                            <span id="btn-more-${d.id}" class="footer-link" onclick="toggleText('${d.id}')">Ver mais</span>
+                            ${t.links && t.links.length > 0 ? `<span class="footer-link" style="display:block" onclick="openAnexos('${d.id}')">Anexos (${t.links.length})</span>` : ''}
+                            ${t.referencias && t.referencias.length > 0 ? `<span class="footer-link" style="display:block; color:var(--accent)" onclick="openRefs('${d.id}')">📚 Referências (${t.referencias.length})</span>` : ''}
+                        </div>
+                        <div class="footer-right">
+                            <button class="action-btn btn-doing" onclick="updateTaskState('${d.id}', 'a-fazer')">🚧 A fazer</button>
+                            <button class="action-btn btn-done" onclick="completeTask('${d.id}')">✅ Concluído</button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+
+                setTimeout(() => {
+                    const textEl = document.getElementById(`text-${d.id}`);
+                    const btnEl = document.getElementById(`btn-more-${d.id}`);
+                    if (textEl && textEl.scrollHeight > 150) { btnEl.style.display = "block"; }
+                }, 100);
+            });
         };
 
         window.toggleText = (id) => {
@@ -527,7 +570,7 @@ snap.forEach(d => {
                     </div>
                 `;
                 // Se quiser que ao clicar ele vá para o gestor do world:
-                item.onclick = () => window.location.href = `world.html?pageId=${ref.id}`;
+                item.onclick = () => window.open('worldedit.html?pageId=' + ref.id, '_blank');
 
                 body.appendChild(item);
             });
