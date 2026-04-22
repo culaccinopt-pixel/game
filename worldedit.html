@@ -232,7 +232,7 @@
     let editingPostId = null; // NOVO: Para saber se estamos a editar um post
 
     // --- BLOCO DE SEGURANÇA ---
-    onAuthStateChanged(auth, async (user) => {
+ onAuthStateChanged(auth, async (user) => {
         if (!user) {
             window.location.href = "login.html";
         } else {
@@ -240,8 +240,9 @@
             const userSnap = await getDoc(userRef);
 
             if (userSnap.exists() && userSnap.data().status === true) {
-                currentUserId = user.uid; // CAPTURA O ID AQUI
-                loadTemas(); 
+                currentUserId = user.uid;
+                await loadTemas(); // Espera os temas carregarem
+                checkDeepLink();   // Verifica se há uma página na URL para abrir
             } else {
                 alert("Acesso negado.");
                 await signOut(auth);
@@ -319,6 +320,39 @@ async function loadTemas() {
     });
 }
 
+
+// --- FUNÇÃO PARA ABRIR PÁGINA VIA URL ---
+    async function checkDeepLink() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetPageId = urlParams.get('pageId');
+
+        if (targetPageId) {
+            try {
+                // 1. Busca os dados da página referenciada
+                const pageRef = doc(db, "world_pages", targetPageId);
+                const pageSnap = await getDoc(pageRef);
+
+                if (pageSnap.exists()) {
+                    const pageData = pageSnap.data();
+                    
+                    // 2. Busca os dados do tema dessa página
+                    const temaRef = doc(db, "temas", pageData.temaId);
+                    const temaSnap = await getDoc(temaRef);
+
+                    if (temaSnap.exists()) {
+                        // 3. Executa as seleções visualmente
+                        window.selectTema(pageData.temaId, temaSnap.data().nome);
+                        window.selectPage(targetPageId, pageData.titulo);
+                        
+                        console.log("Página aberta via link direto:", pageData.titulo);
+                    }
+                }
+            } catch (e) {
+                console.error("Erro ao carregar link direto:", e);
+            }
+        }
+    }
+    
 // --- ATUALIZAÇÃO DA CARGA DE PÁGINAS ---
 async function loadPages() {
     if(!currentTemaId) return;
