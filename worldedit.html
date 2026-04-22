@@ -322,42 +322,44 @@ async function loadTemas() {
 
 
 // --- FUNÇÃO PARA ABRIR PÁGINA VIA URL ---
-    async function checkDeepLink() {
+  async function checkDeepLink() {
         const urlParams = new URLSearchParams(window.location.search);
         const targetPageId = urlParams.get('pageId');
 
         if (targetPageId) {
             try {
-                // 1. Busca os dados da página referenciada
+                // 1. Busca os dados da página para saber o Tema pai
                 const pageRef = doc(db, "world_pages", targetPageId);
                 const pageSnap = await getDoc(pageRef);
 
                 if (pageSnap.exists()) {
                     const pageData = pageSnap.data();
                     
-                    // 2. Busca os dados do tema dessa página
+                    // 2. Busca o nome do Tema
                     const temaRef = doc(db, "temas", pageData.temaId);
                     const temaSnap = await getDoc(temaRef);
 
                     if (temaSnap.exists()) {
-                        // 3. Executa as seleções visualmente
+                        // 3. Define a página alvo globalmente para o loadPages usar depois
+                        window.pendingPageTarget = targetPageId;
+
+                        // 4. Seleciona o Tema (isso vai disparar o loadPages)
                         window.selectTema(pageData.temaId, temaSnap.data().nome);
-                        window.selectPage(targetPageId, pageData.titulo);
                         
-                        console.log("Página aberta via link direto:", pageData.titulo);
+                        // 5. Seleciona a Página (carrega os posts e muda a visão)
+                        window.selectPage(targetPageId, pageData.titulo);
                     }
                 }
             } catch (e) {
-                console.error("Erro ao carregar link direto:", e);
+                console.error("Erro no Deep Link:", e);
             }
         }
     }
-    
+
 // --- ATUALIZAÇÃO DA CARGA DE PÁGINAS ---
 async function loadPages() {
     if(!currentTemaId) return;
     
-    // A consulta precisa de um índice: temaId (ASC) + createdAt (DESC)
     const q = query(
         collection(db, "world_pages"), 
         where("temaId", "==", currentTemaId), 
@@ -375,6 +377,12 @@ async function loadPages() {
             const div = document.createElement('div');
             div.className = `list-item ${isDone ? 'done' : ''}`;
             div.id = `page-${d.id}`;
+            
+            // Se esta for a página vinda do link direto, marca como ativa
+            if (window.pendingPageTarget === d.id) {
+                div.classList.add('active');
+            }
+
             div.innerHTML = `
                 <span class="item-name" onclick="selectPage('${d.id}', '${page.titulo}')">${page.titulo}</span>
                 <div style="display:flex; gap:5px">
@@ -386,9 +394,12 @@ async function loadPages() {
             `;
             container.appendChild(div);
         });
+
+        // Limpa o alvo pendente após carregar
+        window.pendingPageTarget = null;
+
     } catch (error) {
         console.error("Erro ao carregar páginas: ", error);
-        // Se cair aqui, o link para criar o índice aparecerá no console do navegador
     }
 }
 
