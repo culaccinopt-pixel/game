@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestor Master - Firebase</title>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    
+    <style>
+        :root {
+            --primary: #2563eb; --bg: #0f172a; --card: #1e293b;
+            --border: #334155; --text: #f1f5f9; --doing: #854d0e; --done: #166534;
+            --accent: #8b5cf6;
+        }
+
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--text); }
+        .container { max-width: 900px; margin: 0 auto; background: var(--card); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
+
+        /* Tabs */
+        .tabs { display: flex; background: #1e293b; border-bottom: 1px solid var(--border); }
+        .tab-btn { flex: 1; padding: 15px; border: none; background: transparent; cursor: pointer; font-weight: bold; color: #94a3b8; }
+        .tab-btn.active { color: var(--primary); border-bottom: 3px solid var(--primary); background: rgba(37, 99, 235, 0.1); }
+
+        .content { padding: 25px; display: none; }
+        .content.active { display: block; }
+
+        /* Form Layout */
+        .form-row { display: flex; gap: 12px; margin-bottom: 15px; align-items: flex-end; }
+        .group-order { width: 70px; }
+        .group-to { width: 180px; }
+        .group-name { flex: 1; }
+        .group-status { width: 150px; }
+
+        label { display: block; font-size: 0.8em; margin-bottom: 5px; color: #94a3b8; font-weight: 600; }
+        input, textarea, select { width: 100%; padding: 10px; background: #0f172a; border: 1px solid var(--border); border-radius: 8px; color: white; box-sizing: border-box; }
+        
+        .toolbar { display: flex; gap: 5px; background: #334155; padding: 8px; border-radius: 8px 8px 0 0; }
+        .toolbar button { background: #1e293b; border: 1px solid var(--border); color: white; padding: 5px 12px; cursor: pointer; border-radius: 4px; font-weight: bold; }
+        
+        .desc-area { height: 300px; border-radius: 0 0 8px 8px; }
+
+        /* Sistema de Links e Refs */
+        .links-header { display: flex; gap: 8px; margin-bottom: 10px; }
+        .btn-add-any { flex: 1; background: #334155; border: 1px solid var(--primary); color: var(--primary); border-radius: 4px; cursor: pointer; padding: 8px; font-size: 0.75em; font-weight: bold; transition: 0.3s; }
+        .btn-add-any:hover { background: var(--primary); color: white; }
+        .btn-ref { border-color: var(--accent); color: var(--accent); }
+        .btn-ref:hover { background: var(--accent); color: white; }
+
+        .item-anexo { display: flex; gap: 5px; margin-bottom: 5px; align-items: center; background: rgba(255,255,255,0.05); padding: 5px; border-radius: 6px; }
+        .ref-tag { background: var(--accent); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.8em; flex: 1; }
+        .btn-del-link { background: #7f1d1d; border: none; color: white; border-radius: 4px; cursor: pointer; padding: 5px 10px; }
+
+        .btn-save { background: var(--primary); color: white; border: none; padding: 15px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; margin-top: 15px; }
+
+        /* Lista */
+        #taskList { list-style: none; padding: 0; }
+        .task-item { display: flex; align-items: center; gap: 15px; padding: 12px; background: #1e293b; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px; cursor: grab; }
+.task-item.status-a-fazer { 
+    border-left: 5px solid #fbbf24; 
+    background: var(--doing) !important; /* Preenche o fundo com o amarelo escuro */
+}
+        .task-item.status-feito { border-left: 5px solid #22c55e; background: var(--done); }
+        .task-name-list { flex: 1; font-weight: 500; }
+
+        /* Modais */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+        .modal-body { background: var(--card); width: 100%; max-width: 850px; padding: 30px; border-radius: 15px; border: 1px solid var(--border); max-height: 90vh; overflow-y: auto; }
+        
+        /* Lista de Seleção de Refs */
+        .ref-selection-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .ref-opt { background: #0f172a; padding: 10px; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; text-align: left; color: white; font-size: 0.9em; }
+        .ref-opt:hover { border-color: var(--accent); }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('tabCriar')">1 - Criar</button>
+        <button class="tab-btn" onclick="switchTab('tabEditar')">2 - Editar / Ordenar</button>
+    </div>
+
+    <!-- ABA CRIAR -->
+    <div id="tabCriar" class="content active">
+        <div class="form-row">
+            <div class="group-order"><label>Ordem</label><input type="number" id="newOrder" readonly></div>
+            <div class="group-to"><label>Atribuir a</label><select id="newUserSelect"></select></div>
+            <div class="group-name"><label>Nome da Tarefa</label><input type="text" id="newName"></div>
+        </div>
+        
+        <div style="display: flex; gap: 20px;">
+            <div style="flex: 2;">
+                <label>Descrição</label>
+                <div class="toolbar">
+                    <button onclick="insertFormat('newDesc', 'b')">B</button>
+                    <button onclick="insertFormat('newDesc', 'img')">🖼️</button>
+                    <button onclick="insertFormat('newDesc', 'time')">🕒</button>
+                </div>
+                <textarea id="newDesc" class="desc-area"></textarea>
+            </div>
+            <div style="flex: 1;">
+                <label>Anexos e Referências</label>
+                <div class="links-header">
+                    <button class="btn-add-any" onclick="addLinkField('newLinksContainer')">+ Adicionar Link</button>
+                    <button class="btn-add-any btn-ref" onclick="openRefModal('newLinksContainer')">+ Adicionar Ref</button>
+                </div>
+                <div id="newLinksContainer" style="max-height: 340px; overflow-y: auto;"></div>
+            </div>
+        </div>
+        <button class="btn-save" onclick="saveTask()">🚀 Criar Tarefa</button>
+    </div>
+
+    <div id="tabEditar" class="content"><ul id="taskList"></ul></div>
+</div>
+
+<!-- POPUP EDITAR -->
+<div id="editModal" class="modal-overlay">
+    <div class="modal-body">
+        <h2 style="margin-top:0; color:var(--primary)">Editar Tarefa</h2>
+        <input type="hidden" id="editId">
+        
+        <div class="form-row">
+            <div class="group-to"><label>Para</label><select id="editUserSelect"></select></div>
+            <div class="group-name"><label>Nome</label><input type="text" id="editName"></div>
+            <div class="group-status">
+                <label>Estado</label>
+                <select id="editStatusSelect">
+                    <option value="não-feito">não-feito</option>
+                    <option value="a-fazer">a fazer</option>
+                    <option value="feito">concluido</option>
+                </select>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 20px;">
+            <div style="flex: 2;">
+                <label>Descrição</label>
+                <div class="toolbar">
+                    <button onclick="insertFormat('editDesc', 'b')">B</button>
+                    <button onclick="insertFormat('editDesc', 'img')">🖼️</button>
+                    <button onclick="insertFormat('editDesc', 'time')">🕒</button>
+                </div>
+                <textarea id="editDesc" style="height: 350px;"></textarea>
+            </div>
+            <div style="flex: 1;">
+                <label>Anexos</label>
+                <div class="links-header">
+                    <button class="btn-add-any" onclick="addLinkField('editLinksContainer')">+ Link</button>
+                    <button class="btn-add-any btn-ref" onclick="openRefModal('editLinksContainer')">+ Ref</button>
+                </div>
+                <div id="editLinksContainer" style="max-height: 390px; overflow-y: auto;"></div>
+            </div>
+        </div>
+
+        <div class="form-row" style="margin-top:20px">
+            <button class="btn-save" style="background: #059669; margin:0; flex:1" onclick="updateTask()">Gravar</button>
+            <button class="btn-save" style="background: #334155; margin:0; flex:1" onclick="closeModal('editModal')">Sair</button>
+        </div>
+    </div>
+</div>
+
+<!-- POPUP SELEÇÃO DE REFERÊNCIAS -->
+<div id="refModal" class="modal-overlay" style="z-index: 2000;">
+    <div class="modal-body" style="max-width: 500px;">
+        <h3 style="margin-top:0">Selecionar Página (World)</h3>
+        <input type="text" id="refSearch" placeholder="Pesquisar página..." oninput="filterRefs()">
+        <div id="refOptionsList" class="ref-selection-list"></div>
+        <button class="btn-save" style="background: #334155;" onclick="closeModal('refModal')">Cancelar</button>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs, query, orderBy, limit, doc, updateDoc, writeBatch, serverTimestamp, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyDPLJ4Ln3Ton-DxsJ0tEKeioWHnV01Plo0",
+        authDomain: "politicalgame-30215.firebaseapp.com",
+        projectId: "politicalgame-30215",
+        storageBucket: "politicalgame-30215.firebasestorage.app",
+        messagingSenderId: "736655823319",
+        appId: "1:736655823319:web:60ebdc530e101784b9bb92"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+    let usersMap = {}, tasksCache = {}, allWorldPages = [];
+    let activeContainerForRef = '';
+
+    signInAnonymously(auth);
+    onAuthStateChanged(auth, user => { if(user) { loadUsers(); loadWorldPages(); } });
+
+    // --- LÓGICA DE LINKS E REFS ---
+
+    window.addLinkField = (containerId, value = "") => {
+        const container = document.getElementById(containerId);
+        const div = document.createElement('div');
+        div.className = 'item-anexo';
+        div.dataset.type = 'url';
+        div.innerHTML = `
+            <input type="url" class="link-url" placeholder="http://..." value="${value}" style="flex:1; padding:5px; font-size:0.8em">
+            <button class="btn-del-link" onclick="this.parentElement.remove()">×</button>
+        `;
+        container.appendChild(div);
+    };
+
+    window.addRefTag = (containerId, pageId, pageTitle) => {
+        const container = document.getElementById(containerId);
+        const div = document.createElement('div');
+        div.className = 'item-anexo';
+        div.dataset.type = 'ref';
+        div.dataset.id = pageId;
+        div.dataset.title = pageTitle;
+        div.innerHTML = `
+            <span class="ref-tag">📄 ${pageTitle}</span>
+            <button class="btn-del-link" onclick="this.parentElement.remove()">×</button>
+        `;
+        container.appendChild(div);
+        closeModal('refModal');
+    };
+
+    window.openRefModal = (containerId) => {
+        activeContainerForRef = containerId;
+        renderRefOptions();
+        document.getElementById('refModal').style.display = 'flex';
+    };
+
+    async function loadWorldPages() {
+        const snap = await getDocs(collection(db, "world_pages"));
+        allWorldPages = [];
+        snap.forEach(d => allWorldPages.push({ id: d.id, ...d.data() }));
+    }
+
+    function renderRefOptions(filter = '') {
+        const list = document.getElementById('refOptionsList');
+        list.innerHTML = "";
+        allWorldPages
+            .filter(p => p.titulo.toLowerCase().includes(filter.toLowerCase()))
+            .forEach(p => {
+                const btn = document.createElement('button');
+                btn.className = 'ref-opt';
+                btn.innerText = p.titulo;
+                btn.onclick = () => addRefTag(activeContainerForRef, p.id, p.titulo);
+                list.appendChild(btn);
+            });
+    }
+
+    window.filterRefs = () => renderRefOptions(document.getElementById('refSearch').value);
+
+    function getAnexosFromContainer(containerId) {
+        const items = document.querySelectorAll(`#${containerId} .item-anexo`);
+        let links = [], referencias = [];
+        items.forEach(item => {
+            if(item.dataset.type === 'url') {
+                const val = item.querySelector('.link-url').value;
+                if(val) links.push(val);
+            } else {
+                referencias.push({ id: item.dataset.id, titulo: item.dataset.title });
+            }
+        });
+        return { links, referencias };
+    }
+
+    // --- FUNÇÕES CORE ---
+
+    window.closeModal = (id) => document.getElementById(id).style.display = 'none';
+
+    window.saveTask = async () => {
+        const nome = document.getElementById('newName').value;
+        if(!nome) return;
+        const { links, referencias } = getAnexosFromContainer('newLinksContainer');
+        
+        await addDoc(collection(db, "tarefas"), {
+            ordem: parseInt(document.getElementById('newOrder').value),
+            para: document.getElementById('newUserSelect').value,
+            nome: nome,
+            descricao: getFormattedTime() + "\n" + document.getElementById('newDesc').value,
+            links: links,
+            referencias: referencias,
+            estado: "não-feito",
+            timestamp: serverTimestamp()
+        });
+        location.reload(); 
+    };
+
+    window.openEdit = (id) => {
+        const t = tasksCache[id];
+        document.getElementById('editId').value = id;
+        document.getElementById('editName').value = t.nome;
+        document.getElementById('editDesc').value = t.descricao;
+        document.getElementById('editUserSelect').value = t.para;
+        document.getElementById('editStatusSelect').value = t.estado;
+        
+        const container = document.getElementById('editLinksContainer');
+        container.innerHTML = "";
+        if(t.links) t.links.forEach(link => addLinkField('editLinksContainer', link));
+        if(t.referencias) t.referencias.forEach(ref => addRefTag('editLinksContainer', ref.id, ref.titulo));
+        
+        document.getElementById('editModal').style.display = 'flex';
+    };
+
+    window.updateTask = async () => {
+        const id = document.getElementById('editId').value;
+        const { links, referencias } = getAnexosFromContainer('editLinksContainer');
+        await updateDoc(doc(db, "tarefas", id), {
+            nome: document.getElementById('editName').value,
+            descricao: document.getElementById('editDesc').value,
+            para: document.getElementById('editUserSelect').value,
+            estado: document.getElementById('editStatusSelect').value,
+            links: links,
+            referencias: referencias
+        });
+        closeModal('editModal');
+    };
+
+    // --- RESTANTE DAS FUNÇÕES (IGUAIS AO ANTERIOR) ---
+
+    function getFormattedTime() {
+        const d = new Date();
+        return `<b><h3>${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getFullYear()).slice(-2)} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}</h3></b>`;
+    }
+
+    async function loadUsers() {
+        const snap = await getDocs(query(collection(db, "users"), orderBy("nome", "asc")));
+        const sel1 = document.getElementById('newUserSelect'), sel2 = document.getElementById('editUserSelect');
+        sel1.innerHTML = ""; sel2.innerHTML = "";
+        snap.forEach(uDoc => {
+            usersMap[uDoc.id] = uDoc.data().nome;
+            const opt = `<option value="${uDoc.id}">${uDoc.data().nome}</option>`;
+            sel1.innerHTML += opt; sel2.innerHTML += opt;
+        });
+    }
+
+    window.insertFormat = (id, type) => {
+        const el = document.getElementById(id);
+        const s = el.selectionStart, e = el.selectionEnd, val = el.value.substring(s, e);
+        let tag = "";
+        if(type==='b') tag=`<b>${val}</b>`;
+        if(type==='time') tag=getFormattedTime() + "\n";
+        if(type==='img') { const url = prompt("URL da imagem:"); if(url) tag=`<img src="${url}" style="max-width:100%">`; }
+        if(tag) el.setRangeText(tag, s, e, 'select');
+    };
+
+    window.switchTab = (id) => {
+        document.querySelectorAll('.content, .tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        event.currentTarget.classList.add('active');
+        if(id === 'tabCriar') updateNextOrder();
+    };
+
+    async function updateNextOrder() {
+        const q = query(collection(db, "tarefas"), orderBy("ordem", "desc"), limit(1));
+        const snap = await getDocs(q);
+        let last = 0; snap.forEach(d => last = d.data().ordem);
+        document.getElementById('newOrder').value = last + 1;
+    }
+
+onSnapshot(query(collection(db, "tarefas"), orderBy("ordem", "asc")), (snap) => {
+        const list = document.getElementById('taskList');
+        list.innerHTML = "";
+        snap.forEach(d => {
+            const t = d.data();
+            tasksCache[d.id] = t;
+            const li = document.createElement('li');
+            li.dataset.id = d.id;
+            li.className = `task-item status-${t.estado}`;
+            
+            // LINHA ALTERADA ABAIXO:
+            li.innerHTML = `<span class="task-name-list">${t.ordem} - ${t.nome}</span><button class="btn-edit" onclick="openEdit('${d.id}')">✎</button>`;
+            
+            list.appendChild(li);
+        });
+    });
+
+    Sortable.create(document.getElementById('taskList'), {
+        animation: 150,
+        onEnd: async () => {
+            const batch = writeBatch(db);
+            document.querySelectorAll('.task-item').forEach((el, i) => {
+                batch.update(doc(db, "tarefas", el.dataset.id), { ordem: i + 1 });
+            });
+            await batch.commit();
+        }
+    });
+
+    updateNextOrder();
+</script>
+</body>
+</html>
