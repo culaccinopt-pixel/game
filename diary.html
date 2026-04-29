@@ -1,12 +1,9 @@
 <!DOCTYPE html>
-
-
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    
 
     <title>Gestor Master - Diário & Tarefas</title>
     <style>
@@ -219,18 +216,15 @@
     opacity: 0.8;
 }
 
-/* Estilo para tarefas futuras */
-.task-card.status-futuro {
-    background: #1e293b !important;
-    border: 1px solid #334155 !important;
-    border-left: 4px solid #475569 !important; /* Borda cinza */
-    opacity: 0.6;
-    pointer-events: none; /* Impede cliques */
-    filter: grayscale(0.8);
+/* Estado para cards bloqueados (Futuro) */
+.task-card.is-future {
+    opacity: 0.5;
+    filter: grayscale(1);
+    pointer-events: none;
+    padding: 12px; /* Reduz o tamanho do card já que só tem o título */
+    border-style: dashed; /* Opcional: dá um aspeto de "rascunho/futuro" */
 }
-.task-card.status-futuro .task-title {
-    color: #94a3b8;
-}
+
 
   </style>
 </head>
@@ -310,10 +304,9 @@
 
 
     <script type="module">
-        import { onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"; // Garanta que onSnapshot está no import
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, serverTimestamp, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        
+import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, serverTimestamp, doc, getDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDPLJ4Ln3Ton-DxsJ0tEKeioWHnV01Plo0",
@@ -338,7 +331,7 @@
                 currentUser = user; 
                 const uSnap = await getDoc(doc(db, "users", user.uid));
                 if(uSnap.exists()) userData = uSnap.data();
-                loadTasks(); 
+                 loadTasks(); 
             } else { window.location.href = "login.html"; }
         });
 
@@ -351,47 +344,45 @@
         };
 
         // --- TAREFAS ---
-  window.loadTasks = () => {
+ window.loadTasks = () => {
     const container = document.getElementById('tarefas-lista');
-    container.innerHTML = "<p style='text-align:center; opacity:0.5'>A carregar tarefas...</p>";
-    
     const q = query(collection(db, "tarefas"), where("para", "==", currentUser.uid), orderBy("ordem", "asc"));
-
-    // O onSnapshot garante que a mudança de "Futuro" para "Agora" seja instantânea na tela
-    onSnapshot(q, (snap) => {
+    
+    return onSnapshot(q, (snap) => {
         container.innerHTML = "";
         activeTasks = {};
-
+        
         snap.forEach(d => {
             const t = d.data();
             if(t.estado === 'feito') return;
             activeTasks[d.id] = t;
 
-            const isFuturo = t.tipo === 'futuro';
+            const isFuture = t.tipo === "futuro";
             const card = document.createElement('div');
-            
-            // Se for futuro, aplica classe de bloqueio, caso contrário usa a lógica normal
-            card.className = `task-card ${isFuturo ? 'status-futuro' : (t.estado === 'a-fazer' ? 'doing' : '')}`;
-            
-            if (isFuturo) {
-                // Layout Simplificado para tarefas Futuras
+            card.className = `task-card ${t.estado === 'a-fazer' ? 'doing' : ''} ${isFuture ? 'is-future' : ''}`;
+
+            if (isFuture) {
+                // RENDERIZAÇÃO APENAS DO TÍTULO
                 card.innerHTML = `
-                    <div class="task-header">
+                    <div class="task-header" style="margin-bottom: 0;">
                         <span class="task-order">#${t.ordem}</span>
-                        <div class="task-title">[Futuramente] ${t.nome}</div>
+                        <div class="task-title" style="opacity: 0.6;">[FUTURO] ${t.nome}</div>
                     </div>
                 `;
             } else {
-                // Layout Normal (O seu código original)
-                let cleanDesc = t.descricao.replace(/<h3.*?>.*?<\/h3>/i, '').replace(/<b>\s*<\/b>/gi, '').trim();
-                const firstH3 = document.createElement('div'); 
-                firstH3.innerHTML = t.descricao;
-                const timeHtml = firstH3.querySelector('h3')?.outerHTML || "";
+                // RENDERIZAÇÃO COMPLETA (Lógica original)
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = t.descricao;
+                const firstH3 = tempDiv.querySelector('h3');
+                const timeHtml = firstH3 ? firstH3.outerHTML : "";
+                let cleanDesc = t.descricao.replace(/<h3.*?>.*?<\/h3>/i, '').trim();
 
-                if (t.referencias) {
+                // Lógica de Referências Inline
+                if (t.referencias?.length > 0) {
                     t.referencias.forEach((ref, idx) => {
-                        const linkHtml = `<a href="worldedit.html?pageId=${ref.id}" target="_blank" class="ref-inline-link">[Referência ${idx + 1}]</a>`;
-                        cleanDesc = cleanDesc.split(`[Referência ${idx + 1}]`).join(linkHtml);
+                        const placeholder = `[Referência ${idx + 1}]`;
+                        const linkHtml = `<a href="worldedit.html?pageId=${ref.id}" target="_blank" class="ref-inline-link">${placeholder}</a>`;
+                        cleanDesc = cleanDesc.split(placeholder).join(linkHtml);
                     });
                 }
 
@@ -418,9 +409,9 @@
                 `;
             }
             container.appendChild(card);
-
-              // Verificar "Ver Mais" apenas se não for futuro
-            if (!isFuturo) {
+            
+            // Ativa o "Ver mais" apenas se não for futuro
+            if (!isFuture) {
                 setTimeout(() => {
                     const textEl = document.getElementById(`text-${d.id}`);
                     const btnEl = document.getElementById(`btn-more-${d.id}`);
@@ -430,6 +421,8 @@
         });
     });
 };
+
+         
 
         window.toggleText = (id) => {
             const wrap = document.getElementById(`wrap-${id}`);
