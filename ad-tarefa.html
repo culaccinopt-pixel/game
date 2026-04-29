@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestor Master - Firebase</title>
-    <!-- Alterado para um link de CDN mais comum para evitar bloqueios de tracking -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
     
     <style>
@@ -54,6 +53,9 @@
         .task-item.status-a-fazer { border-left: 5px solid #fbbf24; background: var(--doing) !important; }
         .task-item.status-feito { border-left: 5px solid #22c55e; background: var(--done); }
         .task-name-list { flex: 1; font-weight: 500; }
+
+        /* Estilo do botão de editar que estava em falta no CSS */
+        .btn-edit { background: var(--primary); border: none; color: white; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 14px; }
 
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
         .modal-body { background: var(--card); width: 100%; max-width: 850px; padding: 30px; border-radius: 15px; border: 1px solid var(--border); max-height: 90vh; overflow-y: auto; }
@@ -175,7 +177,7 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getFirestore, collection, addDoc, getDocs, query, orderBy, limit, doc, updateDoc, writeBatch, serverTimestamp, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyDPLJ4Ln3Ton-DxsJ0tEKeioWHnV01Plo0",
@@ -189,24 +191,97 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
+    let currentUserId = null;
     let usersMap = {}, tasksCache = {}, allWorldPages = [];
     let activeContainerForRef = '';
 
-    // Tentar login anónimo e avisar se falhar
-    signInAnonymously(auth).catch(err => {
-        console.error("Erro Auth:", err);
-        alert("Erro: Ative o Login Anónimo no Firebase Console.");
-    });
-
     onAuthStateChanged(auth, user => { 
-        if(user) { 
+        if(!user) {
+            window.location.href = "login.html"; 
+        } else { 
+            currentUserId = user.uid;
             loadUsers(); 
             loadWorldPages(); 
             updateNextOrder();
+            listenTasks(); 
         } 
     });
 
-    // --- FUNÇÕES ---
+    // Filtro de paste para manter limpo
+    [document.getElementById('newDesc'), document.getElementById('editDesc')].forEach(el => {
+        el.addEventListener('paste', (e) => {
+            e.preventDefault();
+            const text = (e.originalEvent || e).clipboardData.getData('text/plain');
+            document.execCommand('insertText', false, text);
+        });
+    });
+
+    async function loadUsers() {
+        const snap = await getDocs(query(collection(db, "users"), orderBy("nome", "asc")));
+        const sel1 = document.getElementById('newUserSelect'), sel2 = document.getElementById('editUserSelect');
+        sel1.innerHTML = ""; sel2.innerHTML = "";
+        snap.forEach(uDoc => {
+            usersMap[uDoc.id] = uDoc.data().nome;
+            const opt = `<option value="${uDoc.id}">${uDoc.data().nome}</option>`;
+            sel1.innerHTML += opt; sel2.innerHTML += opt;
+        });
+    }
+
+    async function loadWorldPages() {
+        const snap = await getDocs(collection(db, "world_pages"));
+        allWorldPages = [];
+        snap.forEach(d => allWorldPages.push({ id: d.id, ...d.data() }));
+    }
+
+    function listenTasks() {
+        onSnapshot(query(collection(db, "tarefas"), orderBy("ordem", "asc")), (snap) => {
+            const list = document.getElementById('taskList');
+            list.innerHTML = "";
+            snap.forEach(d => {
+                const t = d.data();
+                tasksCache[d.id] = t;
+                const li = document.createElement('li');
+                li.dataset.id = d.id;
+                li.className = `task-item status-${t.estado}`;
+                
+                // CORREÇÃO 2: Só mostra [FUTURO] se for tipo futuro.
+                const tipoTag = t.tipo === 'futuro' ? '[FUTURO] ' : '';
+
+                // CORREÇÃO 1: Botão aparece para o dono OU para tarefas antigas (sem userId)
+                const canEdit = (!t.userId || t.userId === currentUserId);
+                const editBtn = canEdit 
+                    ? `<button class="btn-edit" onclick="openEdit('${d.id}')">✎</button>` 
+                    : '';
+
+                li.innerHTML = `<span class="task-name-list">${t.ordem} - ${tipoTag}${t.nome}</span> ${editBtn}`;
+                list.appendChild(li);
+            });
+        });
+    }
+
+    window.saveTask = async () => {
+        const nome = document.getElementById('newName').value;
+        if(!nome) return;
+        const { links, referencias } = getAnexosFromContainer('newLinksContainer');
+        
+        try {
+            await addDoc(collection(db, "tarefas"), {
+                userId: currentUserId,
+                ordem: parseInt(document.getElementById('newOrder').value),
+                para: document.getElementById('newUserSelect').value,
+                tipo: document.getElementById('newType').value,
+                nome: nome,
+                descricao: document.getElementById('newDesc').value,
+                links: links,
+                referencias: referencias,
+                estado: "não-feito",
+                timestamp: serverTimestamp()
+            });
+            switchTab('tabEditar');
+        } catch (e) { alert("Erro ao gravar: " + e.message); }
+    };
+
+    // --- FUNÇÕES DE ANEXOS E TABS (SEM ALTERAÇÕES) ---
 
     window.addLinkField = (containerId, value = "") => {
         const container = document.getElementById(containerId);
@@ -234,12 +309,6 @@
         renderRefOptions();
         document.getElementById('refModal').style.display = 'flex';
     };
-
-    async function loadWorldPages() {
-        const snap = await getDocs(collection(db, "world_pages"));
-        allWorldPages = [];
-        snap.forEach(d => allWorldPages.push({ id: d.id, ...d.data() }));
-    }
 
     function renderRefOptions(filter = '') {
         const list = document.getElementById('refOptionsList');
@@ -273,27 +342,6 @@
 
     window.closeModal = (id) => document.getElementById(id).style.display = 'none';
 
-    window.saveTask = async () => {
-        const nome = document.getElementById('newName').value;
-        if(!nome) return;
-        const { links, referencias } = getAnexosFromContainer('newLinksContainer');
-        
-        try {
-            await addDoc(collection(db, "tarefas"), {
-                ordem: parseInt(document.getElementById('newOrder').value),
-                para: document.getElementById('newUserSelect').value,
-                tipo: document.getElementById('newType').value,
-                nome: nome,
-                descricao: getFormattedTime() + "\n" + document.getElementById('newDesc').value,
-                links: links,
-                referencias: referencias,
-                estado: "não-feito",
-                timestamp: serverTimestamp()
-            });
-            location.reload();
-        } catch (e) { alert("Erro ao gravar: " + e.message); }
-    };
-
     window.openEdit = (id) => {
         const t = tasksCache[id];
         document.getElementById('editId').value = id;
@@ -326,28 +374,15 @@
         closeModal('editModal');
     };
 
-    function getFormattedTime() {
-        const d = new Date();
-        return `<b><h3>${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getFullYear()).slice(-2)} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}</h3></b>`;
-    }
-
-    async function loadUsers() {
-        const snap = await getDocs(query(collection(db, "users"), orderBy("nome", "asc")));
-        const sel1 = document.getElementById('newUserSelect'), sel2 = document.getElementById('editUserSelect');
-        sel1.innerHTML = ""; sel2.innerHTML = "";
-        snap.forEach(uDoc => {
-            usersMap[uDoc.id] = uDoc.data().nome;
-            const opt = `<option value="${uDoc.id}">${uDoc.data().nome}</option>`;
-            sel1.innerHTML += opt; sel2.innerHTML += opt;
-        });
-    }
-
     window.insertFormat = (id, type) => {
         const el = document.getElementById(id);
         const s = el.selectionStart, e = el.selectionEnd, val = el.value.substring(s, e);
         let tag = "";
         if(type==='b') tag=`<b>${val}</b>`;
-        if(type==='time') tag=getFormattedTime() + "\n";
+        if(type==='time') {
+            const d = new Date();
+            tag = `<b><h3>${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}</h3></b>\n`;
+        }
         if(type==='img') { const url = prompt("URL da imagem:"); if(url) tag=`<img src="${url}" style="max-width:100%">`; }
         if(tag) el.setRangeText(tag, s, e, 'select');
     };
@@ -365,20 +400,6 @@
         let last = 0; snap.forEach(d => last = d.data().ordem);
         document.getElementById('newOrder').value = last + 1;
     }
-
-    onSnapshot(query(collection(db, "tarefas"), orderBy("ordem", "asc")), (snap) => {
-        const list = document.getElementById('taskList');
-        list.innerHTML = "";
-        snap.forEach(d => {
-            const t = d.data();
-            tasksCache[d.id] = t;
-            const li = document.createElement('li');
-            li.dataset.id = d.id;
-            li.className = `task-item status-${t.estado}`;
-            li.innerHTML = `<span class="task-name-list">${t.ordem} - [${(t.tipo || 'agora').toUpperCase()}] ${t.nome}</span><button class="btn-edit" onclick="openEdit('${d.id}')">✎</button>`;
-            list.appendChild(li);
-        });
-    });
 
     if(document.getElementById('taskList')) {
         Sortable.create(document.getElementById('taskList'), {
