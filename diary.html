@@ -1,9 +1,12 @@
 <!DOCTYPE html>
+
+
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
 
     <title>Gestor Master - Diário & Tarefas</title>
     <style>
@@ -216,6 +219,19 @@
     opacity: 0.8;
 }
 
+/* Estilo para tarefas futuras */
+.task-card.status-futuro {
+    background: #1e293b !important;
+    border: 1px solid #334155 !important;
+    border-left: 4px solid #475569 !important; /* Borda cinza */
+    opacity: 0.6;
+    pointer-events: none; /* Impede cliques */
+    filter: grayscale(0.8);
+}
+.task-card.status-futuro .task-title {
+    color: #94a3b8;
+}
+
   </style>
 </head>
 <body>
@@ -294,10 +310,11 @@
 
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"; // Garanta que onSnapshot está no import
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, serverTimestamp, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         
+
         const firebaseConfig = {
             apiKey: "AIzaSyDPLJ4Ln3Ton-DxsJ0tEKeioWHnV01Plo0",
             authDomain: "politicalgame-30215.firebaseapp.com",
@@ -334,67 +351,64 @@
         };
 
         // --- TAREFAS ---
-    window.loadTasks = async () => {
-            const container = document.getElementById('tarefas-lista');
-            container.innerHTML = "<p style='text-align:center; opacity:0.5'>A carregar tarefas...</p>";
+  window.loadTasks = () => {
+    const container = document.getElementById('tarefas-lista');
+    container.innerHTML = "<p style='text-align:center; opacity:0.5'>A carregar tarefas...</p>";
+    
+    const q = query(collection(db, "tarefas"), where("para", "==", currentUser.uid), orderBy("ordem", "asc"));
+
+    // O onSnapshot garante que a mudança de "Futuro" para "Agora" seja instantânea na tela
+    onSnapshot(q, (snap) => {
+        container.innerHTML = "";
+        activeTasks = {};
+
+        snap.forEach(d => {
+            const t = d.data();
+            if(t.estado === 'feito') return;
+            activeTasks[d.id] = t;
+
+            const isFuturo = t.tipo === 'futuro';
+            const card = document.createElement('div');
             
-            const q = query(collection(db, "tarefas"), where("para", "==", currentUser.uid), orderBy("ordem", "asc"));
-            const snap = await getDocs(q);
-            container.innerHTML = "";
+            // Se for futuro, aplica classe de bloqueio, caso contrário usa a lógica normal
+            card.className = `task-card ${isFuturo ? 'status-futuro' : (t.estado === 'a-fazer' ? 'doing' : '')}`;
             
-            activeTasks = {};
-            snap.forEach(d => {
-                const t = d.data();
-                if(t.estado === 'feito') return;
-                activeTasks[d.id] = t;
+            if (isFuturo) {
+                // Layout Simplificado para tarefas Futuras
+                card.innerHTML = `
+                    <div class="task-header">
+                        <span class="task-order">#${t.ordem}</span>
+                        <div class="task-title">[Futuramente] ${t.nome}</div>
+                    </div>
+                `;
+            } else {
+                // Layout Normal (O seu código original)
+                let cleanDesc = t.descricao.replace(/<h3.*?>.*?<\/h3>/i, '').replace(/<b>\s*<\/b>/gi, '').trim();
+                const firstH3 = document.createElement('div'); 
+                firstH3.innerHTML = t.descricao;
+                const timeHtml = firstH3.querySelector('h3')?.outerHTML || "";
 
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = t.descricao;
-
-                const firstH3 = tempDiv.querySelector('h3');
-                const timeHtml = firstH3 ? firstH3.outerHTML : "";
-
-                let cleanDesc = t.descricao.replace(/<h3.*?>.*?<\/h3>/i, ''); 
-                cleanDesc = cleanDesc.replace(/<b>\s*<\/b>/gi, '').trim();
-
-                // --- LÓGICA DE REFERÊNCIAS INLINE ---
-                if (t.referencias && t.referencias.length > 0) {
-                    t.referencias.forEach((ref, index) => {
-                        const numRef = index + 1;
-                        const placeholder = `[Referência ${numRef}]`;
-                        
-                        // Criamos o HTML do link (abre em nova aba para não perder a tarefa)
-                        const linkUrl = `worldedit.html?pageId=${ref.id}`;
-                        const linkHtml = `<a href="${linkUrl}" target="_blank" class="ref-inline-link" title="Abrir: ${ref.titulo}">${placeholder}</a>`;
-                        
-                        // Substituímos todas as ocorrências deste placeholder específico
-                        // Usamos split/join para substituir todas as instâncias sem regex complexa
-                        cleanDesc = cleanDesc.split(placeholder).join(linkHtml);
+                if (t.referencias) {
+                    t.referencias.forEach((ref, idx) => {
+                        const linkHtml = `<a href="worldedit.html?pageId=${ref.id}" target="_blank" class="ref-inline-link">[Referência ${idx + 1}]</a>`;
+                        cleanDesc = cleanDesc.split(`[Referência ${idx + 1}]`).join(linkHtml);
                     });
                 }
 
-                const card = document.createElement('div');
-                card.className = `task-card ${t.estado === 'a-fazer' ? 'doing' : ''}`;
-                
                 card.innerHTML = `
                     <div class="task-header">
                         <span class="task-order">#${t.ordem}</span>
                         <div class="task-title">${t.nome}</div>
                     </div>
-                    
                     <div class="task-separator"></div>
-                    
                     <div class="task-time-display">${timeHtml}</div>
-
                     <div id="wrap-${d.id}" class="task-desc-wrapper">
                         <div id="text-${d.id}" class="task-desc">${cleanDesc}</div>
                     </div>
-
                     <div class="task-footer">
                         <div class="footer-left">
                             <span id="btn-more-${d.id}" class="footer-link" onclick="toggleText('${d.id}')">Ver mais</span>
-                            ${t.links && t.links.length > 0 ? `<span class="footer-link" style="display:block" onclick="openAnexos('${d.id}')">Anexos (${t.links.length})</span>` : ''}
-                            ${t.referencias && t.referencias.length > 0 ? `<span class="footer-link" style="display:block; color:var(--accent)" onclick="openRefs('${d.id}')">📚 Referências (${t.referencias.length})</span>` : ''}
+                            ${t.links?.length > 0 ? `<span class="footer-link" style="display:block" onclick="openAnexos('${d.id}')">Anexos (${t.links.length})</span>` : ''}
                         </div>
                         <div class="footer-right">
                             <button class="action-btn btn-doing" onclick="updateTaskState('${d.id}', 'a-fazer')">🚧 A fazer</button>
@@ -402,15 +416,20 @@
                         </div>
                     </div>
                 `;
-                container.appendChild(card);
+            }
+            container.appendChild(card);
 
+              // Verificar "Ver Mais" apenas se não for futuro
+            if (!isFuturo) {
                 setTimeout(() => {
                     const textEl = document.getElementById(`text-${d.id}`);
                     const btnEl = document.getElementById(`btn-more-${d.id}`);
-                    if (textEl && textEl.scrollHeight > 150) { btnEl.style.display = "block"; }
+                    if (textEl && textEl.scrollHeight > 150) btnEl.style.display = "block";
                 }, 100);
-            });
-        };
+            }
+        });
+    });
+};
 
         window.toggleText = (id) => {
             const wrap = document.getElementById(`wrap-${id}`);
