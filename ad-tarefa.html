@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestor Master - Firebase</title>
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <!-- Alterado para um link de CDN mais comum para evitar bloqueios de tracking -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
     
     <style>
         :root {
@@ -14,9 +15,8 @@
         }
 
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--text); }
-        .container { max-width: 900px; margin: 0 auto; background: var(--card); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
+        .container { max-width: 950px; margin: 0 auto; background: var(--card); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
 
-        /* Tabs */
         .tabs { display: flex; background: #1e293b; border-bottom: 1px solid var(--border); }
         .tab-btn { flex: 1; padding: 15px; border: none; background: transparent; cursor: pointer; font-weight: bold; color: #94a3b8; }
         .tab-btn.active { color: var(--primary); border-bottom: 3px solid var(--primary); background: rgba(37, 99, 235, 0.1); }
@@ -24,10 +24,10 @@
         .content { padding: 25px; display: none; }
         .content.active { display: block; }
 
-        /* Form Layout */
         .form-row { display: flex; gap: 12px; margin-bottom: 15px; align-items: flex-end; }
         .group-order { width: 70px; }
-        .group-to { width: 180px; }
+        .group-to { width: 160px; }
+        .group-type { width: 120px; }
         .group-name { flex: 1; }
         .group-status { width: 150px; }
 
@@ -36,11 +36,8 @@
         
         .toolbar { display: flex; gap: 5px; background: #334155; padding: 8px; border-radius: 8px 8px 0 0; }
         .toolbar button { background: #1e293b; border: 1px solid var(--border); color: white; padding: 5px 12px; cursor: pointer; border-radius: 4px; font-weight: bold; }
-        
         .desc-area { height: 300px; border-radius: 0 0 8px 8px; }
 
-        /* Sistema de Links e Refs */
-        .links-header { display: flex; gap: 8px; margin-bottom: 10px; }
         .btn-add-any { flex: 1; background: #334155; border: 1px solid var(--primary); color: var(--primary); border-radius: 4px; cursor: pointer; padding: 8px; font-size: 0.75em; font-weight: bold; transition: 0.3s; }
         .btn-add-any:hover { background: var(--primary); color: white; }
         .btn-ref { border-color: var(--accent); color: var(--accent); }
@@ -52,25 +49,17 @@
 
         .btn-save { background: var(--primary); color: white; border: none; padding: 15px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; margin-top: 15px; }
 
-        /* Lista */
         #taskList { list-style: none; padding: 0; }
         .task-item { display: flex; align-items: center; gap: 15px; padding: 12px; background: #1e293b; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px; cursor: grab; }
-.task-item.status-a-fazer { 
-    border-left: 5px solid #fbbf24; 
-    background: var(--doing) !important; /* Preenche o fundo com o amarelo escuro */
-}
+        .task-item.status-a-fazer { border-left: 5px solid #fbbf24; background: var(--doing) !important; }
         .task-item.status-feito { border-left: 5px solid #22c55e; background: var(--done); }
         .task-name-list { flex: 1; font-weight: 500; }
 
-        /* Modais */
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
         .modal-body { background: var(--card); width: 100%; max-width: 850px; padding: 30px; border-radius: 15px; border: 1px solid var(--border); max-height: 90vh; overflow-y: auto; }
-        
-        /* Lista de Seleção de Refs */
         .ref-selection-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
         .ref-opt { background: #0f172a; padding: 10px; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; text-align: left; color: white; font-size: 0.9em; }
         .ref-opt:hover { border-color: var(--accent); }
-
     </style>
 </head>
 <body>
@@ -86,6 +75,13 @@
         <div class="form-row">
             <div class="group-order"><label>Ordem</label><input type="number" id="newOrder" readonly></div>
             <div class="group-to"><label>Atribuir a</label><select id="newUserSelect"></select></div>
+            <div class="group-type">
+                <label>Tipo</label>
+                <select id="newType">
+                    <option value="agora" selected>Agora</option>
+                    <option value="futuro">Futuro</option>
+                </select>
+            </div>
             <div class="group-name"><label>Nome da Tarefa</label><input type="text" id="newName"></div>
         </div>
         
@@ -100,15 +96,15 @@
                 <textarea id="newDesc" class="desc-area"></textarea>
             </div>
             <div style="flex: 1;">
-                <label>Anexos e Referências</label>
+                <label>Anexos</label>
                 <div class="links-header">
-                    <button class="btn-add-any" onclick="addLinkField('newLinksContainer')">+ Adicionar Link</button>
-                    <button class="btn-add-any btn-ref" onclick="openRefModal('newLinksContainer')">+ Adicionar Ref</button>
+                    <button class="btn-add-any" onclick="addLinkField('newLinksContainer')">+ Link</button>
+                    <button class="btn-add-any btn-ref" onclick="openRefModal('newLinksContainer')">+ Ref</button>
                 </div>
                 <div id="newLinksContainer" style="max-height: 340px; overflow-y: auto;"></div>
             </div>
         </div>
-        <button class="btn-save" onclick="saveTask()">🚀 Criar Tarefa</button>
+        <button class="btn-save" id="btnSave" onclick="saveTask()">🚀 Criar Tarefa</button>
     </div>
 
     <div id="tabEditar" class="content"><ul id="taskList"></ul></div>
@@ -122,6 +118,13 @@
         
         <div class="form-row">
             <div class="group-to"><label>Para</label><select id="editUserSelect"></select></div>
+            <div class="group-type">
+                <label>Tipo</label>
+                <select id="editType">
+                    <option value="agora">Agora</option>
+                    <option value="futuro">Futuro</option>
+                </select>
+            </div>
             <div class="group-name"><label>Nome</label><input type="text" id="editName"></div>
             <div class="group-status">
                 <label>Estado</label>
@@ -160,11 +163,10 @@
     </div>
 </div>
 
-<!-- POPUP SELEÇÃO DE REFERÊNCIAS -->
 <div id="refModal" class="modal-overlay" style="z-index: 2000;">
     <div class="modal-body" style="max-width: 500px;">
-        <h3 style="margin-top:0">Selecionar Página (World)</h3>
-        <input type="text" id="refSearch" placeholder="Pesquisar página..." oninput="filterRefs()">
+        <h3 style="margin-top:0">Selecionar Página</h3>
+        <input type="text" id="refSearch" placeholder="Pesquisar..." oninput="filterRefs()">
         <div id="refOptionsList" class="ref-selection-list"></div>
         <button class="btn-save" style="background: #334155;" onclick="closeModal('refModal')">Cancelar</button>
     </div>
@@ -190,20 +192,28 @@
     let usersMap = {}, tasksCache = {}, allWorldPages = [];
     let activeContainerForRef = '';
 
-    signInAnonymously(auth);
-    onAuthStateChanged(auth, user => { if(user) { loadUsers(); loadWorldPages(); } });
+    // Tentar login anónimo e avisar se falhar
+    signInAnonymously(auth).catch(err => {
+        console.error("Erro Auth:", err);
+        alert("Erro: Ative o Login Anónimo no Firebase Console.");
+    });
 
-    // --- LÓGICA DE LINKS E REFS ---
+    onAuthStateChanged(auth, user => { 
+        if(user) { 
+            loadUsers(); 
+            loadWorldPages(); 
+            updateNextOrder();
+        } 
+    });
+
+    // --- FUNÇÕES ---
 
     window.addLinkField = (containerId, value = "") => {
         const container = document.getElementById(containerId);
         const div = document.createElement('div');
         div.className = 'item-anexo';
         div.dataset.type = 'url';
-        div.innerHTML = `
-            <input type="url" class="link-url" placeholder="http://..." value="${value}" style="flex:1; padding:5px; font-size:0.8em">
-            <button class="btn-del-link" onclick="this.parentElement.remove()">×</button>
-        `;
+        div.innerHTML = `<input type="url" class="link-url" placeholder="http://..." value="${value}" style="flex:1; padding:5px; font-size:0.8em"><button class="btn-del-link" onclick="this.parentElement.remove()">×</button>`;
         container.appendChild(div);
     };
 
@@ -214,10 +224,7 @@
         div.dataset.type = 'ref';
         div.dataset.id = pageId;
         div.dataset.title = pageTitle;
-        div.innerHTML = `
-            <span class="ref-tag">📄 ${pageTitle}</span>
-            <button class="btn-del-link" onclick="this.parentElement.remove()">×</button>
-        `;
+        div.innerHTML = `<span class="ref-tag">📄 ${pageTitle}</span><button class="btn-del-link" onclick="this.parentElement.remove()">×</button>`;
         container.appendChild(div);
         closeModal('refModal');
     };
@@ -264,8 +271,6 @@
         return { links, referencias };
     }
 
-    // --- FUNÇÕES CORE ---
-
     window.closeModal = (id) => document.getElementById(id).style.display = 'none';
 
     window.saveTask = async () => {
@@ -273,17 +278,20 @@
         if(!nome) return;
         const { links, referencias } = getAnexosFromContainer('newLinksContainer');
         
-        await addDoc(collection(db, "tarefas"), {
-            ordem: parseInt(document.getElementById('newOrder').value),
-            para: document.getElementById('newUserSelect').value,
-            nome: nome,
-            descricao: getFormattedTime() + "\n" + document.getElementById('newDesc').value,
-            links: links,
-            referencias: referencias,
-            estado: "não-feito",
-            timestamp: serverTimestamp()
-        });
-        location.reload(); 
+        try {
+            await addDoc(collection(db, "tarefas"), {
+                ordem: parseInt(document.getElementById('newOrder').value),
+                para: document.getElementById('newUserSelect').value,
+                tipo: document.getElementById('newType').value,
+                nome: nome,
+                descricao: getFormattedTime() + "\n" + document.getElementById('newDesc').value,
+                links: links,
+                referencias: referencias,
+                estado: "não-feito",
+                timestamp: serverTimestamp()
+            });
+            location.reload();
+        } catch (e) { alert("Erro ao gravar: " + e.message); }
     };
 
     window.openEdit = (id) => {
@@ -292,6 +300,7 @@
         document.getElementById('editName').value = t.nome;
         document.getElementById('editDesc').value = t.descricao;
         document.getElementById('editUserSelect').value = t.para;
+        document.getElementById('editType').value = t.tipo || "agora";
         document.getElementById('editStatusSelect').value = t.estado;
         
         const container = document.getElementById('editLinksContainer');
@@ -309,14 +318,13 @@
             nome: document.getElementById('editName').value,
             descricao: document.getElementById('editDesc').value,
             para: document.getElementById('editUserSelect').value,
+            tipo: document.getElementById('editType').value,
             estado: document.getElementById('editStatusSelect').value,
             links: links,
             referencias: referencias
         });
         closeModal('editModal');
     };
-
-    // --- RESTANTE DAS FUNÇÕES (IGUAIS AO ANTERIOR) ---
 
     function getFormattedTime() {
         const d = new Date();
@@ -347,7 +355,7 @@
     window.switchTab = (id) => {
         document.querySelectorAll('.content, .tab-btn').forEach(el => el.classList.remove('active'));
         document.getElementById(id).classList.add('active');
-        event.currentTarget.classList.add('active');
+        if(event) event.currentTarget.classList.add('active');
         if(id === 'tabCriar') updateNextOrder();
     };
 
@@ -358,7 +366,7 @@
         document.getElementById('newOrder').value = last + 1;
     }
 
-onSnapshot(query(collection(db, "tarefas"), orderBy("ordem", "asc")), (snap) => {
+    onSnapshot(query(collection(db, "tarefas"), orderBy("ordem", "asc")), (snap) => {
         const list = document.getElementById('taskList');
         list.innerHTML = "";
         snap.forEach(d => {
@@ -367,26 +375,23 @@ onSnapshot(query(collection(db, "tarefas"), orderBy("ordem", "asc")), (snap) => 
             const li = document.createElement('li');
             li.dataset.id = d.id;
             li.className = `task-item status-${t.estado}`;
-            
-            // LINHA ALTERADA ABAIXO:
-            li.innerHTML = `<span class="task-name-list">${t.ordem} - ${t.nome}</span><button class="btn-edit" onclick="openEdit('${d.id}')">✎</button>`;
-            
+            li.innerHTML = `<span class="task-name-list">${t.ordem} - [${(t.tipo || 'agora').toUpperCase()}] ${t.nome}</span><button class="btn-edit" onclick="openEdit('${d.id}')">✎</button>`;
             list.appendChild(li);
         });
     });
 
-    Sortable.create(document.getElementById('taskList'), {
-        animation: 150,
-        onEnd: async () => {
-            const batch = writeBatch(db);
-            document.querySelectorAll('.task-item').forEach((el, i) => {
-                batch.update(doc(db, "tarefas", el.dataset.id), { ordem: i + 1 });
-            });
-            await batch.commit();
-        }
-    });
-
-    updateNextOrder();
+    if(document.getElementById('taskList')) {
+        Sortable.create(document.getElementById('taskList'), {
+            animation: 150,
+            onEnd: async () => {
+                const batch = writeBatch(db);
+                document.querySelectorAll('.task-item').forEach((el, i) => {
+                    batch.update(doc(db, "tarefas", el.dataset.id), { ordem: i + 1 });
+                });
+                await batch.commit();
+            }
+        });
+    }
 </script>
 </body>
 </html>
