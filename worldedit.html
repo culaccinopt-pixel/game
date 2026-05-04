@@ -315,21 +315,28 @@ async function loadTemas() {
     const snap = await getDocs(q);
     const container = document.getElementById('lista-temas');
     container.innerHTML = '';
+    
     snap.forEach(d => {
         const tema = d.data();
         const isDone = tema.feito === 'yes';
         const div = document.createElement('div');
         div.className = `list-item ${isDone ? 'done' : ''}`;
         div.id = `tema-${d.id}`;
+        
+        // Criamos o HTML sem o onclick direto
         div.innerHTML = `
-            <span class="item-name" onclick="selectTema('${d.id}', '${tema.nome}')">${tema.nome}</span>
+            <span class="item-name">${tema.nome}</span>
             <div style="display:flex; gap:5px">
-                <button class="btn-edit-small" onclick="toggleFeito('temas', '${d.id}', '${tema.feito}')">
-                    ${isDone ? '✅' : '✔️'}
-                </button>
-                <button class="btn-edit-small" onclick="openModal('tema', '${d.id}', '${tema.nome}')">✏️</button>
+                <button class="btn-edit-small btn-status">${isDone ? '✅' : '✔️'}</button>
+                <button class="btn-edit-small btn-edit">✏️</button>
             </div>
         `;
+
+        // Atribuímos os eventos de forma segura aqui:
+        div.querySelector('.item-name').onclick = () => selectTema(d.id, tema.nome);
+        div.querySelector('.btn-status').onclick = () => toggleFeito('temas', d.id, tema.feito);
+        div.querySelector('.btn-edit').onclick = () => openModal('tema', d.id, tema.nome);
+
         container.appendChild(div);
     });
 }
@@ -409,26 +416,27 @@ async function loadPages() {
             div.className = `list-item ${isDone ? 'done' : ''}`;
             div.id = `page-${d.id}`;
             
-            // VERIFICAÇÃO CRÍTICA: Se este ID é o que estamos a tentar abrir via link
             if (d.id === window.pendingPageTarget || d.id === currentPageId) {
                 div.classList.add('active');
             }
 
             div.innerHTML = `
-                <span class="item-name" onclick="selectPage('${d.id}', '${page.titulo}')">${page.titulo}</span>
+                <span class="item-name">${page.titulo}</span>
                 <div style="display:flex; gap:5px">
-                    <button class="btn-edit-small" onclick="toggleFeito('world_pages', '${d.id}', '${page.feito}')">
-                        ${isDone ? '✅' : '✔️'}
-                    </button>
-                    <button class="btn-edit-small" onclick="openModal('page', '${d.id}', '${page.titulo}')">✏️</button>
+                    <button class="btn-edit-small btn-status">${isDone ? '✅' : '✔️'}</button>
+                    <button class="btn-edit-small btn-edit">✏️</button>
                 </div>
             `;
+
+            // Atribuímos os eventos de forma segura para aceitar qualquer caractere
+            div.querySelector('.item-name').onclick = () => selectPage(d.id, page.titulo);
+            div.querySelector('.btn-status').onclick = () => toggleFeito('world_pages', d.id, page.feito);
+            div.querySelector('.btn-edit').onclick = () => openModal('page', d.id, page.titulo);
+
             container.appendChild(div);
         });
 
-        // Limpa o alvo pendente pois já foi renderizado
         window.pendingPageTarget = null;
-
     } catch (error) {
         console.error("Erro ao carregar páginas: ", error);
     }
