@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Informa o navegador que este é um site nativamente escuro -->
+    <meta name="color-scheme" content="dark">
+    <title>Dashboard Moderno - Dark Mode</title>
+    
+    <!-- Fonte moderna "Inter" -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome (Ícones) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <style>
+        /* Paleta Dark Mode Nativa */
+        :root {
+            --bg-body: #0f172a;       /* Slate 900 - Fundo mais escuro para profundidade */
+            --bg-panel: #1e293b;      /* Slate 800 - Fundo dos painéis e colunas */
+            --bg-topbar: #020617;     /* Slate 950 - Topo quase preto */
+            --border-color: #334155;  /* Slate 700 - Linhas subtis */
+            
+            --text-main: #f8fafc;     /* Slate 50 - Texto principal (branco suave) */
+            --text-muted: #94a3b8;    /* Slate 400 - Texto secundário e ícones inativos */
+            
+            --primary: #6366f1;       /* Indigo 500 - Cor de destaque (Azul elétrico) */
+            --primary-hover: #818cf8; /* Indigo 400 */
+            
+            --radius-md: 8px;
+            --radius-sm: 6px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.4);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            overflow: hidden;
+        }
+
+        /* --- MENU DE TOPO --- */
+        .top-menu {
+            display: flex;
+            height: 30px;
+            background-color: var(--bg-topbar);
+            align-items: center;
+            padding: 0 16px;
+            gap: 4px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .top-menu a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 4px 12px;
+            border-radius: var(--radius-sm);
+            transition: all 0.2s ease;
+        }
+
+        .top-menu a:hover {
+            color: var(--text-main);
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .top-menu a.active {
+            color: white;
+            background-color: var(--primary);
+        }
+
+        /* --- LAYOUT PRINCIPAL --- */
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .column {
+            background-color: var(--bg-panel);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- COLUNA ESQUERDA --- */
+        .left-col {
+            width: 260px;
+            border-right: 1px solid var(--border-color);
+            z-index: 10;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+
+        .left-buttons {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            padding: 0 10px;
+            background-color: var(--bg-panel);
+        }
+
+        .left-buttons button {
+            flex: 1;
+            padding: 12px 0;
+            border: none;
+            background: none;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-muted);
+            cursor: pointer;
+            position: relative;
+            transition: color 0.2s ease;
+        }
+
+        .left-buttons button:hover {
+            color: var(--text-main);
+        }
+
+        .left-buttons button.active {
+            color: var(--text-main); /* Em dark mode, o destaque no texto fica melhor em branco */
+            font-weight: 600;
+        }
+
+        .left-buttons button.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 10%;
+            width: 80%;
+            height: 2px;
+            background-color: var(--primary);
+            border-radius: 2px 2px 0 0;
+        }
+
+        /* --- COLUNA CENTRAL --- */
+        .center-col {
+            flex: 1;
+            background-color: var(--bg-body); /* Mais escuro que os painéis para dar profundidade */
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        .center-card {
+            background-color: var(--bg-panel);
+            border: 1px dashed var(--border-color);
+            border-radius: var(--radius-md);
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            font-size: 14px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* --- COLUNA DIREITA (Painel) --- */
+        .right-col {
+            width: 320px;
+            border-left: 1px solid var(--border-color);
+            box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+        }
+
+        /* Controlos Segmentados (EYE / BRAIN) - Adaptado para Dark Mode */
+        .segmented-control {
+            display: flex;
+            background-color: rgba(0, 0, 0, 0.25); /* Fundo "afundado" */
+            padding: 4px;
+            border-radius: var(--radius-md);
+            margin: 16px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .segmented-control button {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 8px 0;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            border-radius: var(--radius-sm);
+            transition: all 0.2s ease;
+        }
+
+        .segmented-control button.active {
+            background-color: var(--bg-panel); /* Sobressai acima do fundo escuro */
+            color: var(--text-main);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .segmented-control button i {
+            font-size: 14px;
+        }
+
+        /* Conteúdo das abas */
+        .tab-content {
+            display: none;
+            flex-direction: column;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: flex;
+        }
+
+        /* Sub-abas Modernas (Estilo Pills) */
+        .sub-tabs {
+            display: flex;
+            gap: 8px;
+            padding: 0 16px 16px 16px;
+            border-bottom: 1px solid var(--border-color);
+            flex-wrap: wrap;
+        }
+
+        .sub-tabs button {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border: 1px solid var(--border-color);
+            background: transparent; /* No dark mode fica melhor transparente por defeito */
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            color: var(--text-muted);
+            transition: all 0.2s ease;
+        }
+
+        .sub-tabs button:hover {
+            border-color: var(--text-muted);
+            color: var(--text-main);
+        }
+
+        /* Botão ativo inverte as cores para máximo contraste */
+        .sub-tabs button.active {
+            background-color: var(--text-main);
+            border-color: var(--text-main);
+            color: var(--bg-body);
+            font-weight: 600;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Menu de Topo -->
+    <nav class="top-menu">
+        <a href="#" class="nav-item active">Notas</a>
+        <a href="#" class="nav-item">Book</a>
+        <a href="#" class="nav-item">Bíblia</a>
+        <a href="#" class="nav-item">Biblioteca</a>
+        <a href="#" class="nav-item">WhiteBook</a>
+        <a href="#" class="nav-item">R-xay</a>
+    </nav>
+
+    <!-- Estrutura Principal -->
+    <div class="main-container">
+        
+        <!-- Coluna Esquerda -->
+        <aside class="column left-col">
+            <div class="left-buttons" id="left-buttons">
+                <button class="active">Local</button>
+                <button>Share</button>
+                <button>Pins</button>
+                <button>Flash</button>
+                <button>Lists</button>
+            </div>
+        </aside>
+
+        <!-- Coluna Central -->
+        <main class="center-col">
+            <div class="center-card">
+                <p>Área de Trabalho Central</p>
+            </div>
+        </main>
+
+        <!-- Coluna Direita (Painel) -->
+        <aside class="column right-col">
+            <!-- Abas Principais com Ícones (EYE / BRAIN) -->
+            <div class="segmented-control">
+                <button id="btn-eye" class="active" onclick="switchPanel('eye')">
+                    <i class="fa-solid fa-eye"></i> EYE
+                </button>
+                <button id="btn-brain" onclick="switchPanel('brain')">
+                    <i class="fa-solid fa-brain"></i> BRAIN
+                </button>
+            </div>
+
+            <!-- Painel EYE -->
+            <div id="panel-eye" class="tab-content active">
+                <div class="sub-tabs group-eye">
+                    <button class="active"><i class="fa-solid fa-list-ul"></i> Índice</button>
+                    <button><i class="fa-solid fa-file-lines"></i> Textos</button>
+                    <button><i class="fa-solid fa-book-bookmark"></i> Fontes</button>
+                </div>
+            </div>
+
+            <!-- Painel BRAIN -->
+            <div id="panel-brain" class="tab-content">
+                <div class="sub-tabs group-brain">
+                    <button class="active"><i class="fa-solid fa-puzzle-piece"></i> Puzzle</button>
+                    <button><i class="fa-solid fa-link"></i> Links</button>
+                    <button><i class="fa-regular fa-folder-open"></i> Dossiê</button>
+                    <button><i class="fa-solid fa-quote-left"></i> Cita</button>
+                </div>
+            </div>
+        </aside>
+
+    </div>
+
+    <!-- Script de Interatividade -->
+    <script>
+        function switchPanel(panelName) {
+            document.getElementById('btn-eye').classList.remove('active');
+            document.getElementById('btn-brain').classList.remove('active');
+            document.getElementById('btn-' + panelName).classList.add('active');
+
+            document.getElementById('panel-eye').classList.remove('active');
+            document.getElementById('panel-brain').classList.remove('active');
+            document.getElementById('panel-' + panelName).classList.add('active');
+        }
+
+        function setupButtonSelection(selector) {
+            const buttons = document.querySelectorAll(selector);
+            buttons.forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    buttons.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+        }
+
+        setupButtonSelection('.top-menu .nav-item');
+        setupButtonSelection('#left-buttons button');
+        setupButtonSelection('.group-eye button');
+        setupButtonSelection('.group-brain button');
+    </script>
+
+</body>
+</html>

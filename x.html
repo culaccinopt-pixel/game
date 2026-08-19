@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Arquiteto de Hierarquia Master</title>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        :root {
+            --bg: #05080f; --panel: #0a111d; --card: #111a27;
+            --accent: #00d4ff; --border: #1e293b; --text: #e2e8f0;
+            --success: #10b981; --warning: #f59e0b;
+        }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; padding-bottom: 100px; }
+        
+        .editor-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr);
+            gap: 15px; height: 70vh; margin-top: 20px;
+        }
+
+        .column {
+            background: var(--panel); border: 1px solid var(--border);
+            border-radius: 8px; display: flex; flex-direction: column;
+        }
+
+        .column-header {
+            background: rgba(255,255,255,0.05); padding: 15px;
+            border-bottom: 1px solid var(--border); font-weight: bold;
+            font-size: 0.75rem; text-transform: uppercase; color: var(--accent);
+        }
+
+        .list-group {
+            flex: 1; padding: 10px; overflow-y: auto;
+            border: 2px dashed transparent; min-height: 150px;
+        }
+
+        .drag-item {
+            background: var(--card); border: 1px solid var(--border);
+            padding: 12px; margin-bottom: 8px; border-radius: 6px;
+            cursor: grab; font-size: 0.85rem; display: flex;
+            justify-content: space-between; align-items: center;
+        }
+
+        .active-selection { border: 2px solid var(--accent) !important; background: #16243a !important; }
+        .ghost { opacity: 0.2; background: var(--accent) !important; }
+
+        /* BARRA DE SALVAMENTO */
+        .save-footer {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: #0f172a; border-top: 2px solid var(--accent);
+            padding: 20px; display: flex; justify-content: center;
+            gap: 20px; transform: translateY(100%); transition: 0.3s;
+            z-index: 1000; box-shadow: 0 -10px 30px rgba(0,0,0,0.5);
+        }
+        .save-footer.visible { transform: translateY(0); }
+
+        .btn {
+            padding: 12px 25px; border-radius: 6px; border: none;
+            font-weight: bold; cursor: pointer; text-transform: uppercase;
+            font-size: 0.8rem; display: flex; align-items: center; gap: 10px;
+        }
+        .btn-save { background: var(--success); color: white; }
+        .btn-save:hover { background: #059669; }
+        .btn-cancel { background: transparent; color: var(--text); border: 1px solid var(--border); }
+
+        .info-bar {
+            background: #1e293b; padding: 12px 20px; border-radius: 8px;
+            margin-bottom: 10px; font-size: 0.8rem; display: flex; gap: 25px;
+        }
+        .info-bar b { color: var(--accent); }
+    </style>
+</head>
+<body>
+
+    <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h2 style="margin:0"><i class="fas fa-project-diagram"></i> Arquiteto de Sistema</h2>
+        <a href="gestor.html" style="color: var(--accent); text-decoration: none;"> <i class="fas fa-times"></i> Sair do Editor</a>
+    </div>
+
+    <div class="info-bar">
+        <span>Filtro Pai: <b id="view-pai">---</b></span>
+        <span>Filtro Filho: <b id="view-filho">---</b></span>
+        <span>Filtro Neto: <b id="view-neto">---</b></span>
+    </div>
+
+    <div class="editor-grid">
+        <div class="column">
+            <div class="column-header">1. Pais</div>
+            <div id="col-pai" class="list-group" data-type="pai"></div>
+        </div>
+        <div class="column">
+            <div class="column-header">2. Filhos</div>
+            <div id="col-filho" class="list-group" data-type="filho"></div>
+        </div>
+        <div class="column">
+            <div class="column-header">3. Netos</div>
+            <div id="col-neto" class="list-group" data-type="neto"></div>
+        </div>
+        <div class="column">
+            <div class="column-header">4. Bisnetos</div>
+            <div id="col-bisneto" class="list-group" data-type="bisneto"></div>
+        </div>
+    </div>
+
+    <!-- BOTÃO FINAL DE GRAVAÇÃO -->
+    <div id="footer" class="save-footer">
+        <div style="margin-right: auto; display: flex; flex-direction: column;">
+            <span style="color: var(--warning); font-weight: bold;"><i class="fas fa-exclamation-triangle"></i> Alterações Pendentes</span>
+            <small style="opacity: 0.7;">As mudanças de hierarquia e ordem só serão aplicadas após gravar.</small>
+        </div>
+        <button class="btn btn-cancel" onclick="location.reload()">Descartar</button>
+        <button class="btn btn-save" id="btn-master-save">
+            <i class="fas fa-cloud-upload-alt"></i> Gravar Alterações no Sistema
+        </button>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, getDocs, doc, writeBatch, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDPLJ4Ln3Ton-DxsJ0tEKeioWHnV01Plo0",
+            authDomain: "politicalgame-30215.firebaseapp.com",
+            projectId: "politicalgame-30215",
+            storageBucket: "politicalgame-30215.firebasestorage.app",
+            messagingSenderId: "736655823319",
+            appId: "1:736655823319:web:60ebdc530e101784b9bb92"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let allDocs = [];
+        let state = { pai: null, filho: null, neto: null };
+        let pendingChanges = new Map(); // Guarda as alterações locais
+
+        async function loadData() {
+            const snap = await getDocs(query(collection(db, "docs"), orderBy("ordem", "asc")));
+            allDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            renderAll();
+        }
+
+        function renderColumn(type, containerId, filterFn) {
+            const container = document.getElementById(containerId);
+            const items = allDocs.filter(filterFn).sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+            
+            container.innerHTML = items.map(item => `
+                <div class="drag-item ${state[type] === item.nome ? 'active-selection' : ''}" 
+                     data-id="${item.id}" data-nome="${item.nome}">
+                    <span onclick="handleSelect('${type}', '${item.nome}')" style="flex:1; cursor:pointer">
+                        <i class="fas fa-grip-lines" style="margin-right:10px; opacity:0.3"></i> ${item.nome}
+                    </span>
+                </div>
+            `).join('');
+
+            initSortable(containerId, type);
+        }
+
+        function renderAll() {
+            renderColumn('pai', 'col-pai', d => d.categoria === 'pai');
+            renderColumn('filho', 'col-filho', d => d.categoria === 'filho' && d.categoriaPai === state.pai);
+            renderColumn('neto', 'col-neto', d => d.categoria === 'neto' && d.categoriaFilho === state.filho && d.categoriaPai === state.pai);
+            renderColumn('bisneto', 'col-bisneto', d => d.categoria === 'bisneto' && d.categoriaNeto === state.neto);
+            
+            document.getElementById('view-pai').innerText = state.pai || '---';
+            document.getElementById('view-filho').innerText = state.filho || '---';
+            document.getElementById('view-neto').innerText = state.neto || '---';
+        }
+
+        window.handleSelect = (type, nome) => {
+            if (type === 'pai') { state.pai = nome; state.filho = null; state.neto = null; }
+            else if (type === 'filho') { state.filho = nome; state.neto = null; }
+            else if (type === 'neto') { state.neto = nome; }
+            renderAll();
+        };
+
+     function initSortable(id, type) {
+            const el = document.getElementById(id);
+            if (el._sortable) el._sortable.destroy();
+            el._sortable = new Sortable(el, {
+                group: 'nested',
+                animation: 150,
+                ghostClass: 'ghost',
+                onEnd: (evt) => {
+                    const { from, to, item } = evt;
+                    const docId = item.getAttribute('data-id');
+                    const targetType = to.getAttribute('data-type');
+
+                    // 1. Mostrar o footer de salvar
+                    document.getElementById('footer').classList.add('visible');
+
+                    // 2. Definir os novos dados de hierarquia
+                    let updates = { categoria: targetType };
+                    if (targetType === 'pai') { 
+                        updates.categoriaPai = ""; updates.categoriaFilho = ""; updates.categoriaNeto = ""; 
+                    } else if (targetType === 'filho') { 
+                        updates.categoriaPai = state.pai || ""; updates.categoriaFilho = ""; updates.categoriaNeto = ""; 
+                    } else if (targetType === 'neto') { 
+                        updates.categoriaPai = state.pai || ""; updates.categoriaFilho = state.filho || ""; updates.categoriaNeto = ""; 
+                    } else if (targetType === 'bisneto') { 
+                        updates.categoriaPai = state.pai || ""; updates.categoriaFilho = state.filho || ""; updates.categoriaNeto = state.neto || ""; 
+                    }
+                    
+                    // 3. ATUALIZAÇÃO LOCAL (O SEGREDO): 
+                    // Atualizamos o objeto dentro de allDocs para que o renderAll não o jogue de volta
+                    const docIndex = allDocs.findIndex(d => d.id === docId);
+                    if (docIndex !== -1) {
+                        allDocs[docIndex] = { ...allDocs[docIndex], ...updates };
+                    }
+
+                    // 4. Salvar no Map de pendências para o Firebase
+                    pendingChanges.set(docId, updates);
+
+                    // 5. Atualizar ordem de todos na coluna de destino e sincronizar no allDocs
+                    const destItems = to.querySelectorAll('.drag-item');
+                    destItems.forEach((el, idx) => {
+                        const id = el.getAttribute('data-id');
+                        const currentUpdates = pendingChanges.get(id) || {};
+                        const finalUpdates = { ...currentUpdates, ordem: idx };
+                        
+                        pendingChanges.set(id, finalUpdates);
+
+                        // Sincroniza a ordem localmente também
+                        const localIdx = allDocs.findIndex(d => d.id === id);
+                        if (localIdx !== -1) allDocs[localIdx].ordem = idx;
+                    });
+
+                    // Não chamamos renderAll() aqui para não quebrar o drag visual, 
+                    // mas os dados já estão prontos para quando você clicar em outro item.
+                }
+            });
+        }
+
+        // BOTAO FINAL: GRAVAR TUDO
+        document.getElementById('btn-master-save').onclick = async () => {
+            const btn = document.getElementById('btn-master-save');
+            btn.innerText = "Gravando...";
+            btn.disabled = true;
+
+            const batch = writeBatch(db);
+            
+            pendingChanges.forEach((updates, id) => {
+                batch.update(doc(db, "docs", id), updates);
+            });
+
+            try {
+                await batch.commit();
+                alert("Todas as alterações foram gravadas com sucesso!");
+                location.reload();
+            } catch (err) {
+                console.error(err);
+                alert("Erro ao gravar alterações.");
+                btn.disabled = false;
+                btn.innerText = "Tentar Novamente";
+            }
+        };
+
+        loadData();
+    </script>
+</body>
+</html>

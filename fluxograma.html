@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestor Master - Editor de Fluxogramas</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root { 
+            --primary: #1e293b; 
+            --accent: #6366f1; 
+            --bg: #0f172a; 
+            --white: #f8fafc; 
+            --border: #334155; 
+            --card-bg: #1e293b;
+            --danger: #ef4444; 
+            --success: #10b981; 
+            --warning: #f59e0b;
+        }
+
+        * { box-sizing: border-box; }
+
+        body { 
+            font-family: 'Segoe UI', system-ui, sans-serif; 
+            margin: 0; 
+            background: var(--bg); 
+            color: var(--white); 
+            display: flex; 
+            flex-direction: column; 
+            height: 100vh; 
+            overflow: hidden; 
+        }
+
+        /* --- HEADER DE NAVEGAÇÃO --- */
+        header { 
+            background: var(--primary); 
+            padding: 10px 20px; 
+            border-bottom: 1px solid var(--border); 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            flex-shrink: 0; 
+            z-index: 100;
+        }
+
+        .header-left, .header-center, .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn-header {
+            background: #334155;
+            color: white;
+            border: 1px solid var(--border);
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: 0.2s;
+        }
+
+        .btn-header:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .btn-success { background: var(--success) !important; }
+        .btn-danger { background: var(--danger) !important; }
+
+        select.fc-select {
+            background: #0f172a;
+            color: white;
+            border: 1px solid var(--accent);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            outline: none;
+            cursor: pointer;
+            max-width: 250px;
+        }
+
+        .sync-badge {
+            font-size: 0.8rem;
+            background: #0f172a;
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            font-weight: bold;
+        }
+
+        /* --- CORPO E LAYOUT --- */
+        .workspace-layout {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* BARRA LATERAL ESQUERDA: PALETA DE FERRAMENTAS */
+        .sidebar-palette {
+            width: 220px;
+            background: var(--primary);
+            border-right: 1px solid var(--border);
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .palette-section-title {
+            font-size: 0.7rem;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .palette-item {
+            background: #0f172a;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: 0.2s;
+            user-select: none;
+        }
+
+        .palette-item:hover {
+            border-color: var(--accent);
+            transform: translateX(4px);
+            background: #1e293b;
+        }
+
+        .palette-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        /* ÁREA CENTRAL DO CANVAS */
+        .canvas-viewport {
+            flex: 1;
+            position: relative;
+            background-color: #0b1120;
+            background-image: 
+                radial-gradient(rgba(99, 102, 241, 0.12) 1px, transparent 1px);
+            background-size: 24px 24px;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        #svg-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        #svg-canvas * {
+            pointer-events: auto;
+        }
+
+        #nodes-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        /* CONTROLES DO CANVAS (ZOOM) */
+        .canvas-controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: var(--primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            padding: 5px;
+            gap: 5px;
+            z-index: 20;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+        }
+
+        .btn-canvas-ctrl {
+            width: 34px;
+            height: 34px;
+            background: #0f172a;
+            border: 1px solid var(--border);
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .btn-canvas-ctrl:hover {
+            background: var(--accent);
+        }
+
+        /* --- DESIGN DOS NÓS DO FLUXOGRAMA --- */
+        .flow-node {
+            position: absolute;
+            pointer-events: auto;
+            min-width: 140px;
+            padding: 12px;
+            color: white;
+            border: 2px solid var(--accent);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            cursor: move;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .flow-node.selected {
+            border-color: var(--warning) !important;
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.6) !important;
+            z-index: 10 !important;
+        }
+
+        /* Formas dos Nós */
+        .node-shape-rectangle { border-radius: 8px; }
+        .node-shape-pill { border-radius: 30px; padding: 10px 18px; text-align: center; }
+        .node-shape-diamond { 
+            transform: rotate(0deg); 
+            border-radius: 12px; 
+            clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+            padding: 25px 15px;
+            min-width: 150px;
+            text-align: center;
+        }
+        .node-shape-parallelogram { transform: skewX(-12deg); border-radius: 6px; }
+        .node-shape-parallelogram > * { transform: skewX(12deg); }
+        .node-shape-note { 
+            border-radius: 4px 18px 4px 4px; 
+            border-style: dashed;
+            background: #2a2010 !important;
+            border-color: #f59e0b !important;
+        }
+
+        .node-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .node-title {
+            font-weight: bold;
+            font-size: 0.9rem;
+            word-break: break-word;
+        }
+
+        .node-body {
+            font-size: 0.75rem;
+            color: #cbd5e1;
+            word-break: break-word;
+        }
+
+        .node-ports {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 4px;
+        }
+
+        .btn-connect-port {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.2s;
+        }
+
+        .btn-connect-port:hover {
+            background: var(--accent);
+            transform: scale(1.2);
+        }
+
+        /* BARRA LATERAL DIREITA: INSPECTOR DE PROPRIEDADES */
+        .sidebar-inspector {
+            width: 280px;
+            background: var(--primary);
+            border-left: 1px solid var(--border);
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .inspector-group {
+            background: #0f172a;
+            border: 1px solid var(--border);
+            padding: 14px;
+            border-radius: 8px;
+        }
+
+        .inspector-group h4 {
+            margin: 0 0 10px 0;
+            font-size: 0.8rem;
+            color: var(--accent);
+            text-transform: uppercase;
+        }
+
+        label {
+            display: block;
+            font-size: 0.7rem;
+            color: #94a3b8;
+            margin: 8px 0 4px 0;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+
+        input[type="text"], textarea, select {
+            width: 100%;
+            background: #1e293b;
+            border: 1px solid var(--border);
+            color: white;
+            padding: 8px 10px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            box-sizing: border-box;
+        }
+
+        input[type="color"] {
+            width: 100%;
+            height: 36px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: #1e293b;
+            cursor: pointer;
+        }
+
+        .hidden { display: none !important; }
+
+        /* Responsividade */
+        @media (max-width: 900px) {
+            .sidebar-palette { width: 160px; padding: 10px; }
+            .sidebar-inspector { width: 220px; padding: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER DE NAVEGAÇÃO -->
+    <header>
+        <div class="header-left">
+            <a href="gestor.html" class="btn-header" title="Voltar ao Gestor Master">
+                <i class="fas fa-arrow-left"></i> Voltar
+            </a>
+            <h3 style="margin:0; font-size: 1rem; color: var(--accent); display:flex; align-items:center; gap:8px;">
+                <span>🔀</span> FLUXOGRAMAS
+            </h3>
+        </div>
+
+        <div class="header-center">
+            <select id="flowchart-select" class="fc-select"></select>
+            <button id="btn-new-flowchart" class="btn-header btn-success" title="Criar Novo Fluxograma">
+                <i class="fas fa-plus"></i> Novo
+            </button>
+            <button id="btn-delete-flowchart" class="btn-header btn-danger" title="Eliminar Fluxograma Ativo">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+
+        <div class="header-right">
+            <div id="sync-status-badge" class="sync-badge">
+                🟢 <span style="color:#10b981;">Conectado</span>
+            </div>
+
+            <button id="btn-export-json" class="btn-header" title="Exportar para Ficheiro JSON">
+                <i class="fas fa-download"></i> JSON
+            </button>
+            
+            <label class="btn-header" style="margin:0; cursor:pointer;" title="Importar Ficheiro JSON">
+                <i class="fas fa-upload"></i> Importar
+                <input type="file" id="input-import-json" accept=".json" style="display:none;">
+            </label>
+        </div>
+    </header>
+
+    <!-- LAYOUT PRINCIPAL DA ÁREA DE TRABALHO -->
+    <div class="workspace-layout">
+
+        <!-- PALETA DE ADIÇÃO DE NÓS -->
+        <aside class="sidebar-palette">
+            <div class="palette-section-title">Nós & Formas</div>
+
+            <div class="palette-item" data-add-node="process">
+                <div class="palette-icon" style="background: rgba(99, 102, 241, 0.2); color: #6366f1;">▭</div>
+                <div>
+                    <div style="font-size:0.85rem; font-weight:bold;">Processo</div>
+                    <div style="font-size:0.65rem; color:#94a3b8;">Etapa / Ação</div>
+                </div>
+            </div>
+
+            <div class="palette-item" data-add-node="decision">
+                <div class="palette-icon" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b;">◇</div>
+                <div>
+                    <div style="font-size:0.85rem; font-weight:bold;">Decisão</div>
+                    <div style="font-size:0.65rem; color:#94a3b8;">Condição / Se</div>
+                </div>
+            </div>
+
+            <div class="palette-item" data-add-node="start">
+                <div class="palette-icon" style="background: rgba(16, 185, 129, 0.2); color: #10b981;">◯</div>
+                <div>
+                    <div style="font-size:0.85rem; font-weight:bold;">Início / Fim</div>
+                    <div style="font-size:0.65rem; color:#94a3b8;">Ponto de Partida</div>
+                </div>
+            </div>
+
+            <div class="palette-item" data-add-node="io">
+                <div class="palette-icon" style="background: rgba(14, 165, 233, 0.2); color: #0ea5e9;">▱</div>
+                <div>
+                    <div style="font-size:0.85rem; font-weight:bold;">Entrada / Saída</div>
+                    <div style="font-size:0.65rem; color:#94a3b8;">Dados / I/O</div>
+                </div>
+            </div>
+
+            <div class="palette-item" data-add-node="note">
+                <div class="palette-icon" style="background: rgba(139, 92, 246, 0.2); color: #8b5cf6;">📝</div>
+                <div>
+                    <div style="font-size:0.85rem; font-weight:bold;">Nota</div>
+                    <div style="font-size:0.65rem; color:#94a3b8;">Comentário</div>
+                </div>
+            </div>
+
+            <div style="margin-top:auto; font-size:0.7rem; color:#64748b; line-height:1.4; border-top:1px solid var(--border); padding-top:10px;">
+                💡 <b>Dica:</b> Arraste com o botão esquerdo para mover os nós. Clique no ícone 🔌 para ligar um nó a outro.
+            </div>
+        </aside>
+
+        <!-- CANVAS INTERATIVO -->
+        <main class="canvas-viewport" id="flowchart-container">
+            <svg id="svg-canvas"></svg>
+            <div id="nodes-layer"></div>
+
+            <div class="canvas-controls">
+                <button class="btn-canvas-ctrl" id="btn-zoom-in" title="Aumentar Zoom">+</button>
+                <button class="btn-canvas-ctrl" id="btn-zoom-out" title="Diminuir Zoom">-</button>
+                <button class="btn-canvas-ctrl" id="btn-zoom-reset" title="Centralizar Visualização">🔍</button>
+            </div>
+        </main>
+
+        <!-- INSPECTOR DE PROPRIEDADES -->
+        <aside class="sidebar-inspector">
+            
+            <!-- PAINEL QUANDO NENHUM ELEMENTO ESTÁ SELECIONADO -->
+            <div id="inspector-empty-panel" class="inspector-group">
+                <h4>Visão Geral</h4>
+                <p style="font-size:0.8rem; color:#94a3b8;">Selecione um nó ou uma linha de conexão para editar as suas propriedades.</p>
+
+                <label>Título do Fluxograma</label>
+                <input type="text" id="flowchart-title-input" value="">
+
+                <div style="margin-top:15px; border-top:1px dashed var(--border); padding-top:10px;">
+                    <div style="font-size:0.75rem; color:#94a3b8; display:flex; justify-content:space-between; margin-bottom:5px;">
+                        <span>Total de Nós:</span> <b id="stat-node-count" style="color:var(--white);">0</b>
+                    </div>
+                    <div style="font-size:0.75rem; color:#94a3b8; display:flex; justify-content:space-between; margin-bottom:5px;">
+                        <span>Total de Conexões:</span> <b id="stat-conn-count" style="color:var(--white);">0</b>
+                    </div>
+                    <div style="font-size:0.75rem; color:#94a3b8; display:flex; justify-content:space-between;">
+                        <span>Último Editor:</span> <b id="stat-last-user" style="color:var(--accent);">Nenhum</b>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAINEL DE PROPRIEDADES DE NÓ -->
+            <div id="inspector-node-panel" class="inspector-group hidden">
+                <h4>Propriedades do Nó</h4>
+
+                <label>Título / Rótulo</label>
+                <input type="text" id="prop-node-title" placeholder="Nome do Passo">
+
+                <label>Descrição / Detalhes</label>
+                <textarea id="prop-node-text" rows="3" placeholder="Informação adicional..."></textarea>
+
+                <label>Forma do Nó</label>
+                <select id="prop-node-shape">
+                    <option value="rectangle">Processo (Retângulo)</option>
+                    <option value="diamond">Decisão (Losango)</option>
+                    <option value="pill">Início/Fim (Oval)</option>
+                    <option value="parallelogram">Entrada/Saída (Paralelogramo)</option>
+                    <option value="note">Nota de Texto</option>
+                </select>
+
+                <label>Cor de Destaque</label>
+                <input type="color" id="prop-node-color" value="#6366f1">
+
+                <button id="btn-delete-selected-node" class="btn-header btn-danger" style="width:100%; margin-top:15px; justify-content:center;">
+                    <i class="fas fa-trash"></i> Eliminar Nó
+                </button>
+            </div>
+
+            <!-- PAINEL DE PROPRIEDADES DE CONEXÃO -->
+            <div id="inspector-conn-panel" class="inspector-group hidden">
+                <h4>Propriedades da Linha</h4>
+
+                <label>Texto da Conexão (ex: Sim/Não)</label>
+                <input type="text" id="prop-conn-label" placeholder="ex: Sim, Não, OK">
+
+                <button id="btn-delete-selected-conn" class="btn-header btn-danger" style="width:100%; margin-top:15px; justify-content:center;">
+                    <i class="fas fa-trash"></i> Eliminar Conexão
+                </button>
+            </div>
+
+        </aside>
+
+    </div>
+
+    <!-- INICIALIZAÇÃO MODULAR -->
+    <script type="module">
+        import { state } from "./js/flowchart-state.js";
+        import { FlowchartCanvas } from "./js/flowchart-canvas.js";
+        import { FlowchartUI } from "./js/flowchart-ui.js";
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const container = document.getElementById("flowchart-container");
+            const svg = document.getElementById("svg-canvas");
+            const nodesLayer = document.getElementById("nodes-layer");
+
+            // Inicializar Canvas e UI
+            const canvas = new FlowchartCanvas(container, svg, nodesLayer);
+            const ui = new FlowchartUI();
+
+            // Botões de Zoom do Canvas
+            document.getElementById("btn-zoom-in").addEventListener("click", () => {
+                canvas.scale = Math.min(canvas.scale * 1.2, 2.5);
+                canvas.applyTransform();
+            });
+
+            document.getElementById("btn-zoom-out").addEventListener("click", () => {
+                canvas.scale = Math.max(canvas.scale * 0.8, 0.3);
+                canvas.applyTransform();
+            });
+
+            document.getElementById("btn-zoom-reset").addEventListener("click", () => {
+                canvas.resetView();
+            });
+        });
+    </script>
+</body>
+</html>
